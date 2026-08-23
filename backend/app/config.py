@@ -1,26 +1,33 @@
+import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
+# Dynamically resolve the absolute path to backend/.env
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE_PATH = os.path.join(BACKEND_DIR, ".env")
 
 class Settings(BaseSettings):
     # Database connection string (defaults to a mock local SQLite DB if Neon URL isn't set yet)
-    DATABASE_URL: str = "postgresql://neondb_owner:npg_joGJhxuU0O7c@ep-rough-union-az8ee9rv-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/orca_marine"
 
     # Gemini API Credentials
-    GEMINI_API_KEY: str | None = None
+    GEMINI_API_KEY: Optional[str] = None
 
     # Bhashini Translation Credentials (if using custom endpoint keys)
-    BHASHINI_API_KEY: str | None = None
-    BHASHINI_USER_ID: str | None = None
+    BHASHINI_API_KEY: Optional[str] = None
+    BHASHINI_USER_ID: Optional[str] = None
 
     # Twilio SMS Config (for offline query gateway)
-    TWILIO_ACCOUNT_SID: str | None = None
-    TWILIO_AUTH_TOKEN: str | None = None
-    TWILIO_PHONE_NUMBER: str | None = None
+    TWILIO_ACCOUNT_SID: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_PHONE_NUMBER: Optional[str] = None
 
     # Load configurations from a local .env file if it exists
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=ENV_FILE_PATH, env_file_encoding="utf-8", extra="ignore"
     )
 
 
 settings = Settings()
+
