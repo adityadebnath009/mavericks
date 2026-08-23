@@ -1,43 +1,33 @@
-# Mavericks
+# ORCA Marine Portal
 
-Python project environment.
+Intelligent spatial decision support platform for Potential Fishing Zones (PFZs), weather safety routing, and boundary geofencing, powered by FastAPI and React.
 
-## Getting Started
+---
 
-### Prerequisites
+## 🚀 Getting Started
 
-- Python 3.14+ (or equivalent installed on your system)
+### 1. Database Setup
+Create a PostgreSQL database with PostGIS enabled (e.g. using Neon serverless postgres):
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
+```
 
-### Virtual Environment Setup
-
-A virtual environment is already created at `.venv/`.
-
-To activate it:
-
-On macOS/Linux:
+### 2. Backend Setup (FastAPI)
+Navigate to the backend directory, activate the virtual environment, install requirements, and run the server:
 ```bash
+cd backend
+python -m venv .venv
 source .venv/bin/activate
-```
-
-On Windows (Command Prompt):
-```cmd
-.venv\Scripts\activate.bat
-```
-
-On Windows (PowerShell):
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-### Install Dependencies
-
-Install packages listed in `requirements.txt`:
-```bash
 pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
+Interactive docs will be live at `http://localhost:8000/docs`.
 
-### Running the App
-
+### 3. Frontend Setup (React + MapLibre)
+Navigate to the frontend directory, install node modules, and run the development server:
 ```bash
-python main.py
+cd frontend
+npm install
+npm run dev
 ```
+Web app will be live at `http://localhost:5173`.
