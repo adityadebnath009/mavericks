@@ -1,10 +1,13 @@
 import os
+import io
+import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
 
 # Setup paths
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PROCESSED_CSV = PROJECT_ROOT / "data" / "processed" / "marine_risk_processed.csv"
 
 # Coordinates of our 6 buoys
@@ -17,13 +20,12 @@ BUOY_COORDINATES = {
     "arabian_sea_4n67e": (4.0, 67.0)
 }
 
-def download_era5_waves_mock():
+def download_era5_waves():
     """
-    Downloads historical Significant Wave Height (SWH) and Mean Wave Period (MWP)
-    using the Copernicus Climate Data Store (CDS) API.
-    
-    If the cdsapi is not installed or configured, it generates physically-consistent 
-    ocean swell and wave heights matching the wind speeds in the CSV (standard oceanographic wind-wave equations).
+    Integrates Significant Wave Height (SWH) and Mean Wave Period (MWP) into our buoy dataset.
+    Prioritizes reading the local 'data/raw/era5_wave_reanalysis.nc' NetCDF file.
+    If not present, attempts to fetch it via cdsapi. If config is missing, falls back
+    to physics-based wind-wave equations.
     """
     if not PROCESSED_CSV.exists():
         print("Error: preprocessed CSV not found!")
@@ -32,24 +34,84 @@ def download_era5_waves_mock():
     df = pd.read_csv(PROCESSED_CSV)
     df['datetime'] = pd.to_datetime(df['datetime'])
     
-    print("Pre-existing columns:", list(df.columns))
+    netcdf_output = RAW_DIR / "era5_wave_reanalysis.nc"
     
     # ----------------------------------------------------
-    # Check if CDS API is configured for real download
+    # Case 1: NetCDF File is already present in raw/
     # ----------------------------------------------------
-    cds_configured = os.path.exists(os.path.expanduser("~/.cdsapirc"))
-    
-    if cds_configured:
+    if netcdf_output.exists():
+        print(f"\n[INFO] Local NetCDF file found at: {netcdf_output.name}")
+        print("Extracting wave parameters from NetCDF grids...")
+        try:
+            import xarray as xr
+            
+            # Open the dataset
+            ds = xr.open_dataset(netcdf_output)
+            
+            # Map variable names (ERA5 uses swh/mwp or significant_height_of_combined_wind_waves_and_swell)
+            var_keys = list(ds.data_vars)
+            coord_keys = list(ds.coords)
+            
+            print("NetCDF variables:", var_keys)
+            print("NetCDF coordinates:", coord_keys)
+            
+            swh_key = next((k for k in var_keys if 'swh' in k or 'significant' in k), None)
+            mwp_key = next((k for k in var_keys if 'mwp' in k or 'period' in k), None)
+            time_key = next((k for k in coord_keys if 'time' in k), 'time')
+            
+            if not swh_key:
+                raise KeyError(f"Could not find Significant Wave Height column. Available variables: {var_keys}")
+                
+            wave_heights = []
+            wave_periods = []
+            
+            for idx, row in df.iterrows():
+                lat, lon = row['latitude'], row['longitude']
+                dt = row['datetime']
+                
+                # Query nearest coordinates in space and time
+                try:
+                    query_dict = {
+                        'latitude': lat,
+                        'longitude': lon,
+                        time_key: dt
+                    }
+                    subset = ds.sel(**query_dict, method='nearest')
+                    
+                    swh = float(subset[swh_key].values)
+                    mwp = float(subset[mwp_key].values) if mwp_key else np.nan
+                    
+                except Exception as inner_err:
+                    print(f"Coordinate query warning at Lat:{lat}, Lon:{lon}, Time:{dt} - {inner_err}")
+                    swh = np.nan
+                    mwp = np.nan
+                    
+                wave_heights.append(swh)
+                wave_periods.append(mwp)
+                
+            df['wave_height_m'] = wave_heights
+            if mwp_key:
+                df['wave_period_s'] = wave_periods
+            else:
+                df['wave_period_s'] = np.nan
+                
+            print("Merged NetCDF wave data successfully!")
+            
+        except Exception as e:
+            print(f"\n[Warning] Could not extract NetCDF wave data: {e}")
+            print("Falling back to physics-based wind-wave simulation...")
+            df = generate_physics_waves(df)
+            
+    # ----------------------------------------------------
+    # Case 2: No local file, check if CDS API is configured
+    # ----------------------------------------------------
+    elif os.path.exists(os.path.expanduser("~/.cdsapirc")):
         print("\n[INFO] ~/.cdsapirc found. Initiating real ERA5 Wave Reanalysis download...")
         try:
             import cdsapi
             import xarray as xr
             
             c = cdsapi.Client()
-            
-            # Define bounding box for our 6 buoys:
-            # North: 16N, South: 3N, West: 64E, East: 91E
-            netcdf_output = PROJECT_ROOT / "data" / "raw" / "era5_wave_reanalysis.nc"
             
             c.retrieve(
                 'reanalysis-era5-single-levels',
@@ -62,45 +124,28 @@ def download_era5_waves_mock():
                     'year': [str(y) for y in range(2020, 2027)],
                     'month': [f"{m:02d}" for m in range(1, 13)],
                     'day': [f"{d:02d}" for d in range(1, 32)],
-                    'time': '12:00',  # Match the 12:00 UTC buoy time
-                    'area': [16, 64, 3, 91],  # North, West, South, East
+                    'time': '12:00',
+                    'area': [18, 60, 2, 95],  # Bounding box covering all buoys
                     'format': 'netcdf',
                 },
                 str(netcdf_output)
             )
             
-            print(f"Successfully downloaded ERA5 NetCDF to {netcdf_output}")
-            print("Merging spatial wave grids with buoy timestamps...")
+            print(f"Successfully downloaded ERA5 NetCDF to {netcdf_output.name}")
             
-            # Read NetCDF
-            ds = xr.open_dataset(netcdf_output)
-            
-            wave_heights = []
-            wave_periods = []
-            
-            for idx, row in df.iterrows():
-                lat, lon = row['latitude'], row['longitude']
-                dt = row['datetime']
-                
-                # Query nearest grid point in space and time
-                wave_data = ds.sel(latitude=lat, longitude=lon, time=dt, method='nearest')
-                swh = float(wave_data['swh'].values)
-                mwp = float(wave_data['mwp'].values)
-                
-                wave_heights.append(swh)
-                wave_periods.append(mwp)
-                
-            df['wave_height_m'] = wave_heights
-            df['wave_period_s'] = wave_periods
-            print("Real ERA5 wave heights merged successfully!")
+            # Recursive call now that local NetCDF is downloaded
+            return download_era5_waves()
             
         except Exception as e:
             print(f"\n[Warning] Could not complete real ERA5 download: {e}")
             print("Falling back to physics-based wind-wave simulation...")
             df = generate_physics_waves(df)
             
+    # ----------------------------------------------------
+    # Case 3: No local file and no API key (Fallback)
+    # ----------------------------------------------------
     else:
-        print("\n[INFO] Copernicus CDS API key not configured in ~/.cdsapirc.")
+        print("\n[INFO] Local NetCDF not found and Copernicus CDS API key not configured.")
         print("Using physics-based wind-wave formulas (Fully-Developed Sea State) to merge wave heights...")
         df = generate_physics_waves(df)
         
@@ -113,21 +158,17 @@ def download_era5_waves_mock():
     print(df[['datetime', 'station_name', 'wind_speed_kts', 'wave_height_m', 'risk_label']].head(15))
 
 def generate_physics_waves(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Applies wind-wave equations (modified Carter/Pierson-Moskowitz equations)
-    to estimateSignificant Wave Height (SWH) and wave periods directly from wind speeds,
-    adding realistic swell noise and coastal current damping.
-    """
+    """Estimates Significant Wave Height (SWH) and periods from wind speed using Carter equations."""
     np.random.seed(42)
     
     # Convert knots back to m/s for physics calculation
     wspd_ms = df['wind_speed_kts'] / 1.94384
     
-    # Carter's fully developed wave height formula: H_s = 0.022 * U^2 (where U is wind speed in m/s)
-    # Plus a small random swell variance (0.2m to 0.5m)
+    # Carter's developed wave height formula: H_s = 0.022 * U^2
+    # Plus random swell variance
     swh = 0.022 * (wspd_ms ** 2) + np.random.uniform(0.1, 0.4, len(df))
     
-    # Average wave period: T = 0.8 * U (seconds)
+    # Average wave period: T = 0.8 * U
     mwp = 0.8 * wspd_ms + np.random.uniform(2.0, 4.0, len(df))
     
     # Clean up NaNs where wind speed was missing
@@ -188,4 +229,4 @@ def recalculate_risk_with_waves(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 if __name__ == "__main__":
-    download_era5_waves_mock()
+    download_era5_waves()
