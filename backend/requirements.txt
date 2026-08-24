@@ -4,7 +4,8 @@ geopandas==0.14.4
 shapely==2.0.4
 networkx==3.3
 psycopg2-binary>=2.9.10
-sqlalchemy==2.0.30
+sqlalchemy>=2.0.52
+geoalchemy2>=0.14.0
 google-generativeai==0.5.4
 pydantic-settings==2.2.1
 requests==2.31.0
@@ -14,4 +15,5 @@ scikit-learn>=1.4.0
 xgboost>=2.0.0
 xarray>=2023.1.0
 netcdf4>=1.6.0
+pypdf>=4.0.0
 pip
