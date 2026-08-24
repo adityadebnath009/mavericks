@@ -1,0 +1,57 @@
+[
+  {
+    "id": "INCOIS-OSF-2026-041",
+    "title": "INCOIS Ocean State Forecast: Wave Height & Swell Surge Thresholds for Artisanal Fishing",
+    "sourceAuthority": "INCOIS (Indian National Centre for Ocean Information Services)",
+    "documentType": "Ocean State Forecast",
+    "publicationDate": "2026-02-15",
+    "excerpt": "For non-motorized and motorized traditional crafts (OAL < 10m), significant wave height (Hs) exceeding 1.8m or swell period > 14 seconds indicates high capsizing probability in nearshore breakers. High Swell Surge alerts mandate suspension of beach launching.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://incois.gov.in/portal/osf/osf.jsp",
+    "complianceRule": "Safety Advisory: Suspend beach landing craft operations when Hs > 1.8m or swell period > 14s."
+  },
+  {
+    "id": "IMD-MAR-SQ-89",
+    "title": "IMD Cyclone Warning & Squally Weather Protocol for Bay of Bengal Coastal Strips",
+    "sourceAuthority": "IMD (India Meteorological Department)",
+    "documentType": "Cyclone Bulletin",
+    "publicationDate": "2026-02-18",
+    "excerpt": "Squally wind speed reaching 45-55 kmph (24-30 knots) gusting to 65 kmph creates Douglas Sea State 4 (Rough) to 5 (Very Rough). Small mechanised fishing trawlers must remain within 5 nautical miles or seek shelter at nearest protected fishing harbour.",
+    "relevanceScore": 0.92,
+    "officialUrl": "https://mausam.imd.gov.in/marine",
+    "complianceRule": "IMD Stage 2 Alert: No deep sea ventures when gusts exceed 30 knots."
+  },
+  {
+    "id": "CMFRI-PFZ-GUIDE-12",
+    "title": "CMFRI Potential Fishing Zones (PFZ) & Chlorophyll Thermal Front Safety Validation",
+    "sourceAuthority": "CMFRI & INCOIS",
+    "documentType": "Fisheries Advisory",
+    "publicationDate": "2026-01-20",
+    "excerpt": "PFZ advisories based on satellite SST gradients (0.5°C–1.2°C) and Chlorophyll-a (>0.6 mg/m³) identify high pelagic fish aggregations. However, if strong rip currents or localized wind squalls coincide with frontal zones, navigation hazard takes strict precedence over PFZ harvesting.",
+    "relevanceScore": 0.88,
+    "officialUrl": "https://www.cmfri.org.in",
+    "complianceRule": "Operational Doctrine: Weather and sea state safety index strictly overrides PFZ commercial utility."
+  },
+  {
+    "id": "ICG-SOP-VHF-CH16",
+    "title": "Indian Coast Guard Standard Operating Procedure: Mandatory Safety Equipment & Distress Relays",
+    "sourceAuthority": "Indian Coast Guard (Ministry of Defence)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-11-10",
+    "excerpt": "All registered sea-going fishing vessels operating beyond 3 nautical miles must carry: Lifejackets (1 per crew member), Lifebuoy with 30m lifeline, VHF radio tuned to Marine Channel 16 (156.800 MHz), GPS transponder (DAT/AIS-140), and red parachute flares.",
+    "relevanceScore": 0.85,
+    "officialUrl": "https://indiancoastguard.gov.in",
+    "complianceRule": "Mandatory Compliance: Carry VHF Ch 16 transmitter, certified lifejackets, and distress beacon."
+  },
+  {
+    "id": "IMO-SOLAS-V-REG34",
+    "title": "IMO SOLAS Chapter V Regulation 34: Safe Navigation and Voyage Planning Guidelines",
+    "sourceAuthority": "IMO (International Maritime Organization)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-06-01",
+    "excerpt": "Prior to proceeding to sea, the master shall ensure the intended voyage has been planned using appropriate nautical charts and publications, taking into account meteorological and oceanographic conditions, tidal windows, and emergency alternate anchorages.",
+    "relevanceScore": 0.81,
+    "officialUrl": "https://www.imo.org/en/Knowledge/Pages/SOLAS.aspx",
+    "complianceRule": "Voyage Planning Rule: Verify tidal clearance, wind direction against tidal current (wind-against-tide steepening)."
+  }
+]
