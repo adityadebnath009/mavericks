@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 db_dependency = Depends(get_db)
@@ -38,7 +39,7 @@ def check_geofence_status(
                         ST_SetSRID(ST_Point(:lon, :lat), 4326)::geography
                     )) / 1000.0 AS distance_km,
                     (
-                        SELECT NAME_ENG 
+                        SELECT "NAME_ENG" 
                         FROM marine_protected_areas 
                         WHERE ST_Contains(geometry, ST_SetSRID(ST_Point(:lon, :lat), 4326)) 
                         LIMIT 1
@@ -101,7 +102,69 @@ def check_geofence_status(
             "status": status,
             "message": message,
         }
-    except Exception as e:
+    except SQLAlchemyError as e:
         raise HTTPException(
             status_code=500, detail=f"Database spatial query error: {e}"
         )
+
+
+@router.get("/geojson")
+def get_geofence_geojson(db: Session = db_dependency):
+    """
+    Fetches simplified geometries of the Indian EEZ boundary and Marine Protected Areas (MPAs)
+    in GeoJSON format to render directly on the interactive map.
+    """
+    import json
+    try:
+        # 1. Fetch simplified EEZ boundary
+        query_eez = text("""
+            SELECT ST_AsGeoJSON(ST_Simplify(geometry, 0.01)) as geojson
+            FROM india_eez;
+        """)
+        # 2. Fetch simplified Marine Protected Areas (MPAs)
+        query_mpa = text("""
+            SELECT "NAME_ENG" as name, ST_AsGeoJSON(ST_Simplify(geometry, 0.005)) as geojson
+            FROM marine_protected_areas;
+        """)
+
+        eez_rows = db.execute(query_eez).fetchall()
+        mpa_rows = db.execute(query_mpa).fetchall()
+
+        features = []
+
+        # Parse EEZ Boundaries
+        for row in eez_rows:
+            if row.geojson:
+                geom = json.loads(row.geojson)
+                features.append({
+                    "type": "Feature",
+                    "properties": {
+                        "type": "EEZ",
+                        "name": "Indian Exclusive Economic Zone (EEZ)"
+                    },
+                    "geometry": geom
+                })
+
+        # Parse MPA Restricted Zones
+        for row in mpa_rows:
+            if row.geojson:
+                geom = json.loads(row.geojson)
+                features.append({
+                    "type": "Feature",
+                    "properties": {
+                        "type": "MPA",
+                        "name": row.name or "Marine Protected Area"
+                    },
+                    "geometry": geom
+                })
+
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+    except Exception as e:
+        # Return fallback empty FeatureCollection to prevent client-side crashes if DB drops
+        return {
+            "type": "FeatureCollection",
+            "features": []
+        }

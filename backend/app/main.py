@@ -1,6 +1,9 @@
-from app.api.router import api_router
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from app.api.router import api_router
 
 app = FastAPI(
     title="ORCA Marine Portal API",
@@ -20,11 +23,24 @@ app.add_middleware(
 # Register main API routers
 app.include_router(api_router, prefix="/api")
 
+# Serve React frontend assets statically (Single-Process Local Deployment rule)
+dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist"))
+assets_path = os.path.join(dist_path, "assets")
 
-@app.get("/")
-def root():
+if os.path.exists(assets_path):
+    app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+@app.get("/{fallback_path:path}")
+def serve_frontend(fallback_path: str):
+    """
+    Serves the index.html file for any non-API routes, enabling SPA routing.
+    """
+    index_file = os.path.join(dist_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
     return {
         "status": "online",
         "service": "ORCA Marine Intelligence Portal Backend",
         "version": "1.0.0",
+        "note": "Frontend assets not found. Run npm run build in frontend."
     }
