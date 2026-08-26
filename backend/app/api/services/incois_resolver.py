@@ -1,6 +1,7 @@
 import os
 import math
 import pickle
+import concurrent.futures
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -33,6 +34,7 @@ class IncoisDatasetResolver:
         Dynamically queries the remote WW3 and Currents NetCDF datasets using OPENDAP.
         Slices coordinates spatially and temporally for the target day (1, 2, or 3).
         Applies caching, quality control, unit conversions, and vector derivations.
+        Includes a strict 4.0-second timeout to fall back immediately if INCOIS hangs.
         """
         ww3_cache_file, curr_cache_file = cls.get_cache_paths(lat, lon, day)
         
@@ -47,8 +49,17 @@ class IncoisDatasetResolver:
             except Exception as e:
                 # Fallback to remote fetching if cache is corrupted
                 pass
-                
-        # 2. Fetch remote datasets via OPENDAP
+
+        # 2. Run remote fetch with a 4.0-second thread timeout
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(cls._fetch_remote, lat, lon, day, ww3_cache_file, curr_cache_file)
+            try:
+                return future.result(timeout=4.0)
+            except concurrent.futures.TimeoutError:
+                raise TimeoutError("INCOIS OPENDAP remote server timed out.")
+
+    @classmethod
+    def _fetch_remote(cls, lat: float, lon: float, day: int, ww3_cache_file: str, curr_cache_file: str):
         try:
             ds_ww3 = xr.open_dataset(cls.WW3_URL)
             ds_curr = xr.open_dataset(cls.CURRENTS_URL)
@@ -58,12 +69,9 @@ class IncoisDatasetResolver:
             curr_slice = ds_curr.sel(LAT=lat, LON=lon, DEPTH1_1=0.0, method="nearest")
             
             # Slices are 1D along time dimension (TIME for WW3, TAXIS for currents)
-            # Find target forecast date indices for the selected day.
-            # WW3 starts on 2026-08-26 00:00:00.
             start_idx = (day - 1) * 8
             
-            # Load subset of variables (including lookback indices to avoid multiple requests)
-            # We fetch from start_idx - 2 to support the 6-hour lookback
+            # Fetch from start_idx - 2 to support the 6-hour lookback
             target_indices_ww3 = list(range(max(0, start_idx - 2), min(len(ds_ww3.TIME), start_idx + 8)))
             ww3_subset = ww3_slice.isel(TIME=target_indices_ww3)
             

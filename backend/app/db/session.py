@@ -3,12 +3,14 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 from typing import Generator
 
-# Create the SQLAlchemy database engine
-# - For Neon PostgreSQL, we use standard connection pools
-# - we pass pool_pre_ping=True to automatically reconnect if the serverless DB goes cold
+connect_args = {}
+if settings.DATABASE_URL and settings.DATABASE_URL.startswith("postgresql"):
+    connect_args["connect_timeout"] = 3
+
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args=connect_args
 )
 
 # Create a sessionmaker factory to instantiate database sessions

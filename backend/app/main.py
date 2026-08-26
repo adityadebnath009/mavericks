@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.api.router import api_router
 
 app = FastAPI(
@@ -24,7 +24,7 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api")
 
 # Serve React frontend assets statically (Single-Process Local Deployment rule)
-dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist"))
+dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
 assets_path = os.path.join(dist_path, "assets")
 
 if os.path.exists(assets_path):
@@ -35,6 +35,8 @@ def serve_frontend(fallback_path: str):
     """
     Serves the index.html file for any non-API routes, enabling SPA routing.
     """
+    if fallback_path.startswith("api/") or fallback_path == "api":
+        return JSONResponse(status_code=404, content={"detail": f"API endpoint /{fallback_path} not found"})
     index_file = os.path.join(dist_path, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -44,3 +46,4 @@ def serve_frontend(fallback_path: str):
         "version": "1.0.0",
         "note": "Frontend assets not found. Run npm run build in frontend."
     }
+

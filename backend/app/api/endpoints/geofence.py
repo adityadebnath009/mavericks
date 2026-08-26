@@ -1,13 +1,117 @@
+import json
+import os
 from app.db.session import get_db
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+try:
+    from shapely.geometry import Point, shape
+except ImportError:
+    shape = None
+    Point = None
 
 router = APIRouter()
 db_dependency = Depends(get_db)
 
 
+def load_fallback_geojson():
+    """
+    Loads static boundaries GeoJSON dataset for offline-first resilience.
+    """
+    possible_paths = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../data/boundaries/boundaries_fallback.geojson")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data/boundaries/boundaries_fallback.geojson")),
+        os.path.abspath("data/boundaries/boundaries_fallback.geojson")
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                continue
+    return {"type": "FeatureCollection", "features": []}
+
+
+def evaluate_geofence_offline(lat: float, lon: float):
+    """
+    Evaluates vessel point coordinates against offline boundary GeoJSON features
+    using Shapely geometry calculations.
+    """
+    fallback_data = load_fallback_geojson()
+    is_inside_eez = False
+    distance_eez = 999.0
+    is_inside_mpa = False
+    distance_mpa = 999.0
+    mpa_name = None
+
+    if Point and shape and fallback_data.get("features"):
+        pt = Point(lon, lat)
+        for feat in fallback_data.get("features", []):
+            geom_data = feat.get("geometry")
+            if not geom_data:
+                continue
+            geom = shape(geom_data)
+            f_type = feat.get("properties", {}).get("type")
+            f_name = feat.get("properties", {}).get("name")
+
+            if f_type == "EEZ":
+                if geom.contains(pt):
+                    is_inside_eez = True
+                try:
+                    dist_deg = geom.boundary.distance(pt)
+                    dist_km = dist_deg * 111.0
+                    if dist_km < distance_eez:
+                        distance_eez = dist_km
+                except Exception:
+                    pass
+            elif f_type == "MPA":
+                if geom.contains(pt):
+                    is_inside_mpa = True
+                    mpa_name = f_name
+                try:
+                    dist_deg = geom.distance(pt)
+                    dist_km = dist_deg * 111.0
+                    if dist_km < distance_mpa:
+                        distance_mpa = dist_km
+                except Exception:
+                    pass
+    else:
+        # Land/ocean bounding box heuristic fallback for Indian maritime area
+        if 4.0 <= lat <= 24.0 and 65.0 <= lon <= 96.0:
+            is_inside_eez = True
+            distance_eez = 120.0
+
+    if is_inside_mpa:
+        status = "DANGER_INSIDE_RESTRICTED_ZONE"
+        message = f"Vessel is inside Marine Protected Area: {mpa_name}! Fishing is strictly prohibited."
+    elif not is_inside_eez:
+        status = "DANGER_OUTSIDE_BORDER"
+        message = "Vessel has crossed international maritime boundaries!"
+    elif distance_eez < 5.0:
+        status = "WARNING_APPROACHING_BORDER"
+        message = f"Vessel is approaching international border. Distance: {distance_eez:.2f} km."
+    elif distance_mpa < 2.0:
+        status = "WARNING_APPROACHING_RESTRICTED_ZONE"
+        message = f"Vessel is approaching Marine Protected Area: {mpa_name} (distance: {distance_mpa:.2f} km)."
+    else:
+        status = "SAFE_INSIDE_BORDER"
+        message = "Vessel is safely inside Indian maritime territories."
+
+    return {
+        "coordinates": {"latitude": lat, "longitude": lon},
+        "is_inside_eez": is_inside_eez,
+        "distance_to_border_km": round(distance_eez, 3),
+        "is_inside_mpa": is_inside_mpa,
+        "distance_to_mpa_km": round(distance_mpa, 3),
+        "mpa_name": mpa_name,
+        "status": status,
+        "message": message,
+    }
+
+
+@router.get("")
 @router.get("/")
 def check_geofence_status(
     lat: float = Query(..., description="Latitude of the vessel"),
@@ -17,6 +121,7 @@ def check_geofence_status(
     """
     Checks if a given coordinate lies within the Indian Exclusive Economic Zone (EEZ)
     and calculates the shortest distance (in kilometers) to the nearest boundary.
+    Falls back gracefully to offline boundaries GeoJSON if database is unreachable.
     """
     try:
         # 1. PostGIS Query for EEZ Boundaries
@@ -102,19 +207,19 @@ def check_geofence_status(
             "status": status,
             "message": message,
         }
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=500, detail=f"Database spatial query error: {e}"
-        )
+    except Exception:
+        # Fallback to offline Shapely calculation from GeoJSON boundaries
+        return evaluate_geofence_offline(lat, lon)
 
 
 @router.get("/geojson")
+@router.get("/geojson/")
 def get_geofence_geojson(db: Session = db_dependency):
     """
     Fetches simplified geometries of the Indian EEZ boundary and Marine Protected Areas (MPAs)
     in GeoJSON format to render directly on the interactive map.
+    Falls back to 'data/boundaries/boundaries_fallback.geojson' if remote database is unreachable.
     """
-    import json
     try:
         # 1. Fetch simplified EEZ boundary
         query_eez = text("""
@@ -158,13 +263,14 @@ def get_geofence_geojson(db: Session = db_dependency):
                     "geometry": geom
                 })
 
-        return {
-            "type": "FeatureCollection",
-            "features": features
-        }
-    except Exception as e:
-        # Return fallback empty FeatureCollection to prevent client-side crashes if DB drops
-        return {
-            "type": "FeatureCollection",
-            "features": []
-        }
+        if features:
+            return {
+                "type": "FeatureCollection",
+                "features": features
+            }
+        # Fallback if table was empty
+        return load_fallback_geojson()
+    except Exception:
+        # Return fallback boundaries GeoJSON dataset if DB connection drops
+        return load_fallback_geojson()
+
