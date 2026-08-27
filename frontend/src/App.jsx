@@ -518,9 +518,13 @@ function App() {
 
                 <div className="grid grid-cols-2 gap-2 text-[9px] text-slate-400 pt-2 border-t border-slate-800/80">
                   <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                    <span className="block text-[8px] text-slate-500 font-medium">Wind Speed (Peak)</span>
-                    <span className="font-bold text-slate-200 text-xs font-mono block mt-0.5">{safetyData.raw_metrics?.wind_speed_kmh != null ? Number(safetyData.raw_metrics.wind_speed_kmh).toFixed(1) : '—'} km/h</span>
-                    <span className="text-[8px] text-slate-500 font-mono block mt-0.5">{safetyData.raw_metrics?.peak_wind_time || '26 Aug • 12:00 UTC'}</span>
+                    <span className="block text-[8px] text-slate-500 font-medium">Wind Speed (Hourly)</span>
+                    <span className="font-bold text-slate-200 text-xs font-mono block mt-0.5">
+                      {safetyData.raw_metrics?.inspect_wind != null ? Number(safetyData.raw_metrics.inspect_wind).toFixed(1) : '—'} km/h
+                    </span>
+                    <span className="text-[7.5px] text-slate-400 font-mono block mt-0.5">
+                      Peak: {safetyData.raw_metrics?.wind_speed_kmh != null ? Number(safetyData.raw_metrics.wind_speed_kmh).toFixed(1) : '—'} km/h
+                    </span>
                   </div>
                   <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
                     <span className="block text-[8px] text-slate-500 font-medium">Wind Direction</span>
@@ -528,9 +532,13 @@ function App() {
                     <span className="text-[8px] text-slate-500 font-mono block mt-0.5">{safetyData.raw_metrics?.peak_wind_time || '26 Aug • 12:00 UTC'}</span>
                   </div>
                   <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                    <span className="block text-[8px] text-slate-500 font-medium">Current Speed (Peak)</span>
-                    <span className="font-bold text-slate-200 text-xs font-mono block mt-0.5">{safetyData.raw_metrics?.current_speed_ms != null ? Number(safetyData.raw_metrics.current_speed_ms).toFixed(2) : '—'} m/s</span>
-                    <span className="text-[8px] text-slate-500 font-mono block mt-0.5">{safetyData.raw_metrics?.peak_curr_time || '26 Aug • 12:00 UTC'}</span>
+                    <span className="block text-[8px] text-slate-500 font-medium">Current Speed (Hourly)</span>
+                    <span className="font-bold text-slate-200 text-xs font-mono block mt-0.5">
+                      {safetyData.raw_metrics?.inspect_curr != null ? Number(safetyData.raw_metrics.inspect_curr).toFixed(2) : '—'} m/s
+                    </span>
+                    <span className="text-[7.5px] text-slate-400 font-mono block mt-0.5">
+                      Peak: {safetyData.raw_metrics?.current_speed_ms != null ? Number(safetyData.raw_metrics.current_speed_ms).toFixed(2) : '—'} m/s
+                    </span>
                   </div>
                   <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
                     <span className="block text-[8px] text-slate-500 font-medium">Current Direction</span>

@@ -1,3 +1,11 @@
+
+import os
+import json
+import time
+
+CACHE_DIR_ADV = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
+ADVISORY_CACHE = os.path.join(CACHE_DIR_ADV, "svas_advisory.json")
+ANIMATION_CACHE = os.path.join(CACHE_DIR_ADV, "svas_animation.json")
 import math
 import requests
 import datetime
@@ -40,6 +48,7 @@ def get_safety_assessment(
     
     # 2. Query INCOIS NetCDF datasets via OPENDAP
     incois_success = False
+    grid_cache_success = False
     ww3_records = []
     curr_records = []
     
@@ -49,6 +58,69 @@ def get_safety_assessment(
     except Exception as e:
         # Fallback to local / Open-Meteo in case of remote server timeout/offline/land grid
         pass
+
+    if not incois_success:
+        # Attempt to resolve from pre-computed local INCOIS grid cache to maintain exact WMS consistency
+        try:
+            from shapely.geometry import Point, shape
+            cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
+            cache_path = os.path.join(cache_dir, f"safety_grid_day_{day}_hour_{hour}.json")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    grid_geojson = json.load(f)
+                pt = Point(lon, lat)
+                for feat in grid_geojson.get("features", []):
+                    geom = shape(feat["geometry"])
+                    if geom.contains(pt):
+                        props = feat["properties"]
+                        inspect_hs = props["hs"]
+                        inspect_wind = props["wind_speed_kmh"]
+                        inspect_curr = props["current_speed_ms"]
+                        inspect_stp = props.get("stp", 0.015)
+                        inspect_spr = props.get("spr", 0.25)
+                        inspect_hsea = inspect_hs * 0.7
+                        inspect_t02 = 6.5
+                        inspect_mwd = props.get("wind_dir_deg", 210.0)
+                        
+                        peak_wave_height = inspect_hs
+                        peak_wind_speed = inspect_wind
+                        peak_current_speed = inspect_curr
+                        peak_wave_steepness = inspect_stp
+                        peak_directional_spread = inspect_spr
+                        
+                        bsi_steps = [props["bsi"]] * 8
+                        
+                        provenance["source"] = "INCOIS Grid Cache"
+                        provenance["ww3_dataset"] = "rsmc_combined_ww3_20260825.nc"
+                        provenance["currents_dataset"] = "CURRENTS_NIO_20260824.nc"
+                        
+                        # Populate daily BSI forecast from other pre-warmed cache files
+                        daily_bsi_forecast = {}
+                        for d in [1, 2, 3]:
+                            d_path = os.path.join(cache_dir, f"safety_grid_day_{d}_hour_{hour}.json")
+                            d_score = 0
+                            if os.path.exists(d_path):
+                                try:
+                                    with open(d_path, "r", encoding="utf-8") as f:
+                                        d_geojson = json.load(f)
+                                    for d_feat in d_geojson.get("features", []):
+                                        d_geom = shape(d_feat["geometry"])
+                                        if d_geom.contains(pt):
+                                            d_score = d_feat["properties"]["bsi"]
+                                            break
+                                except:
+                                    pass
+                            daily_bsi_forecast[f"day{d}"] = {
+                                "score": d_score,
+                                "rating": "WARNING" if d_score >= 5 else "ALERT" if d_score >= 2 else "SAFE"
+                            }
+                        provenance["daily_bsi_forecast"] = daily_bsi_forecast
+                        
+                        incois_success = True
+                        grid_cache_success = True
+                        break
+        except Exception:
+            pass
         
     bsi_steps = []
     peak_wave_height = 0.0
@@ -66,7 +138,7 @@ def get_safety_assessment(
         "retrieved_at": datetime.datetime.utcnow().strftime("%d %b %Y • %H:%M UTC")
     }
     
-    if incois_success and len(ww3_records) == 8:
+    if incois_success and not grid_cache_success and len(ww3_records) == 8:
         # P0/P1: Real INCOIS NetCDF variables pipeline
         provenance["source"] = "INCOIS OPENDAP"
         provenance["ww3_dataset"] = "rsmc_combined_ww3_20260825.nc"
@@ -139,6 +211,8 @@ def get_safety_assessment(
         inspect_hs = ww3_records[step_index]["hs"]
         inspect_stp = ww3_records[step_index]["stp"]
         inspect_spr = ww3_records[step_index]["spr"]
+        inspect_wind = ww3_records[step_index]["wind_speed_kmh"]
+        inspect_curr = curr_records[step_index]["speed_m_s"]
     else:
         # Fallback to Open-Meteo API
         provenance["source"] = "Open-Meteo (Fallback)"
@@ -222,6 +296,8 @@ def get_safety_assessment(
         inspect_hsea = inspect_hs * 0.7
         inspect_stp = inspect_hs / (1.56 * inspect_t02 ** 2) if inspect_t02 > 0 else 0.012
         inspect_spr = 0.25
+        inspect_wind = sum(day_winds[h_start:h_end]) / 3.0 if day_winds else 15.0
+        inspect_curr = 0.1 + inspect_hs * 0.18
             
     # 3. Apply SVAS daily warning classification
     non_zero_steps = [i for i, val in enumerate(bsi_steps) if val > 0]
@@ -416,6 +492,8 @@ def get_safety_assessment(
             "inspect_hsea": round(inspect_hsea, 2),
             "inspect_t02": round(inspect_t02, 1),
             "inspect_mwd": round(inspect_mwd, 0),
+            "inspect_wind": round(inspect_wind, 1),
+            "inspect_curr": round(inspect_curr, 2),
             
             # Peak timestamps
             "peak_wind_time": peak_wind_time,
@@ -518,6 +596,8 @@ def generate_fallback_grid(day: int = 1, hour: int = 12):
                     "current_speed_ms": round(float(base_curr), 2),
                     "wind_dir_deg": round(float(base_wind_dir), 1),
                     "current_dir_deg": round(float(base_curr_dir), 1),
+                    "center_lat": round(float(lat_c), 4),
+                    "center_lon": round(float(lon_c), 4),
                     "color": color
                 }
             })
@@ -539,7 +619,19 @@ def get_safety_grid(
     from the remote INCOIS WW3 NetCDF at the selected forecast timestamp.
     Returns a GeoJSON FeatureCollection. Falls back to offline synthetic grid if server hangs.
     """
+    import os
+    import json
     import concurrent.futures
+
+    cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
+    cache_path = os.path.join(cache_dir, f"safety_grid_day_{day}_hour_{hour}.json")
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as cache_err:
+            logger.error(f"Error reading grid cache: {cache_err}")
 
     def _compute_grid():
         ww3_url = IncoisDatasetResolver.WW3_URL
@@ -647,6 +739,8 @@ def get_safety_grid(
                         "current_speed_ms": round(curr_val, 2),
                         "wind_dir_deg": round(wind_dir_val, 1),
                         "current_dir_deg": round(curr_dir_val, 1),
+                        "center_lat": round(float(lat_c), 4),
+                        "center_lon": round(float(lon_c), 4),
                         "color": color
                     }
                 })
@@ -661,6 +755,12 @@ def get_safety_grid(
         try:
             res = future.result(timeout=3.0)
             if res.get("features"):
+                try:
+                    os.makedirs(cache_dir, exist_ok=True)
+                    with open(cache_path, "w", encoding="utf-8") as f:
+                        json.dump(res, f, indent=2)
+                except Exception as cache_write_err:
+                    logger.error(f"Error writing grid cache: {cache_write_err}")
                 return res
             return generate_fallback_grid(day, hour)
         except Exception:
@@ -774,23 +874,38 @@ def get_coastal_advisories():
     Proxy endpoint to fetch the live INCOIS SVAS Advisory GeoJSON.
     Bypasses CORS restrictions on the client side.
     """
+    os.makedirs(CACHE_DIR_ADV, exist_ok=True)
+    if os.path.exists(ADVISORY_CACHE):
+        try:
+            if time.time() - os.path.getmtime(ADVISORY_CACHE) < 86400:
+                with open(ADVISORY_CACHE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+
     url = "https://www.incois.gov.in/oceanservices/SVAS/SVAS_Advisory.geojson"
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=8)
         if response.status_code == 200:
-            return response.json()
-        else:
-            return {
-                "type": "FeatureCollection",
-                "name": "SVAS_Advisory_Fallback",
-                "features": []
-            }
+            data = response.json()
+            with open(ADVISORY_CACHE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            return data
     except Exception:
-        return {
-            "type": "FeatureCollection",
-            "name": "SVAS_Advisory_Fallback",
-            "features": []
-        }
+        pass
+
+    if os.path.exists(ADVISORY_CACHE):
+        try:
+            with open(ADVISORY_CACHE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "type": "FeatureCollection",
+        "name": "SVAS_Advisory_Fallback",
+        "features": []
+    }
 
 
 @router.get("/advisories/animation")
@@ -800,21 +915,36 @@ def get_advisory_animation():
     Proxy endpoint to fetch the live INCOIS SVAS Animation GeoJSON.
     Bypasses CORS restrictions on the client side.
     """
+    os.makedirs(CACHE_DIR_ADV, exist_ok=True)
+    if os.path.exists(ANIMATION_CACHE):
+        try:
+            if time.time() - os.path.getmtime(ANIMATION_CACHE) < 86400:
+                with open(ANIMATION_CACHE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+
     url = "https://www.incois.gov.in/oceanservices/SVAS/SVAS_Animation.geojson"
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=8)
         if response.status_code == 200:
-            return response.json()
-        else:
-            return {
-                "type": "FeatureCollection",
-                "name": "SVAS_Animation_Fallback",
-                "features": []
-            }
+            data = response.json()
+            with open(ANIMATION_CACHE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            return data
     except Exception:
-        return {
-            "type": "FeatureCollection",
-            "name": "SVAS_Animation_Fallback",
-            "features": []
-        }
+        pass
+
+    if os.path.exists(ANIMATION_CACHE):
+        try:
+            with open(ANIMATION_CACHE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "type": "FeatureCollection",
+        "name": "SVAS_Animation_Fallback",
+        "features": []
+    }
 
