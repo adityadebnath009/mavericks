@@ -16,6 +16,11 @@ from tests.test_incois_resolver import (
     test_cache_paths,
     test_remote_resolve
 )
+from tests.test_incois_geoserver import (
+    test_get_capabilities,
+    test_get_feature_info,
+    test_get_pfz_lines_wfs
+)
 
 if __name__ == "__main__":
     print("Running all backend verification tests...")
@@ -38,6 +43,14 @@ if __name__ == "__main__":
         # Runs remote OPeNDAP connection test
         test_remote_resolve()
         print("✓ test_remote_resolve passed.")
+        
+        # WMS/WFS GeoServer tests
+        test_get_capabilities()
+        print("✓ test_get_capabilities passed.")
+        test_get_feature_info()
+        print("✓ test_get_feature_info passed.")
+        test_get_pfz_lines_wfs()
+        print("✓ test_get_pfz_lines_wfs passed.")
         
         print("\nAll backend tests passed successfully!")
     except AssertionError as e:

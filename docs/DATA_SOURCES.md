@@ -79,3 +79,29 @@ This document details the official INCOIS oceanographic and meteorological datas
 
 *   **Spatial Grid Association:** Both datasets share a common bounding box over the Northern Indian Ocean (NIO) coordinates. Because the currents dataset (\(1/12^\circ\)) has a slightly higher spatial resolution than the WW3 dataset (\(0.1^\circ\)), nearest-neighbor mapping is applied to pair wave and current parameters at any coordinate.
 *   **Temporal Offset:** The WW3 forecast is sampled on the hour (e.g. 12:00:00), whereas the Currents forecast is sampled on the half-hour (e.g. 13:30:00). We align the two datasets temporally by matching each WW3 timestamp with the nearest available Currents timestamp (producing an offset of exactly \(\pm 1.5\) hours).
+
+---
+
+## 4. INCOIS GeoServer WMS/WFS Services
+
+These OGC-compliant web services are used to dynamically discover, render, and inspect satellite-derived ocean color/temperature indices and Potential Fishing Zone (PFZ) contours.
+
+### A. WMS Sea Surface Temperature & Chlorophyll Service
+*   **Base URL:** `https://incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/ows`
+*   **Capabilities Endpoint:**
+    `https://incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/ows?service=WMS&request=GetCapabilities`
+*   **Layers:**
+    *   `PFZ-TUNA-SST-CHL:sst` / `PFZ-TUNA-CHL-SST` (Sea Surface Temperature in \(^\circ\text{C}\))
+    *   `PFZ-TUNA-SST-CHL:chl` / `pfz_tuna_chl_sld` (Chlorophyll-a concentration in \(mg/m^3\))
+*   **Operations Supported:**
+    *   `GetMap`: Renders visual raster tiles overlaid on the map canvas.
+    *   `GetFeatureInfo`: Queries specific coordinate pixels to retrieve exact numerical observations (exposed under property `GRAY_INDEX`).
+
+### B. WFS PFZ Advisory Lines Service
+*   **Base URL:** `https://incois.gov.in/geoserver/PFZ_Automation/ows`
+*   **Capabilities Endpoint:**
+    `https://incois.gov.in/geoserver/PFZ_Automation/ows?service=WFS&request=GetCapabilities`
+*   **Layer:**
+    *   `PFZ_Automation:pfzlines` (Potential Fishing Zone contours, represented as vector geometries)
+*   **Operations Supported:**
+    *   `GetFeature`: Returns the exact line geometries and attributes as a GeoJSON FeatureCollection. Used directly by the ORCA map for vector line rendering and click inspections.

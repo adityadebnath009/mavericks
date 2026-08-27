@@ -500,6 +500,20 @@ function App() {
                     <span className="block text-[8px] text-slate-500 font-medium">Mean Wave Direction (MWD)</span>
                     <span className="font-bold text-slate-200 text-xs font-mono block mt-0.5">{safetyData.raw_metrics?.inspect_mwd ?? '—'}°</span>
                   </div>
+                  <div className="border-t border-slate-800/80 pt-2 col-span-3 mt-1 grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="block text-[8px] text-slate-500 font-medium">INCOIS WMS SST</span>
+                      <span className="font-bold text-blue-400 text-xs font-mono block mt-0.5">
+                        {safetyData.raw_metrics?.incois_sst != null ? `${Number(safetyData.raw_metrics.incois_sst).toFixed(1)} °C` : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[8px] text-slate-500 font-medium">INCOIS Chlorophyll</span>
+                      <span className="font-bold text-green-400 text-xs font-mono block mt-0.5">
+                        {safetyData.raw_metrics?.incois_chl != null ? `${Number(safetyData.raw_metrics.incois_chl).toFixed(3)} mg/m³` : '—'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[9px] text-slate-400 pt-2 border-t border-slate-800/80">
@@ -560,6 +574,22 @@ function App() {
                       {safetyData.provenance.currents_dataset}
                     </a>
                   </div>
+                )}
+                {safetyData.provenance?.incois_queries && (
+                  <>
+                    <div className="flex justify-between items-center border-t border-slate-800/50 pt-1.5 mt-1">
+                      <span>INCOIS SST Layer:</span>
+                      <span className="font-mono text-slate-300 font-bold text-[8px]">{safetyData.provenance.incois_queries.sst_layer}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>INCOIS CHL Layer:</span>
+                      <span className="font-mono text-slate-300 font-bold text-[8px]">{safetyData.provenance.incois_queries.chl_layer}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>INCOIS Query Time:</span>
+                      <span className="font-mono text-slate-300 font-bold text-[8px]">{safetyData.provenance.incois_queries.query_time}</span>
+                    </div>
+                  </>
                 )}
                 <div className="flex justify-between items-center">
                   <span>Forecast Time:</span>

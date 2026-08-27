@@ -361,6 +361,28 @@ def get_safety_assessment(
     if not reasons:
         reasons.append("All weather, wave, current, and geofence parameters are within optimal safety ranges.")
 
+    # 5. Query live WMS GetFeatureInfo for SST and Chlorophyll values
+    sst_val = None
+    chl_val = None
+    try:
+        from app.api.services.incois_geoserver import INCOISGeoServerClient
+        sst_res = INCOISGeoServerClient.get_feature_info(lat, lon, "PFZ-TUNA-SST-CHL:sst")
+        if sst_res.get("status") == "success":
+            sst_val = sst_res.get("value")
+            
+        chl_res = INCOISGeoServerClient.get_feature_info(lat, lon, "PFZ-TUNA-SST-CHL:chl")
+        if chl_res.get("status") == "success":
+            chl_val = chl_res.get("value")
+    except Exception as geo_err:
+        logger.error(f"Failed WMS GetFeatureInfo lookup: {geo_err}")
+
+    # Add query metadata to provenance
+    provenance["incois_queries"] = {
+        "query_time": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "sst_layer": "PFZ-TUNA-SST-CHL:sst",
+        "chl_layer": "PFZ-TUNA-SST-CHL:chl"
+    }
+
     return {
         "coordinates": {"latitude": lat, "longitude": lon},
         "rating": rating,
@@ -398,7 +420,11 @@ def get_safety_assessment(
             # Peak timestamps
             "peak_wind_time": peak_wind_time,
             "peak_curr_time": peak_curr_time,
-            "peak_wave_time": peak_wave_time
+            "peak_wave_time": peak_wave_time,
+            
+            # WMS GetFeatureInfo values
+            "incois_sst": round(sst_val, 2) if sst_val is not None else None,
+            "incois_chl": round(chl_val, 3) if chl_val is not None else None
         },
         "orca_risk": {
             "overall_status": overall_risk,
@@ -474,6 +500,11 @@ def generate_fallback_grid(day: int = 1, hour: int = 12):
                 [round(float(lon_c - half), 4), round(float(lat_c - half), 4)]
             ]
 
+            base_wind = base_hs * 12.5
+            base_curr = 0.1 + base_hs * 0.18
+            base_wind_dir = (lat_c * 15.0 + lon_c * 12.0 + hour * 4.0) % 360
+            base_curr_dir = (lon_c * 18.0 + lat_c * 8.0 + day * 10.0) % 360
+
             features.append({
                 "type": "Feature",
                 "geometry": {
@@ -483,6 +514,10 @@ def generate_fallback_grid(day: int = 1, hour: int = 12):
                 "properties": {
                     "bsi": val,
                     "hs": round(float(base_hs), 2),
+                    "wind_speed_kmh": round(float(base_wind), 1),
+                    "current_speed_ms": round(float(base_curr), 2),
+                    "wind_dir_deg": round(float(base_wind_dir), 1),
+                    "current_dir_deg": round(float(base_curr_dir), 1),
                     "color": color
                 }
             })
@@ -537,6 +572,13 @@ def get_safety_grid(
         stp = grid_slice.STP.isel(TIME=1).values
         spr_raw = grid_slice.SPR.isel(TIME=1).values
 
+        # Load wind speed components and convert to km/h
+        uwnd = grid_slice.UWND.isel(TIME=1).values
+        vwnd = grid_slice.VWND.isel(TIME=1).values
+        wind_speed_kmh = np.sqrt(uwnd**2 + vwnd**2) * 3.6
+        wind_dir_deg = np.degrees(np.arctan2(uwnd, vwnd)) % 360
+        mwd_grid = grid_slice.MWD.isel(TIME=1).values
+
         # Vectorized indexes
         I_steepness = (stp / 0.05) * (hs / 2.5)
         S_steepness = np.where(I_steepness >= 0.8, 1, 0)
@@ -587,6 +629,11 @@ def get_safety_grid(
                 else:
                     color = "green"
 
+                wind_val = float(wind_speed_kmh[i, j])
+                curr_val = 0.1 + hs_val * 0.18
+                wind_dir_val = float(wind_dir_deg[i, j])
+                curr_dir_val = float(mwd_grid[i, j]) if not np.isnan(mwd_grid[i, j]) else 112.0
+
                 features.append({
                     "type": "Feature",
                     "geometry": {
@@ -596,6 +643,10 @@ def get_safety_grid(
                     "properties": {
                         "bsi": val,
                         "hs": round(hs_val, 2),
+                        "wind_speed_kmh": round(wind_val, 1),
+                        "current_speed_ms": round(curr_val, 2),
+                        "wind_dir_deg": round(wind_dir_val, 1),
+                        "current_dir_deg": round(curr_dir_val, 1),
                         "color": color
                     }
                 })

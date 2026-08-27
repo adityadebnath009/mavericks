@@ -47,8 +47,14 @@ function MapContainer({
     windSpeed: true,
     currentSpeed: true,
     fishingZones: false,
-    route: false
+    route: false,
+    sst: false,
+    chlorophyll: false,
+    pfzAdvisory: false
   });
+
+  const [sstOpacity, setSstOpacity] = useState(0.65);
+  const [chlOpacity, setChlOpacity] = useState(0.65);
 
   const toggleLayer = (key, layerIds) => {
     const updated = !layers[key];
@@ -160,7 +166,7 @@ function MapContainer({
           if (!features.length) return;
           
           const props = features[0].properties;
-          const { bsi, hs } = props;
+          const { bsi, hs, wind_speed_kmh, current_speed_ms } = props;
           
           if (popupRef.current) {
             popupRef.current.remove();
@@ -173,6 +179,8 @@ function MapContainer({
                 <div class="text-[10px] text-slate-700 leading-normal font-semibold">
                   <div class="flex justify-between"><span>BSI Capsizing Score:</span> <span class="text-blue-600 font-bold">${bsi}/7</span></div>
                   <div class="flex justify-between"><span>Significant Wave Hs:</span> <span class="font-bold">${hs} m</span></div>
+                  <div class="flex justify-between"><span>Wind Speed:</span> <span class="font-bold">${wind_speed_kmh ?? '—'} km/h</span></div>
+                  <div class="flex justify-between"><span>Current Speed:</span> <span class="font-bold">${current_speed_ms ?? '—'} m/s</span></div>
                   <div class="flex justify-between"><span>Cell Resolution:</span> <span class="font-mono text-[9px]">0.4° (~44 km)</span></div>
                 </div>
               </div>
@@ -394,6 +402,112 @@ function MapContainer({
             mapRef.current.getCanvas().style.cursor = '';
           });
         }
+
+        // 4. Add official INCOIS WMS Sea Surface Temperature (SST) layer
+        mapRef.current.addSource('incois-sst', {
+          type: 'raster',
+          tiles: [
+            'https://incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:sst&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+          ],
+          tileSize: 256
+        });
+
+        mapRef.current.addLayer({
+          id: 'sst-raster',
+          type: 'raster',
+          source: 'incois-sst',
+          paint: {
+            'raster-opacity': 0.65
+          },
+          layout: {
+            visibility: 'none' // Hidden by default
+          }
+        });
+
+        // 5. Add official INCOIS WMS Chlorophyll (CHL) layer
+        mapRef.current.addSource('incois-chl', {
+          type: 'raster',
+          tiles: [
+            'https://incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:chl&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+          ],
+          tileSize: 256
+        });
+
+        mapRef.current.addLayer({
+          id: 'chl-raster',
+          type: 'raster',
+          source: 'incois-chl',
+          paint: {
+            'raster-opacity': 0.65
+          },
+          layout: {
+            visibility: 'none' // Hidden by default
+          }
+        });
+
+        // 6. Fetch and load official WFS PFZ advisory lines
+        try {
+          const pfzRes = await fetch(getApiUrl('/api/incois/pfz-lines'));
+          if (pfzRes.ok) {
+            const pfzGeojson = await pfzRes.json();
+            mapRef.current.addSource('incois-pfz-lines', {
+              type: 'geojson',
+              data: pfzGeojson
+            });
+
+            mapRef.current.addLayer({
+              id: 'pfz-lines-stroke',
+              type: 'line',
+              source: 'incois-pfz-lines',
+              paint: {
+                'line-color': '#eab308', // Yellow lines matching official legend
+                'line-width': 2.0
+              },
+              layout: {
+                visibility: 'none' // Hidden by default
+              }
+            });
+
+            // Click listener for PFZ vector lines
+            mapRef.current.on('click', 'pfz-lines-stroke', (e) => {
+              e.preventDefault();
+              const features = mapRef.current.queryRenderedFeatures(e.point, { layers: ['pfz-lines-stroke'] });
+              if (!features.length) return;
+              const props = features[0].properties;
+              
+              if (popupRef.current) {
+                popupRef.current.remove();
+              }
+              popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
+                .setLngLat(e.lngLat)
+                .setHTML(`
+                  <div class="text-slate-900 p-2.5 font-sans space-y-1" style="max-width: 250px;">
+                    <h4 class="font-bold border-b pb-1 text-yellow-600 text-xs">INCOIS PFZ Advisory</h4>
+                    <p class="text-[9px] text-slate-700 leading-relaxed font-semibold mt-1">
+                      Sector ID: <span class="font-mono text-blue-600 font-bold">${props.sectorId || 'N/A'}</span><br>
+                      Advisory Date: <span class="font-normal text-slate-600">${props.date || 'Current Daily'}</span><br>
+                      <span class="text-[8px] text-slate-500 font-normal">Features: ${props.length || 'Optimal sea surface temperature and chlorophyll boundary contour'}</span>
+                    </p>
+                  </div>
+                `)
+                .addTo(mapRef.current);
+
+              if (onLocationSelectRef.current) {
+                onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+              }
+            });
+
+            mapRef.current.on('mouseenter', 'pfz-lines-stroke', () => {
+              mapRef.current.getCanvas().style.cursor = 'pointer';
+            });
+            mapRef.current.on('mouseleave', 'pfz-lines-stroke', () => {
+              mapRef.current.getCanvas().style.cursor = '';
+            });
+          }
+        } catch (pfzErr) {
+          console.error("Failed to load WFS PFZ lines:", pfzErr);
+        }
+
         setMapLoaded(true);
       } catch (err) {
         console.error('Error initializing map layers:', err);
@@ -424,6 +538,87 @@ function MapContainer({
   useEffect(() => {
     loadGridData(selectedDay, selectedHour);
   }, [selectedDay, selectedHour]);
+
+  // Sync WMS SST layer opacity
+  useEffect(() => {
+    if (mapRef.current && mapRef.current.getLayer('sst-raster')) {
+      mapRef.current.setPaintProperty('sst-raster', 'raster-opacity', sstOpacity);
+    }
+  }, [sstOpacity]);
+
+  // Sync WMS Chlorophyll layer opacity
+  useEffect(() => {
+    if (mapRef.current && mapRef.current.getLayer('chl-raster')) {
+      mapRef.current.setPaintProperty('chl-raster', 'raster-opacity', chlOpacity);
+    }
+  }, [chlOpacity]);
+
+  // Sync BSI Risk, Wind Speed, and Current Speed grid styling modes
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const fillLayer = mapRef.current.getLayer('bsi-grid-fill');
+    const strokeLayer = mapRef.current.getLayer('bsi-grid-stroke');
+    if (!fillLayer || !strokeLayer) return;
+
+    if (layers.bsiRisk) {
+      // Show BSI Risk styling
+      mapRef.current.setLayoutProperty('bsi-grid-fill', 'visibility', 'visible');
+      mapRef.current.setLayoutProperty('bsi-grid-stroke', 'visibility', 'visible');
+      mapRef.current.setPaintProperty('bsi-grid-fill', 'fill-color', [
+        'match',
+        ['get', 'color'],
+        'red', '#ef4444',
+        'orange', '#f97316',
+        'yellow', '#eab308',
+        'green', '#22c55e',
+        '#64748b'
+      ]);
+      mapRef.current.setPaintProperty('bsi-grid-stroke', 'line-color', [
+        'match',
+        ['get', 'color'],
+        'red', '#dc2626',
+        'orange', '#ea580c',
+        'yellow', '#ca8a04',
+        'green', '#16a34a',
+        '#475569'
+      ]);
+    } else if (layers.windSpeed) {
+      // Show Wind Speed styling (Interpolate km/h)
+      mapRef.current.setLayoutProperty('bsi-grid-fill', 'visibility', 'visible');
+      mapRef.current.setLayoutProperty('bsi-grid-stroke', 'visibility', 'visible');
+      mapRef.current.setPaintProperty('bsi-grid-fill', 'fill-color', [
+        'interpolate',
+        ['linear'],
+        ['get', 'wind_speed_kmh'],
+        0, '#1e3a8a',    // Very light wind (Dark Blue)
+        15, '#3b82f6',   // Gentle wind (Blue)
+        25, '#eab308',   // Moderate wind (Yellow)
+        35, '#f97316',   // High wind (Orange)
+        45, '#ef4444'    // Gale force (Red)
+      ]);
+      mapRef.current.setPaintProperty('bsi-grid-stroke', 'line-color', '#1e293b');
+    } else if (layers.currentSpeed) {
+      // Show Current Speed styling (Interpolate m/s)
+      mapRef.current.setLayoutProperty('bsi-grid-fill', 'visibility', 'visible');
+      mapRef.current.setLayoutProperty('bsi-grid-stroke', 'visibility', 'visible');
+      mapRef.current.setPaintProperty('bsi-grid-fill', 'fill-color', [
+        'interpolate',
+        ['linear'],
+        ['get', 'current_speed_ms'],
+        0, '#065f46',    // Low current (Dark Green)
+        0.3, '#10b981',  // Light current (Green)
+        0.6, '#eab308',  // Moderate current (Yellow)
+        1.0, '#f97316',  // Strong current (Orange)
+        1.5, '#ef4444'    // Dangerous current (Red)
+      ]);
+      mapRef.current.setPaintProperty('bsi-grid-stroke', 'line-color', '#1e293b');
+    } else {
+      // Hide grid layers if all are unchecked
+      mapRef.current.setLayoutProperty('bsi-grid-fill', 'visibility', 'none');
+      mapRef.current.setLayoutProperty('bsi-grid-stroke', 'visibility', 'none');
+    }
+  }, [layers.bsiRisk, layers.windSpeed, layers.currentSpeed]);
 
   // Sync coastal advisory layer paint properties when beamWidth changes
   useEffect(() => {
@@ -548,7 +743,7 @@ function MapContainer({
             <input 
               type="checkbox" 
               checked={layers.bsiRisk} 
-              onChange={() => toggleLayer('bsiRisk', ['bsi-grid-fill', 'bsi-grid-stroke'])}
+              onChange={() => setLayers(prev => ({ ...prev, bsiRisk: !prev.bsiRisk, windSpeed: false, currentSpeed: false }))}
               className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
             />
             <span>SVAS BSI Risk</span>
@@ -584,7 +779,7 @@ function MapContainer({
             <input 
               type="checkbox" 
               checked={layers.windSpeed} 
-              onChange={() => setLayers(prev => ({ ...prev, windSpeed: !prev.windSpeed }))}
+              onChange={() => setLayers(prev => ({ ...prev, windSpeed: !prev.windSpeed, bsiRisk: false, currentSpeed: false }))}
               className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
             />
             <span>Wind Speed</span>
@@ -593,14 +788,67 @@ function MapContainer({
             <input 
               type="checkbox" 
               checked={layers.currentSpeed} 
-              onChange={() => setLayers(prev => ({ ...prev, currentSpeed: !prev.currentSpeed }))}
+              onChange={() => setLayers(prev => ({ ...prev, currentSpeed: !prev.currentSpeed, bsiRisk: false, windSpeed: false }))}
               className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
             />
             <span>Current Speed</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer font-semibold opacity-60">
-            <input type="checkbox" disabled className="accent-blue-500 rounded border-slate-700 w-3 h-3" />
-            <span>Fishing Zones</span>
+          <label className="flex items-center gap-2 cursor-pointer font-semibold">
+            <input 
+              type="checkbox" 
+              checked={layers.sst} 
+              onChange={() => toggleLayer('sst', ['sst-raster'])}
+              className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
+            />
+            <span>INCOIS WMS SST</span>
+          </label>
+          {layers.sst && (
+            <div className="pl-5 flex flex-col gap-1 border-l border-blue-500/20 py-0.5">
+              <div className="flex justify-between text-[7px] text-slate-400">
+                <span>Opacity:</span>
+                <span>{Math.round(sstOpacity * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.05"
+                value={sstOpacity}
+                onChange={(e) => setSstOpacity(parseFloat(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 cursor-pointer font-semibold">
+            <input 
+              type="checkbox" 
+              checked={layers.chlorophyll} 
+              onChange={() => toggleLayer('chlorophyll', ['chl-raster'])}
+              className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
+            />
+            <span>INCOIS Chlorophyll</span>
+          </label>
+          {layers.chlorophyll && (
+            <div className="pl-5 flex flex-col gap-1 border-l border-green-500/20 py-0.5">
+              <div className="flex justify-between text-[7px] text-slate-400">
+                <span>Opacity:</span>
+                <span>{Math.round(chlOpacity * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.05"
+                value={chlOpacity}
+                onChange={(e) => setChlOpacity(parseFloat(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 cursor-pointer font-semibold">
+            <input 
+              type="checkbox" 
+              checked={layers.pfzAdvisory} 
+              onChange={() => toggleLayer('pfzAdvisory', ['pfz-lines-stroke'])}
+              className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
+            />
+            <span>INCOIS PFZ Lines</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer font-semibold opacity-60">
             <input type="checkbox" disabled className="accent-blue-500 rounded border-slate-700 w-3 h-3" />
