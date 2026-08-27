@@ -161,6 +161,23 @@ function App() {
     }
   };
 
+  // Fetch user location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setSelectedLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn("Geolocation fetch failed, using default coordinates:", error);
+        }
+      );
+    }
+  }, []);
+
   // Re-fetch data on coordinates, day, hour, or beam change
   useEffect(() => {
     if (selectedLocation) {
