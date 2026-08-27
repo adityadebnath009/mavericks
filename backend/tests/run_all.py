@@ -21,6 +21,12 @@ from tests.test_incois_geoserver import (
     test_get_feature_info,
     test_get_pfz_lines_wfs
 )
+from tests.test_pfz_intelligence import (
+    test_haversine_distance,
+    test_pfz_evaluation,
+    test_pfz_invalid_id,
+    test_pfz_routing
+)
 
 if __name__ == "__main__":
     print("Running all backend verification tests...")
@@ -51,6 +57,16 @@ if __name__ == "__main__":
         print("✓ test_get_feature_info passed.")
         test_get_pfz_lines_wfs()
         print("✓ test_get_pfz_lines_wfs passed.")
+        
+        # PFZ Intelligence tests
+        test_haversine_distance()
+        print("✓ test_haversine_distance passed.")
+        test_pfz_evaluation()
+        print("✓ test_pfz_evaluation passed.")
+        test_pfz_invalid_id()
+        print("✓ test_pfz_invalid_id passed.")
+        test_pfz_routing()
+        print("✓ test_pfz_routing passed.")
         
         print("\nAll backend tests passed successfully!")
     except AssertionError as e:

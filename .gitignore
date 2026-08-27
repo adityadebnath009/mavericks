@@ -37,3 +37,9 @@ dist/
 # Local cache folders
 cache/
 
+# Markdown files
+*.md
+
+# Editor settings
+.vscode/
+
