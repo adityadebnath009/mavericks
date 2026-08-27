@@ -539,7 +539,19 @@ def get_safety_grid(
     from the remote INCOIS WW3 NetCDF at the selected forecast timestamp.
     Returns a GeoJSON FeatureCollection. Falls back to offline synthetic grid if server hangs.
     """
+    import os
+    import json
     import concurrent.futures
+
+    cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
+    cache_path = os.path.join(cache_dir, f"safety_grid_day_{day}_hour_{hour}.json")
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as cache_err:
+            logger.error(f"Error reading grid cache: {cache_err}")
 
     def _compute_grid():
         ww3_url = IncoisDatasetResolver.WW3_URL
@@ -661,6 +673,12 @@ def get_safety_grid(
         try:
             res = future.result(timeout=3.0)
             if res.get("features"):
+                try:
+                    os.makedirs(cache_dir, exist_ok=True)
+                    with open(cache_path, "w", encoding="utf-8") as f:
+                        json.dump(res, f, indent=2)
+                except Exception as cache_write_err:
+                    logger.error(f"Error writing grid cache: {cache_write_err}")
                 return res
             return generate_fallback_grid(day, hour)
         except Exception:

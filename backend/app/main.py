@@ -23,6 +23,26 @@ app.add_middleware(
 # Register main API routers
 app.include_router(api_router, prefix="/api")
 
+@app.on_event("startup")
+def pre_warm_grid_cache():
+    """
+    Spawns a background task to pre-warm the safety grid cache for all day/hour coordinates.
+    """
+    import threading
+    from app.api.endpoints.safety import get_safety_grid
+    
+    def worker():
+        print("Pre-warming safety grid cache in background...")
+        for day in [1, 2, 3]:
+            for hour in [0, 3, 6, 9, 12, 15, 18, 21]:
+                try:
+                    get_safety_grid(day, hour)
+                except Exception:
+                    pass
+        print("Safety grid cache pre-warming completed!")
+
+    threading.Thread(target=worker, daemon=True).start()
+
 # Serve React frontend assets statically (Single-Process Local Deployment rule)
 dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
 assets_path = os.path.join(dist_path, "assets")
