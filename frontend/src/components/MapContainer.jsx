@@ -32,6 +32,151 @@ function MapContainer({
   selectedHourRef.current = selectedHour;
   onLocationSelectRef.current = onLocationSelect;
 
+  const selectedLocationRef = useRef(selectedLocation);
+  selectedLocationRef.current = selectedLocation;
+
+
+  const drawRoutePath = (routeCoords, straightCoords) => {
+    const routeGeojson = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: routeCoords
+      }
+    };
+
+    const straightGeojson = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: straightCoords
+      }
+    };
+
+    if (mapRef.current) {
+      const routeSrc = mapRef.current.getSource('optimized-route');
+      const straightSrc = mapRef.current.getSource('straight-route');
+      
+      if (routeSrc) routeSrc.setData(routeGeojson);
+      if (straightSrc) straightSrc.setData(straightGeojson);
+      
+      mapRef.current.setLayoutProperty('route-line', 'visibility', 'visible');
+      mapRef.current.setLayoutProperty('straight-line', 'visibility', 'visible');
+      setLayers(prev => ({ ...prev, route: true }));
+
+      // Create or update destination marker using public/destination.svg
+      const lastCoord = routeCoords[routeCoords.length - 1];
+      if (destMarkerRef.current) {
+        destMarkerRef.current.setLngLat(lastCoord);
+      } else {
+        const destEl = document.createElement('div');
+        destEl.className = 'custom-destination-marker';
+        destEl.style.width = '36px';
+        destEl.style.height = '36px';
+        destEl.style.display = 'flex';
+        destEl.style.alignItems = 'center';
+        destEl.style.justifyContent = 'center';
+        destEl.style.cursor = 'pointer';
+        destEl.style.filter = 'drop-shadow(0px 3px 5px rgba(0,0,0,0.4))';
+        destEl.innerHTML = `
+          <img src="/destination.svg" alt="Destination Pointer" style="width: 100%; height: 100%; object-fit: contain;" />
+        `;
+
+        destMarkerRef.current = new maplibregl.Marker({ element: destEl, draggable: true })
+          .setLngLat(lastCoord)
+          .addTo(mapRef.current);
+
+        destMarkerRef.current.on('dragend', () => {
+          const lngLat = destMarkerRef.current.getLngLat();
+          window.lastPfzTargetLat = lngLat.lat;
+          window.lastPfzTargetLon = lngLat.lng;
+          // Recalculate route to new destination
+          const vesselLat = selectedLocationRef.current?.lat ?? 18.96;
+          const vesselLon = selectedLocationRef.current?.lon ?? 72.82;
+          fetchAndCalculateRoute(vesselLat, vesselLon, lngLat.lat, lngLat.lng);
+        });
+      }
+    }
+  };
+
+  const fetchAndCalculateRoute = async (startLat, startLon, endLat, endLon) => {
+    console.log("fetchAndCalculateRoute executing with start:", startLat, startLon, "end:", endLat, endLon);
+    try {
+      const res = await fetch(getApiUrl('/api/pfz/route'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start: { lat: startLat, lon: startLon },
+          end: { lat: endLat, lon: endLon },
+          beam_m: beamWidth,
+          day: selectedDayRef.current,
+          hour: selectedHourRef.current
+        })
+      });
+      
+      if (!res.ok) {
+        console.error("Routing API returned non-OK status:", res.status);
+        throw new Error('API routing calculation failed');
+      }
+      const data = await res.json();
+      console.log("Routing API successfully resolved path data:", data);
+      
+      drawRoutePath(data.route_coords, data.straight_coords);
+      setRouteSummary(data.summary);
+    } catch (err) {
+      console.error("Routing error occurred:", err);
+    }
+  };
+
+  const clearRoute = () => {
+    setRouteSummary(null);
+    if (destMarkerRef.current) {
+      destMarkerRef.current.remove();
+      destMarkerRef.current = null;
+    }
+    if (mapRef.current) {
+      const routeSrc = mapRef.current.getSource('optimized-route');
+      const straightSrc = mapRef.current.getSource('straight-route');
+      if (routeSrc) {
+        routeSrc.setData({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [] }
+        });
+      }
+      if (straightSrc) {
+        straightSrc.setData({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [] }
+        });
+      }
+      if (mapRef.current.getLayer('route-line')) {
+        mapRef.current.setLayoutProperty('route-line', 'visibility', 'none');
+      }
+      if (mapRef.current.getLayer('straight-line')) {
+        mapRef.current.setLayoutProperty('straight-line', 'visibility', 'none');
+      }
+    }
+  };
+
+  // Attach functions to window object for access from popup inline HTML
+  useEffect(() => {
+    window.triggerRouteCalculation = () => {
+      const vesselLat = selectedLocationRef.current?.lat ?? 18.96;
+      const vesselLon = selectedLocationRef.current?.lon ?? 72.82;
+      const targetLat = window.lastPfzTargetLat;
+      const targetLon = window.lastPfzTargetLon;
+      if (targetLat != null && targetLon != null) {
+        fetchAndCalculateRoute(vesselLat, vesselLon, targetLat, targetLon);
+      }
+    };
+
+    return () => {
+      delete window.triggerRouteCalculation;
+    };
+  }, []);
+
   const getSuffix = (width) => {
     if (width < 4.0) return '4';
     if (width < 6.0) return '6';
@@ -53,8 +198,13 @@ function MapContainer({
     pfzAdvisory: false
   });
 
+  const destMarkerRef = useRef(null);
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
+
   const [sstOpacity, setSstOpacity] = useState(0.65);
   const [chlOpacity, setChlOpacity] = useState(0.65);
+  const [routeSummary, setRouteSummary] = useState(null);
 
   const toggleLayer = (key, layerIds) => {
     const updated = !layers[key];
@@ -177,9 +327,9 @@ function MapContainer({
           popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
             .setLngLat([inspectLon, inspectLat])
             .setHTML(`
-              <div class="text-slate-900 p-2.5 font-sans space-y-1.5" style="max-width: 220px;">
+              <div class="text-slate-900 p-2.5 font-sans space-y-2" style="max-width: 220px;">
                 <h4 class="font-black border-b pb-1 text-blue-600 text-xs">INCOIS Forecast Cell</h4>
-                <div class="text-[10px] text-slate-700 leading-normal font-semibold">
+                <div class="text-[10px] text-slate-700 leading-normal font-semibold space-y-1">
                   <div class="flex justify-between"><span>BSI Capsizing Score:</span> <span class="text-blue-600 font-bold">${bsi}/7</span></div>
                   <div class="flex justify-between"><span>Significant Wave Hs:</span> <span class="font-bold">${hs} m</span></div>
                   <div class="flex justify-between"><span>Wind Speed:</span> <span class="font-bold">${wind_speed_kmh ?? '—'} km/h</span></div>
@@ -190,8 +340,10 @@ function MapContainer({
             `)
             .addTo(mapRef.current);
             
-          if (onLocationSelectRef.current) {
-            onLocationSelectRef.current({ lat: inspectLat, lon: inspectLon });
+          if (!layersRef.current.route) {
+            if (onLocationSelectRef.current) {
+              onLocationSelectRef.current({ lat: inspectLat, lon: inspectLon });
+            }
           }
         });
 
@@ -448,6 +600,61 @@ function MapContainer({
           }
         });
 
+        // 5b. Add optimized routing layer (Dijkstra paths)
+        mapRef.current.addSource('optimized-route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: []
+            }
+          }
+        });
+
+        mapRef.current.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'optimized-route',
+          paint: {
+            'line-color': '#2563eb', // Royal blue solid line
+            'line-width': 4.0
+          },
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            'visibility': 'none'
+          }
+        });
+
+        // 5c. Add faint straight route line
+        mapRef.current.addSource('straight-route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: []
+            }
+          }
+        });
+
+        mapRef.current.addLayer({
+          id: 'straight-line',
+          type: 'line',
+          source: 'straight-route',
+          paint: {
+            'line-color': '#64748b', // Slate grey faint line
+            'line-width': 1.5,
+            'line-dasharray': [3, 3]
+          },
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            'visibility': 'none'
+          }
+        });
+
         // 6. Fetch and load official WFS PFZ advisory lines
         try {
           const pfzRes = await fetch(getApiUrl('/api/incois/pfz-lines'));
@@ -477,27 +684,128 @@ function MapContainer({
               const features = mapRef.current.queryRenderedFeatures(e.point, { layers: ['pfz-lines-stroke'] });
               if (!features.length) return;
               const props = features[0].properties;
+              const pfzId = features[0].id || props.id || 'pfzlines.1';
               
               if (popupRef.current) {
                 popupRef.current.remove();
               }
+              
+              // 1. Show loading state in popup
               popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
                 .setLngLat(e.lngLat)
                 .setHTML(`
-                  <div class="text-slate-900 p-2.5 font-sans space-y-1" style="max-width: 250px;">
-                    <h4 class="font-bold border-b pb-1 text-yellow-600 text-xs">INCOIS PFZ Advisory</h4>
-                    <p class="text-[9px] text-slate-700 leading-relaxed font-semibold mt-1">
-                      Sector ID: <span class="font-mono text-blue-600 font-bold">${props.sectorId || 'N/A'}</span><br>
-                      Advisory Date: <span class="font-normal text-slate-600">${props.date || 'Current Daily'}</span><br>
-                      <span class="text-[8px] text-slate-500 font-normal">Features: ${props.length || 'Optimal sea surface temperature and chlorophyll boundary contour'}</span>
-                    </p>
+                  <div class="text-slate-900 p-3 font-sans text-xs flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-600"></div>
+                    <span class="font-semibold text-slate-600">Evaluating PFZ safety conditions...</span>
                   </div>
                 `)
                 .addTo(mapRef.current);
 
-              if (onLocationSelectRef.current) {
-                onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
-              }
+              const vesselLat = selectedLocationRef.current?.lat ?? 18.96;
+              const vesselLon = selectedLocationRef.current?.lon ?? 72.82;
+
+              // 2. Fetch detailed evaluation from backend
+              fetch(getApiUrl('/api/pfz/evaluate'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  vessel: { lat: vesselLat, lon: vesselLon },
+                  pfz_id: pfzId,
+                  beam_m: beamWidth
+                })
+              })
+              .then(res => {
+                if (!res.ok) throw new Error('API evaluation failed');
+                return res.json();
+              })
+              .then(data => {
+                if (!popupRef.current) return;
+                
+                const { distance_km, nearest_point, marine_conditions, marine_risk } = data;
+                
+                // Cache the destination target coordinates globally for triggerRouteCalculation
+                window.lastPfzTargetLat = nearest_point.latitude;
+                window.lastPfzTargetLon = nearest_point.longitude;
+
+                // Place destination.svg pointer at the nearest point immediately
+                const destCoords = [nearest_point.longitude, nearest_point.latitude];
+                if (destMarkerRef.current) {
+                  destMarkerRef.current.setLngLat(destCoords);
+                } else {
+                  const destEl = document.createElement('div');
+                  destEl.className = 'custom-destination-marker';
+                  destEl.style.width = '36px';
+                  destEl.style.height = '36px';
+                  destEl.style.display = 'flex';
+                  destEl.style.alignItems = 'center';
+                  destEl.style.justifyContent = 'center';
+                  destEl.style.cursor = 'pointer';
+                  destEl.style.filter = 'drop-shadow(0px 3px 5px rgba(0,0,0,0.4))';
+                  destEl.innerHTML = `
+                    <img src="/destination.svg" alt="Destination Pointer" style="width: 100%; height: 100%; object-fit: contain;" />
+                  `;
+
+                  destMarkerRef.current = new maplibregl.Marker({ element: destEl, draggable: true })
+                    .setLngLat(destCoords)
+                    .addTo(mapRef.current);
+
+                  destMarkerRef.current.on('dragend', () => {
+                    const lngLat = destMarkerRef.current.getLngLat();
+                    window.lastPfzTargetLat = lngLat.lat;
+                    window.lastPfzTargetLon = lngLat.lng;
+                    // Recalculate route to new destination
+                    const vesselLat = selectedLocationRef.current?.lat ?? 18.96;
+                    const vesselLon = selectedLocationRef.current?.lon ?? 72.82;
+                    fetchAndCalculateRoute(vesselLat, vesselLon, lngLat.lat, lngLat.lng);
+                  });
+                }
+
+                const rating = marine_risk.rating;
+                const riskColor = rating === 'HIGH' ? 'red' : rating === 'MODERATE' ? 'orange' : 'green';
+                const riskBadge = riskColor === 'red' ? 'bg-red-500/10 text-red-500 border-red-500/20' : riskColor === 'orange' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20';
+
+                const showRouteButton = layersRef.current.route;
+                const routeButtonHtml = showRouteButton ? `
+                  <button 
+                    onclick="window.triggerRouteCalculation()"
+                    class="w-full bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-[10px] font-extrabold py-2 rounded shadow-sm transition-colors cursor-pointer text-center"
+                  >
+                    Calculate Route
+                  </button>
+                ` : '';
+
+                popupRef.current.setHTML(`
+                  <div class="text-slate-900 p-3 pb-3.5 font-sans space-y-2.5" style="max-width: 280px; min-width: 250px;">
+                    <h4 class="font-extrabold border-b pb-1 text-blue-600 text-xs flex justify-between items-center">
+                      <span>PFZ Line: ${pfzId}</span>
+                      <span class="text-[9px] text-slate-400 font-extrabold">INCOIS WFS</span>
+                    </h4>
+                    <div class="text-[10px] text-slate-700 leading-normal font-semibold space-y-1">
+                      <div class="flex justify-between border-b border-slate-50 pb-0.5"><span>Potential:</span> <span class="text-green-600 font-bold">Favorable Fishing (PFZ)</span></div>
+                      <div class="flex justify-between border-b border-slate-50 pb-0.5"><span>Vessel Proximity:</span> <span class="font-bold">${distance_km} km</span></div>
+                      <div class="flex justify-between border-b border-slate-50 pb-0.5"><span>Significant Wave Hs:</span> <span class="font-bold">${marine_conditions.wave_height_m} m</span></div>
+                      <div class="flex justify-between border-b border-slate-50 pb-0.5"><span>Wind Speed:</span> <span class="font-bold">${marine_conditions.wind_speed_kmh} km/h</span></div>
+                      <div class="flex justify-between border-b border-slate-50 pb-0.5"><span>Current Speed:</span> <span class="font-bold">${marine_conditions.current_speed_ms} m/s</span></div>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-1.5">
+                      <span class="text-[9px] text-slate-500 font-bold">Marine Risk:</span>
+                      <span class="px-2 py-0.5 text-[9px] font-black rounded border ${riskBadge}">${rating}</span>
+                    </div>
+                    <p class="text-[8px] text-slate-500 font-normal leading-tight">${marine_risk.reasons.join(', ')}</p>
+                    ${routeButtonHtml}
+                  </div>
+                `);
+              })
+              .catch(err => {
+                console.error(err);
+                if (popupRef.current) {
+                  popupRef.current.setHTML(`
+                    <div class="text-red-500 p-2 font-sans text-xs font-semibold">
+                      Failed to evaluate safety metrics for this zone.
+                    </div>
+                  `);
+                }
+              });
             });
 
             mapRef.current.on('mouseenter', 'pfz-lines-stroke', () => {
@@ -520,8 +828,12 @@ function MapContainer({
     // Left click anywhere on map grid or ocean waters callback to inspect coordinate values
     mapRef.current.on('click', (e) => {
       const { lng, lat } = e.lngLat;
-      if (onLocationSelectRef.current) {
-        onLocationSelectRef.current({ lat, lon: lng });
+      
+      // If Recommended Route layer is OFF, clicking inspects coordinates (places boat marker)
+      if (!layersRef.current.route) {
+        if (onLocationSelectRef.current) {
+          onLocationSelectRef.current({ lat, lon: lng });
+        }
       }
     });
 
@@ -555,6 +867,32 @@ function MapContainer({
       mapRef.current.setPaintProperty('chl-raster', 'raster-opacity', chlOpacity);
     }
   }, [chlOpacity]);
+
+  // Sync Recommended Route layer visibility and destination marker presence
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (mapRef.current.getLayer('route-line')) {
+      mapRef.current.setLayoutProperty('route-line', 'visibility', layers.route ? 'visible' : 'none');
+    }
+    
+    if (!layers.route) {
+      // Remove destination marker and clear route path
+      if (destMarkerRef.current) {
+        destMarkerRef.current.remove();
+        destMarkerRef.current = null;
+      }
+      if (mapRef.current.getSource('optimized-route')) {
+        mapRef.current.getSource('optimized-route').setData({
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: []
+          }
+        });
+      }
+    }
+  }, [layers.route]);
 
   // Sync BSI Risk, Wind Speed, and Current Speed grid styling modes
   useEffect(() => {
@@ -646,7 +984,7 @@ function MapContainer({
 
   // Update map marker and smoothly pan whenever inspected coordinates change
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !mapLoaded) return;
 
     if (selectedLocation) {
       const coords = [selectedLocation.lon, selectedLocation.lat];
@@ -668,9 +1006,16 @@ function MapContainer({
           <img src="/boat_marker.svg" alt="Boat Pointer" style="width: 100%; height: 100%; object-fit: contain;" />
         `;
 
-        markerRef.current = new maplibregl.Marker({ element: el })
+        markerRef.current = new maplibregl.Marker({ element: el, draggable: true })
           .setLngLat(coords)
           .addTo(mapRef.current);
+
+        markerRef.current.on('dragend', () => {
+          const lngLat = markerRef.current.getLngLat();
+          if (onLocationSelectRef.current) {
+            onLocationSelectRef.current({ lat: lngLat.lat, lon: lngLat.lng });
+          }
+        });
       }
 
       // Smooth pan on user clicks, keeping overview centered on initial mount
@@ -690,6 +1035,48 @@ function MapContainer({
   return (
     <div className="w-full h-full relative">
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {layers.route && !routeSummary && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-950/90 border border-blue-500/40 text-blue-200 px-4 py-2 rounded-lg shadow-lg font-bold text-xs pointer-events-none backdrop-blur-sm animate-pulse z-10">
+          Select a PFZ to calculate a route.
+        </div>
+      )}
+
+      {routeSummary && (
+        <div className="absolute bottom-4 left-4 bg-slate-950/95 border border-blue-500/30 p-3.5 rounded-lg shadow-xl w-64 text-xs font-semibold text-slate-100 z-10 backdrop-blur-md space-y-2.5">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+            <span className="font-extrabold text-blue-400">Route Summary</span>
+            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border ${
+              routeSummary.overall_risk === 'HIGH' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+              routeSummary.overall_risk === 'MODERATE' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+              'bg-green-500/10 text-green-500 border-green-500/20'
+            }`}>{routeSummary.overall_risk} RISK</span>
+          </div>
+          
+          <div className="space-y-1 text-[10px] text-slate-300">
+            <div className="flex justify-between"><span>Distance:</span> <span className="text-white font-bold">{routeSummary.distance_km} km</span></div>
+            <div className="flex justify-between"><span>Travel Time:</span> <span className="text-white font-bold">{routeSummary.travel_time_hours} hrs</span></div>
+            <div className="flex justify-between"><span>Max BSI Encountered:</span> <span className="text-white font-bold">{routeSummary.max_bsi}/7</span></div>
+            <div className="flex flex-col pt-1 border-t border-slate-900 mt-1">
+              <span className="text-[9px] text-slate-400 font-bold mb-0.5">Avoided Hazards:</span>
+              <div className="flex flex-wrap gap-1">
+                {routeSummary.avoided_hazards.map((hz, idx) => (
+                  <span key={idx} className="bg-slate-900 text-slate-300 px-1.5 py-0.5 rounded text-[8px] border border-slate-800">
+                    {hz}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            onClick={clearRoute}
+            className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold py-1.5 rounded transition-colors text-center cursor-pointer mt-1"
+          >
+            Clear Route
+          </button>
+        </div>
+      )}
       
       {/* Map Legend Overlay (Top-Left) matching commit 32919d4 & media_1787760113604.png */}
       <div className="absolute top-4 left-4 bg-slate-900/90 p-4 rounded-xl border border-slate-700 text-xs shadow-lg space-y-2 z-10">
@@ -836,8 +1223,13 @@ function MapContainer({
             />
             <span>INCOIS PFZ Lines</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer font-semibold opacity-60">
-            <input type="checkbox" disabled className="accent-blue-500 rounded border-slate-700 w-3 h-3" />
+          <label className="flex items-center gap-2 cursor-pointer font-semibold">
+            <input 
+              type="checkbox" 
+              checked={layers.route} 
+              onChange={() => toggleLayer('route', ['route-line'])}
+              className="accent-blue-500 rounded border-slate-700 bg-slate-900 w-3 h-3" 
+            />
             <span>Recommended Route</span>
           </label>
         </div>

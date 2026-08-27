@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Drop Shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Vibrant Pin Body Gradient (Teal/Emerald for Destination) -->
+    <linearGradient id="pointer-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+
+    <!-- Inner Core Gradient -->
+    <linearGradient id="core-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Map Pin Pointer Shape -->
+  <path d="M256 32 C167.6 32 96 103.6 96 192 C96 304 256 480 256 480 C256 480 416 304 416 192 C416 103.6 344.4 32 256 32 Z" 
+        fill="url(#pointer-gradient)" 
+        filter="url(#shadow)"/>
+
+  <!-- Inner Circle Background for Contrast -->
+  <circle cx="256" cy="184" r="112" fill="#0F172A" opacity="0.1"/>
+
+  <!-- Destination Target Icon (Bullseye / Flag / Arrow) -->
+  <g transform="translate(0, 8)">
+    <!-- Concentric Target Rings -->
+    <circle cx="256" cy="176" r="68" fill="none" stroke="url(#core-gradient)" stroke-width="14" opacity="0.25"/>
+    <circle cx="256" cy="176" r="40" fill="none" stroke="url(#core-gradient)" stroke-width="12" opacity="0.5"/>
+    
+    <!-- Center Target Core Dot -->
+    <circle cx="256" cy="176" r="16" fill="url(#core-gradient)"/>
+    
+    <!-- Pulsing Directional Chevrons / Arrow Accents -->
+    <path d="M 240 236 L 256 256 L 272 236" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+
+</svg>
