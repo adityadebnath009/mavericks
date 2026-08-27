@@ -1,3 +1,11 @@
+
+import os
+import json
+import time
+
+CACHE_DIR_ADV = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
+ADVISORY_CACHE = os.path.join(CACHE_DIR_ADV, "svas_advisory.json")
+ANIMATION_CACHE = os.path.join(CACHE_DIR_ADV, "svas_animation.json")
 import math
 import requests
 import datetime
@@ -792,23 +800,38 @@ def get_coastal_advisories():
     Proxy endpoint to fetch the live INCOIS SVAS Advisory GeoJSON.
     Bypasses CORS restrictions on the client side.
     """
+    os.makedirs(CACHE_DIR_ADV, exist_ok=True)
+    if os.path.exists(ADVISORY_CACHE):
+        try:
+            if time.time() - os.path.getmtime(ADVISORY_CACHE) < 86400:
+                with open(ADVISORY_CACHE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+
     url = "https://www.incois.gov.in/oceanservices/SVAS/SVAS_Advisory.geojson"
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=8)
         if response.status_code == 200:
-            return response.json()
-        else:
-            return {
-                "type": "FeatureCollection",
-                "name": "SVAS_Advisory_Fallback",
-                "features": []
-            }
+            data = response.json()
+            with open(ADVISORY_CACHE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            return data
     except Exception:
-        return {
-            "type": "FeatureCollection",
-            "name": "SVAS_Advisory_Fallback",
-            "features": []
-        }
+        pass
+
+    if os.path.exists(ADVISORY_CACHE):
+        try:
+            with open(ADVISORY_CACHE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "type": "FeatureCollection",
+        "name": "SVAS_Advisory_Fallback",
+        "features": []
+    }
 
 
 @router.get("/advisories/animation")
@@ -818,21 +841,36 @@ def get_advisory_animation():
     Proxy endpoint to fetch the live INCOIS SVAS Animation GeoJSON.
     Bypasses CORS restrictions on the client side.
     """
+    os.makedirs(CACHE_DIR_ADV, exist_ok=True)
+    if os.path.exists(ANIMATION_CACHE):
+        try:
+            if time.time() - os.path.getmtime(ANIMATION_CACHE) < 86400:
+                with open(ANIMATION_CACHE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+
     url = "https://www.incois.gov.in/oceanservices/SVAS/SVAS_Animation.geojson"
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=8)
         if response.status_code == 200:
-            return response.json()
-        else:
-            return {
-                "type": "FeatureCollection",
-                "name": "SVAS_Animation_Fallback",
-                "features": []
-            }
+            data = response.json()
+            with open(ANIMATION_CACHE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            return data
     except Exception:
-        return {
-            "type": "FeatureCollection",
-            "name": "SVAS_Animation_Fallback",
-            "features": []
-        }
+        pass
+
+    if os.path.exists(ANIMATION_CACHE):
+        try:
+            with open(ANIMATION_CACHE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {
+        "type": "FeatureCollection",
+        "name": "SVAS_Animation_Fallback",
+        "features": []
+    }
 

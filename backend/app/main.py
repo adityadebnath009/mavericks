@@ -32,7 +32,14 @@ def pre_warm_grid_cache():
     from app.api.endpoints.safety import get_safety_grid
     
     def worker():
-        print("Pre-warming safety grid cache in background...")
+        print("Pre-warming safety grid and advisories cache in background...")
+        try:
+            from app.api.endpoints.safety import get_coastal_advisories, get_advisory_animation
+            get_coastal_advisories()
+            get_advisory_animation()
+            print("Advisories cache pre-warming completed!")
+        except Exception:
+            pass
         for day in [1, 2, 3]:
             for hour in [0, 3, 6, 9, 12, 15, 18, 21]:
                 try:
