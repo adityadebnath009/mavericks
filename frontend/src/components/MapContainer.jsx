@@ -166,13 +166,16 @@ function MapContainer({
           if (!features.length) return;
           
           const props = features[0].properties;
-          const { bsi, hs, wind_speed_kmh, current_speed_ms } = props;
+          const { bsi, hs, wind_speed_kmh, current_speed_ms, center_lat, center_lon } = props;
           
+          const inspectLat = center_lat != null ? Number(center_lat) : e.lngLat.lat;
+          const inspectLon = center_lon != null ? Number(center_lon) : e.lngLat.lng;
+
           if (popupRef.current) {
             popupRef.current.remove();
           }
           popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
-            .setLngLat(e.lngLat)
+            .setLngLat([inspectLon, inspectLat])
             .setHTML(`
               <div class="text-slate-900 p-2.5 font-sans space-y-1.5" style="max-width: 220px;">
                 <h4 class="font-black border-b pb-1 text-blue-600 text-xs">INCOIS Forecast Cell</h4>
@@ -188,7 +191,7 @@ function MapContainer({
             .addTo(mapRef.current);
             
           if (onLocationSelectRef.current) {
-            onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+            onLocationSelectRef.current({ lat: inspectLat, lon: inspectLon });
           }
         });
 
