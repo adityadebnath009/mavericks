@@ -651,35 +651,18 @@ function MapContainer({
       if (markerRef.current) {
         markerRef.current.setLngLat(coords);
       } else {
-        // Custom boat pin marker matching ORCA design
+        // Custom boat pointer using public assets boat_marker.svg
         const el = document.createElement('div');
         el.className = 'custom-boat-marker';
-        el.style.width = '32px';
-        el.style.height = '38px';
+        el.style.width = '36px';
+        el.style.height = '36px';
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
         el.style.cursor = 'pointer';
+        el.style.filter = 'drop-shadow(0px 3px 5px rgba(0,0,0,0.4))';
         el.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100%" height="100%">
-            <defs>
-              <filter id="boat-pin-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.35"/>
-              </filter>
-              <linearGradient id="boat-pin-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#2563eb"/>
-                <stop offset="100%" stop-color="#1d4ed8"/>
-              </linearGradient>
-            </defs>
-            <path d="M 50 10 C 25 10, 10 28, 10 52 C 10 76, 38 102, 50 112 C 62 102, 90 76, 90 52 C 90 28, 75 10, 50 10 Z" 
-                  fill="url(#boat-pin-gradient)" stroke="#FFFFFF" stroke-width="3" filter="url(#boat-pin-shadow)"/>
-            <g transform="translate(0, 2)">
-              <path d="M 48 26 L 48 53 L 67 53 C 67 53, 68 37, 48 26 Z" fill="#FFFFFF"/>
-              <path d="M 44 31 L 44 53 L 33 53 C 33 53, 35 40, 44 31 Z" fill="#38BDF8"/>
-              <line x1="46" y1="24" x2="46" y2="55" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M 28 57 L 72 57 L 65 67 C 60 70, 40 70, 35 67 Z" fill="#E2E8F0"/>
-            </g>
-          </svg>
+          <img src="/boat_marker.svg" alt="Boat Pointer" style="width: 100%; height: 100%; object-fit: contain;" />
         `;
 
         markerRef.current = new maplibregl.Marker({ element: el })
