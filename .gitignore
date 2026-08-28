@@ -39,6 +39,7 @@ cache/
 
 # Markdown files
 *.md
+!README.md
 
 # Editor settings
 .vscode/
