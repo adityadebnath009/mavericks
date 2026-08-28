@@ -1,4 +1,4 @@
-# Mavericks: ORCA Marine Portal
+# Mavericks: Navik Marine Portal
 
 Mavericks is an intelligent spatial decision support platform for Potential Fishing Zones (PFZs), weather safety routing, and predictive border/sanctuary geofencing in the North Indian Ocean. By coordinating a **9-agent specialized AI architecture**, Mavericks integrates real-time oceanographic observations, spatial queries, and machine learning risk predictors into an explainable, localized, and offline-resilient system.
 

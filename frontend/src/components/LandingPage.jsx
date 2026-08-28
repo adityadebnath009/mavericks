@@ -12,27 +12,26 @@ import {
   Mic, 
   Volume2, 
   MapPin, 
-  AlertTriangle, 
   CheckCircle2, 
   ArrowRight, 
   ChevronDown, 
   ChevronUp, 
-  ExternalLink, 
   Navigation, 
   Activity, 
-  Lock, 
   Sparkles, 
   Server, 
   Code2, 
-  Anchor,
   HelpCircle,
   X,
   Play,
-  Square
+  Square,
+  Network,
+  Zap,
+  Info
 } from 'lucide-react';
 import TacticalGlobe from './TacticalGlobe';
 
-// 9 Specialized AI Agents Data & Technical Specs
+// 9 Specialized AI Agents Data & Technical Specifications
 const AGENT_SPECIFICATIONS = [
   {
     id: 'agent-01',
@@ -153,73 +152,73 @@ const AGENT_SPECIFICATIONS = [
   }
 ];
 
-// How Navik Thinks: Step-by-Step User Journey
+// Section 2: How Navik Thinks: Step-by-Step User Journey
 const USER_JOURNEY_STEPS = [
   {
     step: '01',
     phase: 'ASK',
     title: 'Natural Language Query',
     tag: 'VOICE OR TEXT',
-    quote: '"Is it safe to go from Kochi to Lakshadweep leaving tomorrow morning?"',
-    actor: 'User Interaction Agent',
-    detail: 'Captured natively via browser Web Speech API in English, Hindi (हिन्दी), or Marathi (मराठी). No proprietary voice vendor lock-in.',
-    outputLabel: 'Intent Payload',
-    outputVal: '{ origin: "Kochi", dest: "Lakshadweep", depart: "2026-08-29T06:00Z", beam: 3.5m }'
+    quote: '"Find me a safe route from Kochi to Lakshadweep leaving tomorrow morning."',
+    actor: '01. User Interaction Agent',
+    detail: 'Captured natively via browser Web Speech API in English, Hindi (हिन्दी), or Marathi (मराठी) with zero external speech API cost.',
+    outputLabel: 'Decoded Intent Payload',
+    outputVal: '{ origin: "Kochi Port", destination: "Lakshadweep (Kavaratti)", depart_time: "2026-08-29T06:00:00Z", vessel_beam_m: 3.5 }'
   },
   {
     step: '02',
     phase: 'UNDERSTAND',
-    title: 'Intent Extraction & Task Graph',
-    tag: 'TASK DECOMPOSITION',
+    title: 'Intent Parsing & Task Decomposition',
+    tag: 'TASK GRAPH DISPATCH',
     quote: 'Decomposing query parameters, temporal departure window, and vessel stability limits.',
-    actor: 'Planner Agent',
-    detail: 'Extracts spatial waypoints, planned departure timestamps, and vessel beam constraints. Initializes concurrent sub-agent dispatch.',
-    outputLabel: 'Execution DAG',
-    outputVal: '3 Concurrent Pipelines: [Telemetry Discovery, PostGIS Geofence, Weather Hazard]'
+    actor: '02. Planner Agent (Coordinator)',
+    detail: 'Extracts spatial coordinates, departure windows, and vessel constraints. Decomposes task into concurrent sub-agent jobs with failsafe local fallback readiness.',
+    outputLabel: 'Execution DAG Envelope',
+    outputVal: 'Dispatched 7 Concurrent Pipelines: [Marine Data Discovery, Weather Hazard, Ocean Analytics, PostGIS Geofence, XGBoost Risk]'
   },
   {
     step: '03',
     phase: 'ANALYZE',
     title: 'Multi-Source Scientific Slicing',
-    tag: 'DATA FUSION',
-    quote: 'Interpolating WaveWatch III grids, ocean current velocities, and PostGIS boundary layers.',
-    actor: 'Weather & Ocean Intelligence Agents',
-    detail: 'Fetches 24-hour diurnal timelines for wave height (Hs), peak period, surface current vectors, and queries PostGIS boundaries for active MPAs.',
-    outputLabel: 'Spatial Grid',
-    outputVal: '0.4° Resolution NetCDF Array (Hs: 1.2m, Current: 0.35m/s, Wind: 18.5 km/h)'
+    tag: 'SCIENTIFIC DATA FUSION',
+    quote: 'Interpolating WaveWatch III rasters, ocean current velocities, and PostGIS boundary layers.',
+    actor: '03-06. Discovery, Weather & Geospatial Agents',
+    detail: 'Fetches 24-hour diurnal timelines for wave height (Hs), peak period (T02), surface currents, and performs PostGIS ST_Contains checks against EEZ & MPAs.',
+    outputLabel: 'Interpolated 0.4° Mesh',
+    outputVal: 'Wave Height: 1.2m, Swell Period: 6.5s, Surface Current: 0.35 m/s SE, EEZ Distance: 116.9 km (CLEAR)'
   },
   {
     step: '04',
     phase: 'OPTIMIZE',
     title: 'Current-Aware Vector Routing',
-    tag: 'PATHFINDING',
-    quote: 'Dijkstra pathfinder calculating current drift projection (Vc · cos Δθ) avoiding MPAs.',
-    actor: 'Geospatial & Risk Agents',
-    detail: 'Calculates optimal waypoint transitions across a 0.4° grid. Steers clear of restricted eco-zones while riding favorable surface current vectors.',
-    outputLabel: 'Optimal Vector',
-    outputVal: '215 NM Arc (+18% Fuel Efficiency, Wave Steepness 0.012 within safe limits)'
+    tag: 'DIJKSTRA PATHFINDING',
+    quote: 'Dijkstra engine calculating current drift projection (Vc · cos Δθ) bypassing restricted MPAs.',
+    actor: '06-08. Geospatial, Risk & Visualization Agents',
+    detail: 'Calculates optimal waypoint transitions across a 0.4° graph. Steers clear of restricted eco-zones while riding favorable surface current vectors for fuel efficiency.',
+    outputLabel: 'Optimal Vector Arc',
+    outputVal: 'Route Distance: 215 NM, Projected Fuel Efficiency: +18%, Wave Steepness: 0.012 (Safe Margin), Avoided MPAs: Gulf of Mannar'
   },
   {
     step: '05',
     phase: 'ADVISE',
     title: 'Explainable Grounded Advisory',
-    tag: 'GROUNDED RAG & SPEECH',
+    tag: 'GROUNDED RAG & VOICE',
     quote: '"Safe to venture into sea. Departure recommended at 06:00 UTC. CMFRI Guideline Clause 4.2 cited."',
-    actor: 'Reporting & Visualization Agents',
-    detail: 'Renders the route on the MapLibre tactical canvas, displays 24h Recharts trends, and vocalizes the safety verdict quoting official maritime safety codes.',
-    outputLabel: 'Advisory Verdict',
-    outputVal: 'RATING: SAFE // DEPARTURE WINDOW: +2H // REGULATORY CITATION: FAO-CMFRI-2024'
+    actor: '08-09. Reporting & Visualization Agents',
+    detail: 'Renders the safe route on the MapLibre tactical canvas, charts 24h diurnal trends, and vocalizes the safety verdict quoting official maritime safety codes via pgvector.',
+    outputLabel: 'Verified Advisory Verdict',
+    outputVal: 'RATING: SAFE (BSI 1/7) // DEPARTURE WINDOW: 06:00 UTC (+2H OPTIMAL) // CITATION: FAO Small Craft Code §4.2 • CMFRI Advisory'
   }
 ];
 
-// Core Capabilities Matrix
+// Section 4: Core Capabilities Matrix (6 Compact Cards)
 const CAPABILITY_CARDS = [
   {
     icon: Shield,
     title: 'Marine Risk Predictor',
-    category: 'ML + DETERMINISTIC FLOORS',
+    category: 'ML + SAFETY FLOORS',
     color: '#FFB547',
-    summary: 'Machine learning safety classifier combined with mathematical safety floor overrides.',
+    summary: 'Machine learning safety classifier combined with non-negotiable deterministic safety floor overrides.',
     points: [
       'XGBoost trained on temporal split ocean datasets.',
       'Deterministic floors: Waves >= 4m force score 85.',
@@ -267,7 +266,7 @@ const CAPABILITY_CARDS = [
     title: 'Multilingual Voice Outreach',
     category: 'WEB SPEECH API',
     color: '#00D4FF',
-    summary: 'Zero-cost client-side speech recognition and vocal read-back in coastal languages.',
+    summary: 'Zero-cost client-side speech recognition and vocal read-back in coastal fishing languages.',
     points: [
       'Native browser Speech-to-Text (STT) integration.',
       'Audio synthesis (TTS) in English, Hindi, and Marathi.',
@@ -288,7 +287,7 @@ const CAPABILITY_CARDS = [
   }
 ];
 
-// Live Telemetry Ticker Items
+// Section 5: Live System Telemetry Bulletins
 const TELEMETRY_FEED = [
   { type: 'SYS', color: '#18C7A0', text: 'INCOIS GeoServer & OPeNDAP proxy ONLINE // 0.4° resolution diurnal grid synchronized.' },
   { type: 'GEO', color: '#00D4FF', text: 'Vessel Sagar Kanya updated coordinates (17.43°N, 84.70°E). EEZ buffer clear: 116.9 km.' },
@@ -298,7 +297,7 @@ const TELEMETRY_FEED = [
   { type: 'FLEET', color: '#18C7A0', text: 'Active Simulation Fleet: 104 vessels operating within monitored EEZ sectors.' }
 ];
 
-// Progressive FAQ List
+// Section 6: Progressive Disclosure FAQ Items
 const FAQ_ITEMS = [
   {
     id: 'faq-1',
@@ -358,7 +357,7 @@ DETERMINISTIC SAFETY FLOORS:
   }
 ];
 
-// Multilingual Advisory Samples for Web Speech testing
+// Multilingual Advisory Samples for Web Speech Testing
 const ADVISORY_SAMPLES = {
   en: {
     langName: 'English (Maritime)',
@@ -387,15 +386,16 @@ const ADVISORY_SAMPLES = {
 };
 
 export default function LandingPage({ onLaunchConsole }) {
-  const [selectedAgentIndex, setSelectedAgentIndex] = useState(0);
+  // Stepper & Popover States
   const [selectedJourneyStep, setSelectedJourneyStep] = useState(0);
+  const [activeAgentId, setActiveAgentId] = useState(null);
+  const [hoveredAgentId, setHoveredAgentId] = useState(null);
   const [expandedFaqId, setExpandedFaqId] = useState('faq-1');
   const [showTechnicalDetails, setShowTechnicalDetails] = useState({ 'faq-1': true });
   const [isAdvisorModalOpen, setIsAdvisorModalOpen] = useState(false);
   const [advisorLang, setAdvisorLang] = useState('en');
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const activeAgent = AGENT_SPECIFICATIONS[selectedAgentIndex];
   const activeJourney = USER_JOURNEY_STEPS[selectedJourneyStep];
 
   // Defensive cleanup for Web Speech API on unmount
@@ -468,6 +468,10 @@ export default function LandingPage({ onLaunchConsole }) {
     setIsAdvisorModalOpen(false);
   };
 
+  // Inspect active agent in Node Graph (either hovered or clicked)
+  const currentAgentInspectionId = activeAgentId || hoveredAgentId;
+  const inspectedAgent = AGENT_SPECIFICATIONS.find(a => a.id === currentAgentInspectionId);
+
   return (
     <div className="w-full min-h-screen bg-[#07111F] text-[#EAF4F8] font-sans antialiased overflow-x-hidden selection:bg-[#00D4FF]/30 selection:text-[#EAF4F8]">
       
@@ -499,7 +503,7 @@ export default function LandingPage({ onLaunchConsole }) {
         {/* Quick Links */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-mono text-[#8FA8B8]">
           <a href="#how-it-thinks" className="hover:text-[#00D4FF] transition-colors">01 // PROCESS</a>
-          <a href="#agents-ecosystem" className="hover:text-[#00D4FF] transition-colors">02 // 9 AGENTS</a>
+          <a href="#agents-graph" className="hover:text-[#00D4FF] transition-colors">02 // 9 AGENTS</a>
           <a href="#capabilities" className="hover:text-[#00D4FF] transition-colors">03 // CAPABILITIES</a>
           <a href="#telemetry" className="hover:text-[#00D4FF] transition-colors">04 // TELEMETRY</a>
           <a href="#faq" className="hover:text-[#00D4FF] transition-colors">05 // FAQ</a>
@@ -522,8 +526,8 @@ export default function LandingPage({ onLaunchConsole }) {
         </div>
       </header>
 
-      {/* 2. Hero Section (Split View - Above the Fold) */}
-      <section className="relative pt-8 pb-16 px-4 lg:px-8 max-w-7xl mx-auto">
+      {/* 2. Hero Section (Split View - Concise & Impactful) */}
+      <section id="hero" className="relative pt-8 pb-14 px-4 lg:px-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Column: Headline, CTAs, Telemetry */}
@@ -549,7 +553,7 @@ export default function LandingPage({ onLaunchConsole }) {
               </p>
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={() => handleLaunch('map')}
@@ -577,14 +581,14 @@ export default function LandingPage({ onLaunchConsole }) {
               <div className="flex items-center justify-between text-[11px] border-b border-[#20384D]/70 pb-2">
                 <div className="flex items-center gap-2 text-[#18C7A0] font-semibold">
                   <div className="w-2 h-2 rounded-full bg-[#18C7A0] animate-pulse" />
-                  <span>SYSTEM ONLINE // SIMULATION FEED ACTIVE</span>
+                  <span>SIMULATION ACTIVE</span>
                 </div>
-                <span className="text-[#8FA8B8] text-[10px]">DIURNAL STEP: 24H</span>
+                <span className="text-[#8FA8B8] text-[10px]">FORECAST STEP: 24H</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-[10px]">
                 <div className="bg-[#13263A] p-2 rounded border border-[#20384D]">
-                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Active Sim Fleet</span>
+                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Sim Fleet</span>
                   <span className="text-[#EAF4F8] font-bold text-xs">104 Vessels</span>
                 </div>
                 <div className="bg-[#13263A] p-2 rounded border border-[#20384D]">
@@ -610,73 +614,51 @@ export default function LandingPage({ onLaunchConsole }) {
         </div>
       </section>
 
-      {/* 3. Live System Telemetry Bulletin / Feed */}
-      <section id="telemetry" className="border-y border-[#20384D] bg-[#0D1B2A] py-2.5 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#13263A] border border-[#20384D] text-[10px] font-mono font-bold text-[#00D4FF] whitespace-nowrap">
-            <Activity className="w-3 h-3 animate-spin" />
-            <span>LIVE BULLETIN</span>
-          </div>
-
-          <div className="overflow-x-auto no-scrollbar flex items-center gap-6 text-[11px] font-mono text-[#8FA8B8] whitespace-nowrap">
-            {TELEMETRY_FEED.map((feed, idx) => (
-              <div key={idx} className="flex items-center gap-2 flex-shrink-0">
-                <span 
-                  className="px-1.5 py-0.2 rounded text-[9px] font-bold"
-                  style={{ color: feed.color, backgroundColor: `${feed.color}15`, border: `1px solid ${feed.color}40` }}
-                >
-                  [{feed.type}]
-                </span>
-                <span className="text-[#EAF4F8]">{feed.text}</span>
-                {idx < TELEMETRY_FEED.length - 1 && <span className="text-[#20384D]">///</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. "How Navik Thinks" Step-by-Step User Journey */}
-      <section id="how-it-thinks" className="py-20 px-4 lg:px-8 max-w-7xl mx-auto">
-        <div className="space-y-4 mb-12">
+      {/* 3. "How Navik Thinks" Step-by-Step User Journey (Positioned Immediately Below Hero) */}
+      <section id="how-it-thinks" className="py-16 px-4 lg:px-8 max-w-7xl mx-auto border-t border-[#20384D]/70">
+        <div className="space-y-3 mb-8">
           <div className="flex items-center gap-2 text-xs font-mono text-[#00D4FF]">
             <Sparkles className="w-4 h-4" />
-            <span>OPERATIONAL WORKFLOW</span>
+            <span>OPERATIONAL USER JOURNEY</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#EAF4F8]">
-            HOW NAVIK THINKS: STEP-BY-STEP USER JOURNEY
+            HOW NAVIK THINKS: STEP-BY-STEP FLOW
           </h2>
           <p className="text-sm text-[#8FA8B8] max-w-2xl">
-            From natural language vocal query in coastal fishing dialects to deterministic safety advisories quoting official regulations.
+            From natural language voice query in coastal fishing dialects to deterministic, mathematically verified maritime safety advisories.
           </p>
         </div>
 
-        {/* Horizontal Step Stepper */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-8">
-          {USER_JOURNEY_STEPS.map((item, idx) => (
-            <button
-              key={item.step}
-              onClick={() => setSelectedJourneyStep(idx)}
-              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                selectedJourneyStep === idx
-                  ? 'bg-[#13263A] border-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.15)]'
-                  : 'bg-[#0D1B2A] border-[#20384D] hover:border-[#8FA8B8]/40'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-[10px] font-mono font-bold ${
-                  selectedJourneyStep === idx ? 'text-[#00D4FF]' : 'text-[#8FA8B8]'
-                }`}>
-                  {item.step} // {item.phase}
-                </span>
-                {selectedJourneyStep === idx && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]" />
-                )}
-              </div>
-              <div className="text-xs font-semibold text-[#EAF4F8] truncate">
-                {item.title}
-              </div>
-            </button>
-          ))}
+        {/* 5-Step Horizontal Interactive Flowchart Stepper */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-6">
+          {USER_JOURNEY_STEPS.map((item, idx) => {
+            const isSelected = selectedJourneyStep === idx;
+            return (
+              <button
+                key={item.step}
+                onClick={() => setSelectedJourneyStep(idx)}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#13263A] border-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.18)] scale-[1.01]'
+                    : 'bg-[#0D1B2A] border-[#20384D] hover:border-[#8FA8B8]/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[10px] font-mono font-bold ${
+                    isSelected ? 'text-[#00D4FF]' : 'text-[#8FA8B8]'
+                  }`}>
+                    {item.step} // {item.phase}
+                  </span>
+                  {isSelected && (
+                    <div className="w-2 h-2 rounded-full bg-[#00D4FF] animate-pulse" />
+                  )}
+                </div>
+                <div className="text-xs font-bold text-[#EAF4F8] truncate">
+                  {item.title}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Active Journey Detail Card */}
@@ -684,11 +666,11 @@ export default function LandingPage({ onLaunchConsole }) {
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#20384D] pb-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 font-bold">
+                <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 font-bold">
                   PHASE {activeJourney.step}: {activeJourney.phase}
                 </span>
                 <span className="text-xs font-mono text-[#8FA8B8]">
-                  ACTOR: {activeJourney.actor}
+                  PRIMARY ACTOR: <span className="text-[#EAF4F8] font-semibold">{activeJourney.actor}</span>
                 </span>
               </div>
               <h3 className="text-xl font-bold text-[#EAF4F8] mt-2">
@@ -732,7 +714,7 @@ export default function LandingPage({ onLaunchConsole }) {
               <span className="text-[10px] uppercase text-[#8FA8B8] block">
                 {activeJourney.outputLabel}
               </span>
-              <pre className="text-xs text-[#18C7A0] whitespace-pre-wrap bg-[#0D1B2A] p-3 rounded border border-[#20384D] overflow-x-auto">
+              <pre className="text-xs text-[#18C7A0] whitespace-pre-wrap bg-[#0D1B2A] p-3 rounded border border-[#20384D] overflow-x-auto leading-relaxed">
                 {activeJourney.outputVal}
               </pre>
             </div>
@@ -741,242 +723,301 @@ export default function LandingPage({ onLaunchConsole }) {
 
       </section>
 
-      {/* 5. 9 Specialized Collaborative AI Agents Ecosystem */}
-      <section id="agents-ecosystem" className="py-20 px-4 lg:px-8 bg-[#0D1B2A]/50 border-y border-[#20384D]">
-        <div className="max-w-7xl mx-auto space-y-12">
+      {/* 4. 9-Agent Collaborative Node Graph (Clean Interactive Node Graph with Hover/Click Overlays) */}
+      <section id="agents-graph" className="py-16 px-4 lg:px-8 bg-[#0D1B2A]/50 border-y border-[#20384D]">
+        <div className="max-w-7xl mx-auto space-y-8">
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-mono text-[#00D4FF]">
-              <Cpu className="w-4 h-4" />
+              <Network className="w-4 h-4" />
               <span>COLLABORATIVE MULTI-AGENT ARCHITECTURE</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#EAF4F8]">
-              9 SPECIALIZED COLLABORATIVE AI AGENTS
-            </h2>
-            <p className="text-sm text-[#8FA8B8] max-w-2xl">
-              An asynchronous event-driven stateful orchestrator executing task decomposition, scientific slicing, ML risk classification, and grounded RAG compliance.
-            </p>
-          </div>
-
-          {/* Collaborative Orchestrator DAG Topology Flow Graph */}
-          <div className="bg-[#13263A] border border-[#20384D] rounded-2xl p-6 lg:p-8 space-y-6 shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#20384D] pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#00D4FF] animate-ping" />
-                <span className="text-xs font-mono font-bold tracking-wider text-[#EAF4F8] uppercase">
-                  EVENT-DRIVEN MULTI-AGENT ORCHESTRATION DAG
-                </span>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#EAF4F8]">
+                  9-AGENT COLLABORATIVE NODE GRAPH
+                </h2>
+                <p className="text-sm text-[#8FA8B8] max-w-2xl mt-1">
+                  Hover or click any agent node in the topology graph to inspect its role, data feeds, and execution triggers. Saturated Cyan pulses animate along active connection links.
+                </p>
               </div>
-              <span className="text-[10px] font-mono text-[#18C7A0] bg-[#07111F] px-2.5 py-1 rounded border border-[#20384D]">
-                ● 7 CONCURRENT PIPELINES ACTIVE // SIMULATION FEED
-              </span>
-            </div>
-
-            {/* Visual Graph Nodes & Directed Flow */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-              {/* Node 1: User Interaction Agent */}
-              <div 
-                onClick={() => setSelectedAgentIndex(0)}
-                className={`lg:col-span-3 p-4 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                  selectedAgentIndex === 0 
-                    ? 'bg-[#0D1B2A] border-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.2)] scale-[1.02]' 
-                    : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/40'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-[#00D4FF] font-bold">NODE 01 // FRONT-END</span>
-                  <Mic className="w-3.5 h-3.5 text-[#00D4FF]" />
-                </div>
-                <div className="text-xs font-bold text-[#EAF4F8]">User Interaction Agent</div>
-                <div className="text-[10px] font-mono text-[#8FA8B8]">Voice (EN/HI/MR) & Web Speech API</div>
-              </div>
-
-              {/* Directed Arrow 1 */}
-              <div className="hidden lg:flex lg:col-span-1 justify-center">
-                <div className="flex items-center text-[#00D4FF] animate-pulse">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Node 2: Planner Agent (Hub) */}
-              <div 
-                onClick={() => setSelectedAgentIndex(1)}
-                className={`lg:col-span-4 p-4 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                  selectedAgentIndex === 1 
-                    ? 'bg-[#0D1B2A] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.25)] scale-[1.02]' 
-                    : 'bg-[#07111F] border-[#00D4FF]/40 hover:border-[#00D4FF]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-[#00D4FF] font-bold">NODE 02 // ORCHESTRATOR HUB</span>
-                  <Cpu className="w-4 h-4 text-[#00D4FF] animate-spin" />
-                </div>
-                <div className="text-xs font-bold text-[#EAF4F8]">Planner Agent (Stateful DAG)</div>
-                <div className="text-[10px] font-mono text-[#18C7A0]">Task Decomposition & Failsafe Guard</div>
-              </div>
-
-              {/* Directed Arrow 2 */}
-              <div className="hidden lg:flex lg:col-span-1 justify-center">
-                <div className="flex items-center text-[#00D4FF] animate-pulse">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Node Target: Synthesized Output */}
-              <div className="lg:col-span-3 p-4 rounded-xl bg-[#07111F] border border-[#18C7A0]/50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-[#18C7A0] font-bold">SYNTHESIZED TARGET</span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#18C7A0]" />
-                </div>
-                <div className="text-xs font-bold text-[#EAF4F8]">Safe Geofenced Advisory</div>
-                <div className="text-[10px] font-mono text-[#8FA8B8]">GeoJSON Map + Spoken Readback</div>
-              </div>
-            </div>
-
-            {/* Parallel Sub-Agent Fast Selector Strip */}
-            <div className="bg-[#07111F] p-4 rounded-xl border border-[#20384D] space-y-2">
-              <div className="text-[10px] font-mono text-[#8FA8B8] uppercase">
-                Parallel Distributed Execution Pipelines (Click to inspect):
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                {AGENT_SPECIFICATIONS.slice(2).map((agent, i) => {
-                  const actualIdx = i + 2;
-                  const isSelected = selectedAgentIndex === actualIdx;
-                  const Icon = agent.icon;
-                  return (
-                    <button
-                      key={agent.id}
-                      onClick={() => setSelectedAgentIndex(actualIdx)}
-                      className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
-                        isSelected 
-                          ? 'bg-[#13263A] border-[#00D4FF] shadow-sm scale-[1.02]' 
-                          : 'bg-[#0D1B2A] border-[#20384D] hover:border-[#8FA8B8]/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 mb-1">
-                        <Icon className="w-3 h-3" style={{ color: agent.color }} />
-                        <span className="text-[9px] font-mono font-bold" style={{ color: agent.color }}>
-                          {agent.num}
-                        </span>
-                      </div>
-                      <div className="text-[10px] font-bold text-[#EAF4F8] truncate">
-                        {agent.name.replace(' Agent', '')}
-                      </div>
-                    </button>
-                  );
-                })}
+              
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#13263A] border border-[#20384D] text-xs font-mono text-[#18C7A0]">
+                <Zap className="w-3.5 h-3.5 text-[#00D4FF] animate-pulse" />
+                <span>STATEFUL ASYNC DAG // 7 CONCURRENT WORKERS</span>
               </div>
             </div>
           </div>
 
-          {/* Connected Agent Flow Visualization Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {AGENT_SPECIFICATIONS.map((agent, idx) => {
-              const Icon = agent.icon;
-              const isSelected = selectedAgentIndex === idx;
+          {/* Interactive Topology Graph Container */}
+          <div className="bg-[#13263A] border border-[#20384D] rounded-2xl p-5 lg:p-7 shadow-2xl relative overflow-hidden">
+            
+            {/* Ambient Background Grid Texture */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#00D4FF_1px,transparent_1px)] [background-size:16px_16px]" />
 
-              return (
+            {/* Desktop & Tablet Node Graph Topology Flow */}
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              
+              {/* Column 1: Stage 1 - User Interaction Agent (Node 01) */}
+              <div className="lg:col-span-3 space-y-3 relative">
+                <div className="text-[10px] font-mono uppercase text-[#00D4FF] font-bold tracking-wider flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
+                  <span>STAGE 1: USER INPUT</span>
+                </div>
+
                 <div
-                  key={agent.id}
-                  onClick={() => setSelectedAgentIndex(idx)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 ${
-                    isSelected
-                      ? 'bg-[#13263A] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.15)] scale-[1.01]'
-                      : 'bg-[#0D1B2A] border-[#20384D] hover:border-[#8FA8B8]/40'
+                  onMouseEnter={() => setHoveredAgentId('agent-01')}
+                  onMouseLeave={() => setHoveredAgentId(null)}
+                  onClick={() => setActiveAgentId(activeAgentId === 'agent-01' ? null : 'agent-01')}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2 relative group ${
+                    currentAgentInspectionId === 'agent-01'
+                      ? 'bg-[#0D1B2A] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.25)] scale-[1.02]'
+                      : 'bg-[#07111F] border-[#20384D] hover:border-[#00D4FF]/60'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div 
-                        className="p-2 rounded-lg"
-                        style={{ backgroundColor: `${agent.color}15`, border: `1px solid ${agent.color}40` }}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-[#00D4FF] font-bold">NODE 01</span>
+                    <div className="p-1.5 rounded-lg bg-[#00D4FF]/10 text-[#00D4FF]">
+                      <Mic className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-[#EAF4F8]">User Interaction Agent</div>
+                  <div className="text-[11px] font-mono text-[#8FA8B8]">Voice (EN/HI/MR) & Web Speech</div>
+                  
+                  <div className="text-[9px] font-mono text-[#18C7A0] pt-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#18C7A0]" />
+                    <span>ZERO-COST SPEECH RECOGNITION</span>
+                  </div>
+                </div>
+
+                {/* Animated Connection Link: Stage 1 ➔ Stage 2 */}
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#8FA8B8] pt-1 bg-[#07111F]/60 px-2.5 py-1.5 rounded-lg border border-[#20384D]/60">
+                  <span className="text-[#8FA8B8]">Decoded Intent</span>
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-10 h-3 text-[#00D4FF]" viewBox="0 0 40 12" fill="none">
+                      <line x1="0" y1="6" x2="32" y2="6" stroke="#00D4FF" strokeWidth="1.5" strokeDasharray="4 4" className="animate-flow" />
+                      <polygon points="32,3 39,6 32,9" fill="#00D4FF" />
+                    </svg>
+                    <span className="text-[#00D4FF] font-bold">➔</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Stage 2 - Planner Coordinator (Node 02) */}
+              <div className="lg:col-span-3 space-y-3 relative">
+                <div className="text-[10px] font-mono uppercase text-[#00D4FF] font-bold tracking-wider flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-ping" />
+                  <span>STAGE 2: ORCHESTRATOR HUB</span>
+                </div>
+
+                <div
+                  onMouseEnter={() => setHoveredAgentId('agent-02')}
+                  onMouseLeave={() => setHoveredAgentId(null)}
+                  onClick={() => setActiveAgentId(activeAgentId === 'agent-02' ? null : 'agent-02')}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2 relative group ${
+                    currentAgentInspectionId === 'agent-02'
+                      ? 'bg-[#0D1B2A] border-[#00D4FF] shadow-[0_0_25px_rgba(0,212,255,0.3)] scale-[1.02]'
+                      : 'bg-[#07111F] border-[#00D4FF]/40 hover:border-[#00D4FF]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-[#00D4FF] font-bold">NODE 02 // HUB</span>
+                    <div className="p-1.5 rounded-lg bg-[#00D4FF]/10 text-[#00D4FF]">
+                      <Cpu className="w-4 h-4 animate-spin" />
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-[#EAF4F8]">Planner Agent (DAG Hub)</div>
+                  <div className="text-[11px] font-mono text-[#18C7A0]">Task Graph & Failsafe Guard</div>
+                  
+                  <div className="text-[9px] font-mono text-[#8FA8B8] pt-1 flex items-center gap-1">
+                    <span className="text-[#00D4FF]">⇋</span>
+                    <span>AUTO LOCAL SQLITE FALLBACK</span>
+                  </div>
+                </div>
+
+                {/* Animated Connection Link: Stage 2 ➔ Stage 3 */}
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#8FA8B8] pt-1 bg-[#07111F]/60 px-2.5 py-1.5 rounded-lg border border-[#20384D]/60">
+                  <span className="text-[#18C7A0] font-semibold">7 Parallel Workers</span>
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-10 h-3 text-[#00D4FF]" viewBox="0 0 40 12" fill="none">
+                      <line x1="0" y1="6" x2="32" y2="6" stroke="#00D4FF" strokeWidth="1.5" strokeDasharray="4 4" className="animate-flow" />
+                      <polygon points="32,3 39,6 32,9" fill="#00D4FF" />
+                    </svg>
+                    <span className="text-[#00D4FF] font-bold">➔</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Stage 3 - Parallel Sub-Agent Nodes (Nodes 03 to 09) */}
+              <div className="lg:col-span-4 space-y-2 relative">
+                <div className="text-[10px] font-mono uppercase text-[#00D4FF] font-bold tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#18C7A0] animate-pulse" />
+                    <span>STAGE 3: PARALLEL DISPATCH (03-09)</span>
+                  </span>
+                  <span className="text-[9px] text-[#8FA8B8]">CLICK / HOVER</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
+                  {AGENT_SPECIFICATIONS.slice(2).map((agent) => {
+                    const Icon = agent.icon;
+                    const isSelected = currentAgentInspectionId === agent.id;
+
+                    return (
+                      <div
+                        key={agent.id}
+                        onMouseEnter={() => setHoveredAgentId(agent.id)}
+                        onMouseLeave={() => setHoveredAgentId(null)}
+                        onClick={() => setActiveAgentId(activeAgentId === agent.id ? null : agent.id)}
+                        className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-[#0D1B2A] border-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.2)] scale-[1.01]'
+                            : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/40'
+                        }`}
                       >
-                        <Icon className="w-4 h-4" style={{ color: agent.color }} />
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div 
+                            className="p-1.5 rounded"
+                            style={{ backgroundColor: `${agent.color}15`, border: `1px solid ${agent.color}40` }}
+                          >
+                            <Icon className="w-3.5 h-3.5" style={{ color: agent.color }} />
+                          </div>
+                          <div className="truncate text-left">
+                            <div className="text-xs font-bold text-[#EAF4F8] truncate">
+                              <span className="font-mono text-[10px] mr-1" style={{ color: agent.color }}>
+                                {agent.num}.
+                              </span>
+                              {agent.name.replace(' Agent', '')}
+                            </div>
+                            <div className="text-[9px] font-mono text-[#8FA8B8] truncate">
+                              {agent.role.split('&')[0]}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span 
+                          className="text-[8px] font-mono px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0"
+                          style={{ color: agent.color, backgroundColor: `${agent.color}10`, border: `1px solid ${agent.color}30` }}
+                        >
+                          {agent.status.split(' ')[0]}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Column 4: Stage 4 - Target Output ([ SAFE ROUTE ]) */}
+              <div className="lg:col-span-2 space-y-3 relative">
+                <div className="text-[10px] font-mono uppercase text-[#18C7A0] font-bold tracking-wider flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#18C7A0] animate-pulse" />
+                  <span>TARGET OUTPUT</span>
+                </div>
+
+                <div 
+                  onClick={() => handleLaunch('map')}
+                  className="p-4 rounded-xl bg-[#07111F] border border-[#18C7A0]/60 space-y-2 hover:border-[#18C7A0] hover:shadow-[0_0_20px_rgba(24,199,160,0.2)] transition-all cursor-pointer text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-[#18C7A0] font-bold">SYNTHESIZED</span>
+                    <CheckCircle2 className="w-4 h-4 text-[#18C7A0]" />
+                  </div>
+                  <div className="text-xs font-bold text-[#EAF4F8]">Safe Route Advisory</div>
+                  <div className="text-[10px] font-mono text-[#8FA8B8]">GeoJSON Overlay + Spoken Verdict</div>
+                  
+                  <div className="pt-2 border-t border-[#20384D] flex items-center justify-between text-[9px] font-mono text-[#00D4FF] font-bold">
+                    <span>EXPLORE ➔</span>
+                  </div>
+                </div>
+
+                {/* Synthesis Link Badge */}
+                <div className="flex items-center justify-center gap-1.5 text-[9px] font-mono text-[#18C7A0] bg-[#07111F]/60 px-2 py-1 rounded border border-[#20384D]/60">
+                  <Zap className="w-3 h-3 text-[#00D4FF] animate-pulse" />
+                  <span>SYNTHESIZED DAG</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Dynamic Node Overlay / Popover Inspector Card (Shown on Hover / Click) */}
+            {inspectedAgent ? (
+              <div className="mt-6 pt-5 border-t border-[#20384D] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-[#13263A] border border-[#00D4FF]/40 rounded-xl p-5 space-y-4 shadow-xl relative">
+                  
+                  {/* Close button if pinned */}
+                  {activeAgentId && (
+                    <button
+                      onClick={() => setActiveAgentId(null)}
+                      className="absolute top-3 right-3 p-1 rounded-lg text-[#8FA8B8] hover:text-[#EAF4F8] hover:bg-[#07111F] transition-colors cursor-pointer"
+                      title="Close Inspector"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pr-8">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="p-2.5 rounded-xl"
+                        style={{ backgroundColor: `${inspectedAgent.color}15`, border: `1px solid ${inspectedAgent.color}40` }}
+                      >
+                        <inspectedAgent.icon className="w-5 h-5" style={{ color: inspectedAgent.color }} />
                       </div>
                       <div>
-                        <span className="text-[10px] font-mono text-[#8FA8B8] block">
-                          AGENT {agent.num}
-                        </span>
-                        <h4 className="text-sm font-bold text-[#EAF4F8]">
-                          {agent.name}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-[#00D4FF]">
+                            AGENT {inspectedAgent.num} // SPECIFICATION
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#07111F] text-[#18C7A0] border border-[#20384D]">
+                            {inspectedAgent.status}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-bold text-[#EAF4F8]">
+                          {inspectedAgent.name} — <span className="text-xs font-normal text-[#8FA8B8]">{inspectedAgent.role}</span>
                         </h4>
                       </div>
                     </div>
 
-                    <span 
-                      className="text-[9px] font-mono px-2 py-0.5 rounded font-bold"
-                      style={{ color: agent.color, backgroundColor: `${agent.color}10`, border: `1px solid ${agent.color}30` }}
-                    >
-                      {agent.status}
-                    </span>
+                    <div className="text-xs font-mono text-[#8FA8B8] bg-[#07111F] px-3 py-1 rounded border border-[#20384D]">
+                      ENGINE: <span className="text-[#EAF4F8] font-bold">{inspectedAgent.tech}</span>
+                    </div>
                   </div>
 
-                  <p className="text-xs text-[#8FA8B8] line-clamp-2">
-                    {agent.description}
+                  <p className="text-xs text-[#EAF4F8] leading-relaxed">
+                    {inspectedAgent.description}
                   </p>
 
-                  <div className="text-[10px] font-mono text-[#8FA8B8] pt-1 border-t border-[#20384D]/60 flex items-center justify-between">
-                    <span className="text-[#EAF4F8] font-semibold">{agent.role}</span>
-                    <span className="text-[#00D4FF]">DETAILS ➔</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs pt-1">
+                    <div className="bg-[#07111F] p-3 rounded-lg border border-[#20384D] space-y-1">
+                      <span className="text-[9px] text-[#8FA8B8] uppercase block">Data Inputs & Triggers</span>
+                      <p className="text-[#EAF4F8] text-[11px]">{inspectedAgent.inputs}</p>
+                    </div>
+
+                    <div className="bg-[#07111F] p-3 rounded-lg border border-[#20384D] space-y-1">
+                      <span className="text-[9px] text-[#8FA8B8] uppercase block">Synthesized Outputs & Actions</span>
+                      <p className="text-[#18C7A0] text-[11px]">{inspectedAgent.outputs}</p>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Deep Agent Specification Inspector Panel */}
-          <div className="bg-[#13263A] border border-[#20384D] rounded-2xl p-6 lg:p-8 space-y-6 shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#20384D] pb-4">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="p-3 rounded-xl"
-                  style={{ backgroundColor: `${activeAgent.color}15`, border: `1px solid ${activeAgent.color}40` }}
-                >
-                  <activeAgent.icon className="w-6 h-6" style={{ color: activeAgent.color }} />
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-[#20384D]/50 flex items-center justify-between text-xs font-mono text-[#8FA8B8]">
+                <div className="flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5 text-[#00D4FF]" />
+                  <span>Tip: Click or hover on any agent node above to inspect its live data contracts and algorithms.</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-[#00D4FF]">
-                      AGENT {activeAgent.num} // SPECIFICATION
-                    </span>
-                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#07111F] text-[#18C7A0] border border-[#20384D]">
-                      {activeAgent.status}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#EAF4F8]">
-                    {activeAgent.name} — <span className="text-sm font-normal text-[#8FA8B8]">{activeAgent.role}</span>
-                  </h3>
-                </div>
+                <span className="text-[10px] text-[#00D4FF] hidden sm:inline-block">EVENT-DRIVEN ARCHITECTURE</span>
               </div>
+            )}
 
-              <div className="text-xs font-mono text-[#8FA8B8] bg-[#07111F] px-3 py-1.5 rounded border border-[#20384D]">
-                ENGINE: <span className="text-[#EAF4F8] font-bold">{activeAgent.tech}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
-              <div className="bg-[#07111F] p-4 rounded-xl border border-[#20384D] space-y-2">
-                <span className="text-[10px] text-[#8FA8B8] uppercase block">Data Inputs & Triggers</span>
-                <p className="text-[#EAF4F8]">{activeAgent.inputs}</p>
-              </div>
-
-              <div className="bg-[#07111F] p-4 rounded-xl border border-[#20384D] space-y-2">
-                <span className="text-[10px] text-[#8FA8B8] uppercase block">Synthesized Outputs & Actions</span>
-                <p className="text-[#18C7A0]">{activeAgent.outputs}</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-[#8FA8B8]">
-              {activeAgent.description}
-            </p>
           </div>
 
         </div>
       </section>
 
-      {/* 6. Core Capabilities Matrix */}
-      <section id="capabilities" className="py-20 px-4 lg:px-8 max-w-7xl mx-auto">
-        <div className="space-y-4 mb-12">
+      {/* 5. Core Capabilities Matrix (6 Compact Cards) */}
+      <section id="capabilities" className="py-16 px-4 lg:px-8 max-w-7xl mx-auto">
+        <div className="space-y-3 mb-10">
           <div className="flex items-center gap-2 text-xs font-mono text-[#00D4FF]">
             <Layers className="w-4 h-4" />
             <span>CORE FEATURE MATRIX</span>
@@ -985,7 +1026,7 @@ export default function LandingPage({ onLaunchConsole }) {
             BUILT FOR NAVAL OPERATIONS & FISHERIES RESILIENCE
           </h2>
           <p className="text-sm text-[#8FA8B8] max-w-2xl">
-            Strictly adhering to SIH26176 evaluation rubrics with zero black-box logic, predictive geofencing, and offline-first failsafes.
+            Strictly adhering to SIH26176 evaluation rubrics with zero black-box logic, predictive geofencing, and offline-first resilience.
           </p>
         </div>
 
@@ -1036,11 +1077,40 @@ export default function LandingPage({ onLaunchConsole }) {
         </div>
       </section>
 
+      {/* 6. Live System Telemetry Scrolling Marquee Ticker */}
+      <section id="telemetry" className="border-y border-[#20384D] bg-[#0D1B2A] py-2.5 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#13263A] border border-[#20384D] text-[10px] font-mono font-bold text-[#00D4FF] whitespace-nowrap z-10 flex-shrink-0">
+            <Activity className="w-3 h-3 animate-spin" />
+            <span>LIVE BULLETIN</span>
+          </div>
+
+          {/* Continuous CSS Marquee Container */}
+          <div className="overflow-hidden flex-1 relative no-scrollbar">
+            <div className="animate-marquee flex items-center gap-8 text-[11px] font-mono text-[#8FA8B8] whitespace-nowrap">
+              {/* Duplicate the items to allow seamless infinite looping */}
+              {[...TELEMETRY_FEED, ...TELEMETRY_FEED].map((feed, idx) => (
+                <div key={idx} className="flex items-center gap-2 flex-shrink-0">
+                  <span 
+                    className="px-1.5 py-0.2 rounded text-[9px] font-bold"
+                    style={{ color: feed.color, backgroundColor: `${feed.color}15`, border: `1px solid ${feed.color}40` }}
+                  >
+                    [{feed.type}]
+                  </span>
+                  <span className="text-[#EAF4F8]">{feed.text}</span>
+                  <span className="text-[#20384D] ml-4">///</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 7. Progressive Disclosure FAQ Panel */}
-      <section id="faq" className="py-20 px-4 lg:px-8 bg-[#0D1B2A]/60 border-t border-[#20384D]">
-        <div className="max-w-4xl mx-auto space-y-10">
+      <section id="faq" className="py-16 px-4 lg:px-8 bg-[#0D1B2A]/60 border-b border-[#20384D]">
+        <div className="max-w-4xl mx-auto space-y-8">
           
-          <div className="space-y-4 text-center">
+          <div className="space-y-3 text-center">
             <div className="inline-flex items-center gap-2 text-xs font-mono text-[#00D4FF] bg-[#13263A] px-3 py-1 rounded-md border border-[#20384D]">
               <HelpCircle className="w-4 h-4" />
               <span>JUDGING & TECHNICAL AUDIT</span>
@@ -1112,8 +1182,8 @@ export default function LandingPage({ onLaunchConsole }) {
         </div>
       </section>
 
-      {/* 8. Tactical Call-to-Action Console Banner */}
-      <section className="py-16 px-4 lg:px-8 max-w-7xl mx-auto">
+      {/* 8. Launch Console CTA (Closing Block) */}
+      <section id="launch-console" className="py-16 px-4 lg:px-8 max-w-7xl mx-auto">
         <div className="relative bg-gradient-to-r from-[#0D1B2A] via-[#13263A] to-[#0D1B2A] border border-[#20384D] rounded-3xl p-8 lg:p-12 overflow-hidden shadow-2xl">
           {/* Neon Top Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00D4FF] to-transparent" />
@@ -1121,13 +1191,13 @@ export default function LandingPage({ onLaunchConsole }) {
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-8 space-y-3">
               <span className="text-xs font-mono text-[#00D4FF] font-bold uppercase tracking-wider">
-                SIH26176 READY-TO-EVALUATE DEMO
+                READY FOR DEPLOYMENT // SIH26176
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#EAF4F8]">
-                EXPERIENCE THE LIVE OPERATIONS CONSOLE
+                LAUNCH OPERATIONS CONSOLE
               </h2>
               <p className="text-sm text-[#8FA8B8] max-w-xl">
-                Explore the interactive MapLibre spatial canvas with dynamic SVAS BSI grids, Recharts 24-hour diurnal timelines, and real-time beam vulnerability sliders.
+                Explore the interactive MapLibre spatial canvas with dynamic SVAS BSI grids, Recharts 24-hour diurnal timelines, and real-time beam vulnerability calculations.
               </p>
             </div>
 
@@ -1182,8 +1252,8 @@ export default function LandingPage({ onLaunchConsole }) {
               <ul className="space-y-1.5 text-[#8FA8B8]">
                 <li><button onClick={() => handleLaunch('map')} className="hover:text-[#00D4FF] transition-colors cursor-pointer">➔ Interactive Map Canvas</button></li>
                 <li><button onClick={() => { setIsAdvisorModalOpen(true); playSpeechSample('en'); }} className="hover:text-[#00D4FF] transition-colors cursor-pointer">➔ AI Safety Advisor</button></li>
-                <li><a href="#how-it-thinks" className="hover:text-[#00D4FF] transition-colors">➔ 5-Step Workflow</a></li>
-                <li><a href="#agents-ecosystem" className="hover:text-[#00D4FF] transition-colors">➔ 9-Agent Graph</a></li>
+                <li><a href="#how-it-thinks" className="hover:text-[#00D4FF] transition-colors">➔ 5-Step User Journey</a></li>
+                <li><a href="#agents-graph" className="hover:text-[#00D4FF] transition-colors">➔ 9-Agent Node Graph</a></li>
               </ul>
             </div>
 
@@ -1207,11 +1277,10 @@ export default function LandingPage({ onLaunchConsole }) {
                 <span className="text-[#18C7A0]">● LIVE</span>
               </div>
               <div className="text-[10px] space-y-1">
-                <div>SYSTEM: <span className="text-[#EAF4F8]">ONLINE // SIM ACTIVE</span></div>
-                <div>DATABASE: <span className="text-[#EAF4F8]">NEON-POSTGIS (pgvector)</span></div>
-                <div>GEOFENCE: <span className="text-[#EAF4F8]">5.0 KM SECTOR BUFFER</span></div>
-                <div>FALLBACK: <span className="text-[#18C7A0]">SQLite 3.42 READY</span></div>
-                <div>BUILD: <span className="text-[#00D4FF]">v1.0.0-PROD (SIH26176)</span></div>
+                <div>SYSTEM STATUS: <span className="text-[#EAF4F8]">ONLINE // SIMULATION ACTIVE</span></div>
+                <div>DATABASE PORT: <span className="text-[#EAF4F8]">NEON-POSTGIS (pgvector)</span></div>
+                <div>SECTOR BUFFER: <span className="text-[#EAF4F8]">5.0 KM</span></div>
+                <div>VERSION STATUS: <span className="text-[#00D4FF]">v1.0.0-PROD</span></div>
               </div>
             </div>
 
@@ -1344,7 +1413,7 @@ export default function LandingPage({ onLaunchConsole }) {
             {/* Modal Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
               <span className="text-[10px] font-mono text-[#8FA8B8]">
-                Native Web Speech API (No external server data leakage)
+                Native Web Speech API (Zero cloud server data leakage)
               </span>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">

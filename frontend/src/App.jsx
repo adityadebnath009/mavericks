@@ -63,6 +63,12 @@ const DEFAULT_SAFETY_DATA = {
     peak_curr_time: '26 Aug • 12:00 UTC',
     peak_wave_time: '26 Aug • 12:00 UTC'
   },
+  navik_risk: {
+    overall_status: 'LOW',
+    wind_risk: 'LOW',
+    current_risk: 'LOW',
+    geofence_risk: 'CLEAR'
+  },
   orca_risk: {
     overall_status: 'LOW',
     wind_risk: 'LOW',
@@ -400,14 +406,14 @@ function App() {
               </div>
             </div>
 
-            {/* B. ORCA Operational Status Card */}
+            {/* B. Navik Operational Status Card */}
             {safetyData && (
               <div className={`p-4 rounded-xl border flex flex-col gap-1.5 shadow-lg ${
                 safetyData.rating === 'DANGER' ? 'bg-[#FF5C5C]/10 border-[#FF5C5C]/30' :
                 safetyData.rating === 'CAUTION' ? 'bg-[#FFB547]/10 border-[#FFB547]/30' :
                 'bg-[#18C7A0]/10 border-[#18C7A0]/30'
               }`}>
-                <span className="text-[9px] text-[#8FA8B8] font-bold uppercase tracking-widest">ORCA Operational Status</span>
+                <span className="text-[9px] text-[#8FA8B8] font-bold uppercase tracking-widest">Navik Operational Status</span>
                 <div className="flex items-center gap-2">
                   <AlertTriangle className={`w-5 h-5 ${
                     safetyData.rating === 'DANGER' ? 'text-[#FF5C5C]' :
@@ -429,12 +435,12 @@ function App() {
                     safetyData.bsi_metrics?.rating === 'WARNING' || safetyData.bsi_metrics?.bsi_score >= 5 ? 'SVAS wave hazard warning' :
                     safetyData.bsi_metrics?.rating === 'ALERT' || safetyData.bsi_metrics?.bsi_score >= 2 ? 'SVAS wave hazard alert' :
                     safetyData.vessel_suitability?.vulnerable ? 'Vessel beam stability threshold' :
-                    safetyData.orca_risk?.wind_risk === 'HIGH' ? 'High wind speed' :
-                    safetyData.orca_risk?.wind_risk === 'MODERATE' ? 'Elevated wind speed' :
-                    safetyData.orca_risk?.current_risk === 'HIGH' ? 'Strong surface currents' :
-                    safetyData.orca_risk?.current_risk === 'MODERATE' ? 'Moderate surface currents' :
-                    (safetyData.orca_risk?.geofence_risk === 'RESTRICTED' || safetyData.orca_risk?.geofence_risk === 'HIGH') ? 'Restricted boundary constraint' :
-                    safetyData.orca_risk?.geofence_risk === 'WARNING' ? 'Approaching border/sanctuary' :
+                    (safetyData.navik_risk || safetyData.orca_risk)?.wind_risk === 'HIGH' ? 'High wind speed' :
+                    (safetyData.navik_risk || safetyData.orca_risk)?.wind_risk === 'MODERATE' ? 'Elevated wind speed' :
+                    (safetyData.navik_risk || safetyData.orca_risk)?.current_risk === 'HIGH' ? 'Strong surface currents' :
+                    (safetyData.navik_risk || safetyData.orca_risk)?.current_risk === 'MODERATE' ? 'Moderate surface currents' :
+                    ((safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'RESTRICTED' || (safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'HIGH') ? 'Restricted boundary constraint' :
+                    (safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'WARNING' ? 'Approaching border/sanctuary' :
                     'Optimal safety parameters'
                   }</span>
                 </p>
@@ -461,30 +467,30 @@ function App() {
                     <span className="text-[8px] text-[#8FA8B8] uppercase block font-semibold">Wind Risk</span>
                     <Wind className="w-3.5 h-3.5 text-[#8FA8B8] mx-auto" />
                     <span className={`text-[8px] font-extrabold px-1 rounded block ${
-                      safetyData.orca_risk?.wind_risk === 'HIGH' ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
-                      safetyData.orca_risk?.wind_risk === 'MODERATE' ? 'text-[#FFB547] bg-[#FFB547]/10' :
+                      (safetyData.navik_risk || safetyData.orca_risk)?.wind_risk === 'HIGH' ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
+                      (safetyData.navik_risk || safetyData.orca_risk)?.wind_risk === 'MODERATE' ? 'text-[#FFB547] bg-[#FFB547]/10' :
                       'text-[#18C7A0] bg-[#18C7A0]/10'
-                    }`}>{safetyData.orca_risk?.wind_risk || 'LOW'}</span>
+                    }`}>{(safetyData.navik_risk || safetyData.orca_risk)?.wind_risk || 'LOW'}</span>
                   </div>
 
                   <div className="bg-[#13263A] border border-[#20384D] p-2 rounded-xl text-center space-y-1.5">
                     <span className="text-[8px] text-[#8FA8B8] uppercase block font-semibold">Current Risk</span>
                     <Waves className="w-3.5 h-3.5 text-[#8FA8B8] mx-auto" />
                     <span className={`text-[8px] font-extrabold px-1 rounded block ${
-                      safetyData.orca_risk?.current_risk === 'HIGH' ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
-                      safetyData.orca_risk?.current_risk === 'MODERATE' ? 'text-[#FFB547] bg-[#FFB547]/10' :
+                      (safetyData.navik_risk || safetyData.orca_risk)?.current_risk === 'HIGH' ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
+                      (safetyData.navik_risk || safetyData.orca_risk)?.current_risk === 'MODERATE' ? 'text-[#FFB547] bg-[#FFB547]/10' :
                       'text-[#18C7A0] bg-[#18C7A0]/10'
-                    }`}>{safetyData.orca_risk?.current_risk || 'LOW'}</span>
+                    }`}>{(safetyData.navik_risk || safetyData.orca_risk)?.current_risk || 'LOW'}</span>
                   </div>
 
                   <div className="bg-[#13263A] border border-[#20384D] p-2 rounded-xl text-center space-y-1.5">
                     <span className="text-[8px] text-[#8FA8B8] uppercase block font-semibold">Geofencing</span>
                     <Shield className="w-3.5 h-3.5 text-[#8FA8B8] mx-auto" />
                     <span className={`text-[8px] font-extrabold px-1 rounded block ${
-                      (safetyData.orca_risk?.geofence_risk === 'RESTRICTED' || safetyData.orca_risk?.geofence_risk === 'HIGH') ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
-                      safetyData.orca_risk?.geofence_risk === 'WARNING' ? 'text-[#FFB547] bg-[#FFB547]/10' :
+                      ((safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'RESTRICTED' || (safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'HIGH') ? 'text-[#FF5C5C] bg-[#FF5C5C]/10' :
+                      (safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk === 'WARNING' ? 'text-[#FFB547] bg-[#FFB547]/10' :
                       'text-[#18C7A0] bg-[#18C7A0]/10'
-                    }`}>{safetyData.orca_risk?.geofence_risk || 'CLEAR'}</span>
+                    }`}>{(safetyData.navik_risk || safetyData.orca_risk)?.geofence_risk || 'CLEAR'}</span>
                   </div>
                 </div>
               </div>

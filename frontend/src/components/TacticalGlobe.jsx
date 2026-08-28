@@ -139,7 +139,7 @@ const TACTICAL_ROUTES = [
 const SIMULATED_VESSELS = [
   {
     id: 'SK-104',
-    name: 'Sagar Kanya (ORV)',
+    name: 'Sagar Kanya (Research Vessel)',
     lon: 74.5,
     lat: 14.8,
     speed: '12.4 kn',
@@ -188,8 +188,18 @@ const TACTICAL_ZONES = [
     lon: 79.1,
     lat: 9.1,
     radiusDeg: 1.2,
-    color: '#FF5C5C', // Coral Red
+    color: '#FF5C5C', // Coral Red restricted boundary
     label: 'RESTRICTED MPA'
+  },
+  {
+    id: 'mpa-sundarbans',
+    name: 'Sundarbans Marine Eco-Zone',
+    type: 'RESTRICTED SANCTUARY',
+    lon: 88.8,
+    lat: 21.6,
+    radiusDeg: 1.2,
+    color: '#FF5C5C', // Coral Red restricted boundary
+    label: 'RESTRICTED ZONE'
   },
   {
     id: 'hazard-gujarat-swell',
@@ -198,8 +208,8 @@ const TACTICAL_ZONES = [
     lon: 68.5,
     lat: 20.8,
     radiusDeg: 1.4,
-    color: '#FFB547', // Amber
-    label: 'SWELL ALERT: 3.6m'
+    color: '#FF5C5C', // Coral Red
+    label: 'RESTRICTED SWELL ZONE'
   }
 ];
 
@@ -262,19 +272,23 @@ export default function TacticalGlobe({ onSelectRoute, onLaunchConsole }) {
 
   // Main Canvas Render Loop
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      setCanvasAvailable(false);
-      return;
-    }
-
     let lastTime = performance.now();
 
-    const render = (time) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
+    const render = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        animFrameRef.current = requestAnimationFrame(render);
+        return;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        animFrameRef.current = requestAnimationFrame(render);
+        return;
+      }
+
+      const currentTime = performance.now();
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+      lastTime = currentTime;
 
       // Update pulse phase
       pulsePhaseRef.current = (pulsePhaseRef.current + dt * 0.8) % 1;
@@ -291,6 +305,17 @@ export default function TacticalGlobe({ onSelectRoute, onLaunchConsole }) {
       // Handle Canvas DPI and resize safely
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
+
+      // Debug telemetry (approx. once every 100 frames)
+      if (Math.random() < 0.01) {
+        console.log("[TacticalGlobe HUD] Loop active:", {
+          dimensions: `${width}x${height}`,
+          yaw: curRotY.toFixed(3),
+          dt: dt.toFixed(4),
+          isRotating: isRotatingRef.current,
+          isDragging: isDraggingRef.current
+        });
+      }
 
       // Guard against zero dimensions during initial mount/unmount
       if (width <= 10 || height <= 10) {
@@ -556,28 +581,31 @@ export default function TacticalGlobe({ onSelectRoute, onLaunchConsole }) {
       SIMULATED_VESSELS.forEach(vessel => {
         const pos = project3D(vessel.lon, vessel.lat, radius * 1.01, cx, cy, curRotY, curRotX);
         if (pos.visible) {
-          // Pulsing Beacon Ring
-          const pulseRadius = 4 + 4 * Math.sin(pulsePhaseRef.current * Math.PI * 2);
-          ctx.strokeStyle = vessel.color;
-          ctx.lineWidth = 1;
-          ctx.globalAlpha = 0.7;
+          // Pulsing Beacon Ring in Neon Cyan (#00D4FF) - Linear radar wave (always positive to prevent IndexSizeError)
+          const pulseRadius = 3 + 7 * pulsePhaseRef.current;
+          ctx.strokeStyle = '#00D4FF';
+          ctx.lineWidth = 1.2;
+          ctx.globalAlpha = Math.max(0.1, 0.9 * (1 - pulsePhaseRef.current));
           ctx.beginPath();
           ctx.arc(pos.x, pos.y, pulseRadius, 0, Math.PI * 2);
           ctx.stroke();
           ctx.globalAlpha = 1.0;
 
-          // Vessel Dot
-          ctx.fillStyle = vessel.color;
+          // Vessel Marker: Off White (#EAF4F8) center dot with sharp Cyan outline
+          ctx.fillStyle = '#EAF4F8';
           ctx.beginPath();
           ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = '#00D4FF';
+          ctx.lineWidth = 1;
+          ctx.stroke();
 
           // Vessel Tactical Tag
           ctx.font = '8px "JetBrains Mono", monospace';
           ctx.fillStyle = '#EAF4F8';
-          ctx.fillText(`[${vessel.id}]`, pos.x + 6, pos.y - 4);
+          ctx.fillText(`[${vessel.id}]`, pos.x + 7, pos.y - 4);
           ctx.fillStyle = '#8FA8B8';
-          ctx.fillText(`${vessel.speed}`, pos.x + 6, pos.y + 6);
+          ctx.fillText(`${vessel.speed}`, pos.x + 7, pos.y + 6);
         }
       });
 
@@ -600,7 +628,7 @@ export default function TacticalGlobe({ onSelectRoute, onLaunchConsole }) {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [project3D]);
+  }, []);
 
   // Unified Pointer Drag Handlers (Mouse, Touch, Stylus with Pointer Capture)
   const handlePointerDown = (e) => {
@@ -687,6 +715,7 @@ export default function TacticalGlobe({ onSelectRoute, onLaunchConsole }) {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
           className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
         />
       ) : (
