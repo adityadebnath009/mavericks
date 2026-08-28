@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List
 
-from app.api.deps import get_db
+from app.db.session import get_db
 from app.api.services.trip_decision import TripDecisionEngine
 
 router = APIRouter()
