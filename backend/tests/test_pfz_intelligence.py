@@ -106,3 +106,19 @@ def test_pfz_routing():
         assert "overall_risk" in summary
         assert summary["overall_risk"] in ["LOW", "MODERATE", "HIGH"]
         assert "avoided_hazards" in summary
+
+        # Verify new current-aware routing comparison keys
+        assert "alternate_route" in res
+        alt_route = res["alternate_route"]
+        assert "route_coords" in alt_route
+        assert "distance_km" in alt_route
+        assert "travel_time_hours" in alt_route
+        assert "overall_risk" in alt_route
+        assert "current_status" in alt_route
+        assert alt_route["current_status"] in ["favourable", "neutral", "adverse"]
+
+        assert "comparison" in res
+        comparison = res["comparison"]
+        assert "recommended" in comparison
+        assert "reason" in comparison
+        assert len(comparison["reason"]) > 0
