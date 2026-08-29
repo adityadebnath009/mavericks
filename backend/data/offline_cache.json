@@ -1,1 +1,33 @@
-{"weather_agent": {"status": "cached_weather", "wind": "45 km/h", "source": "offline_json"}, "ocean_agent": {"status": "cached_ocean", "wave": "2.1m", "source": "offline_json"}}
+{
+  "goa_safe": {
+    "weather_payload": {
+      "status": "cached_demo",
+      "plain_language_summary": "Calm seas. Safe to proceed.",
+      "wind_speed": "12 km/h",
+      "wave_height": "0.8m",
+      "risk_score": 15
+    },
+    "ocean_payload": {
+      "status": "cached_demo",
+      "max_pfz_probability": 0.88,
+      "coincidence_edge_detected": true,
+      "highly_suitable_species": ["Indian Mackerel", "Oil Sardine"]
+    }
+  },
+  "paradip_cyclone": {
+    "weather_payload": {
+      "status": "cached_demo",
+      "plain_language_summary": "EXTREME DANGER. Active cyclone warning. Do not leave port.",
+      "wind_speed": "85 km/h",
+      "wave_height": "5.2m",
+      "risk_score": 92,
+      "override_triggered": "cyclone_warning"
+    },
+    "ocean_payload": {
+      "status": "cached_demo",
+      "max_pfz_probability": 0.0,
+      "coincidence_edge_detected": false,
+      "highly_suitable_species": []
+    }
+  }
+}
