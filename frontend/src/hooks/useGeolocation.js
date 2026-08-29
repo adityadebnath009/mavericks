@@ -39,7 +39,7 @@ export function useGeolocation(options = {}) {
       handleSuccess,
       handleError,
       {
-        enableHighAccuracy: true, # Force GPS usage rather than IP location
+        enableHighAccuracy: true, // Force GPS usage rather than IP location
         timeout: 10000,
         maximumAge: 0,
         ...options

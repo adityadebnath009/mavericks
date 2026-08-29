@@ -3,7 +3,7 @@ import numpy as np
 
 api_router = APIRouter()
 
-from app.api.endpoints import geofence, safety, vessels, weather, incois_proxy, pfz_router
+from app.api.endpoints import geofence, safety, vessels, weather, incois_proxy, pfz_router, trip
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
 from app.agents.marine_data_agent import MarineDataDiscoveryAgent
@@ -16,6 +16,7 @@ api_router.include_router(safety.router, prefix="/safety", tags=["safety"])
 api_router.include_router(vessels.router, prefix="/vessels", tags=["vessels"])
 api_router.include_router(incois_proxy.router, prefix="/incois", tags=["incois"])
 api_router.include_router(pfz_router.router, prefix="/pfz", tags=["pfz"])
+api_router.include_router(trip.router, prefix="/trip", tags=["trip"])
 
 # Initialize the router and the agent crew
 planner = PlannerAgent()

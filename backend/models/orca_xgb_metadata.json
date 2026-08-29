@@ -1,0 +1,105 @@
+{
+    "model_name": "ORCA Marine Risk XGBoost",
+    "target": "risk_class",
+    "features": [
+        "wind_speed_kts",
+        "wind_direction_deg",
+        "wave_height_m",
+        "wave_period_s",
+        "air_temperature_c",
+        "water_temperature_c",
+        "relative_humidity_pct",
+        "air_pressure_hpa",
+        "latitude",
+        "longitude",
+        "month",
+        "hour"
+    ],
+    "class_mapping": {
+        "0": "LOW",
+        "1": "MODERATE",
+        "2": "HIGH",
+        "3": "EXTREME"
+    },
+    "split_date": "2024-01-01",
+    "model_parameters": {
+        "objective": "multi:softprob",
+        "num_class": 4,
+        "n_estimators": 300,
+        "learning_rate": 0.05,
+        "max_depth": 5,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_alpha": 0.1,
+        "reg_lambda": 1.5,
+        "eval_metric": "mlogloss",
+        "random_state": 42,
+        "n_jobs": -1
+    },
+    "class_weights": {
+        "0": 0.49936921783010935,
+        "1": 0.5665553435114504,
+        "2": 5.349099099099099,
+        "3": 21.99074074074074
+    },
+    "train_metrics": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "confusion_matrix": [
+            [
+                1189,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                1048,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                111,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                27
+            ]
+        ]
+    },
+    "test_metrics": {
+        "accuracy": 0.9981851179673321,
+        "macro_f1": 0.9990445390844371,
+        "confusion_matrix": [
+            [
+                778,
+                0,
+                0,
+                0
+            ],
+            [
+                3,
+                789,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                80,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                3
+            ]
+        ]
+    }
+}

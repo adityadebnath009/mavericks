@@ -27,6 +27,15 @@ from tests.test_pfz_intelligence import (
     test_pfz_invalid_id,
     test_pfz_routing
 )
+from tests.test_trip_decision import (
+    test_temporal_forecast_resolver_interpolation,
+    test_time_dependent_pfz_routing,
+    test_pfz_candidate_evaluation_and_ranking,
+    test_dynamic_temporal_wave_jump_routing,
+    test_routing_with_zero_current,
+    test_routing_extreme_wind_rejection,
+    test_empty_pfz_advisory_handling
+)
 
 if __name__ == "__main__":
     print("Running all backend verification tests...")
@@ -67,6 +76,22 @@ if __name__ == "__main__":
         print("✓ test_pfz_invalid_id passed.")
         test_pfz_routing()
         print("✓ test_pfz_routing passed.")
+        
+        # Trip Decision Engine verification
+        test_temporal_forecast_resolver_interpolation()
+        print("✓ test_temporal_forecast_resolver_interpolation passed.")
+        test_time_dependent_pfz_routing()
+        print("✓ test_time_dependent_pfz_routing passed.")
+        test_pfz_candidate_evaluation_and_ranking()
+        print("✓ test_pfz_candidate_evaluation_and_ranking passed.")
+        test_dynamic_temporal_wave_jump_routing()
+        print("✓ test_dynamic_temporal_wave_jump_routing passed.")
+        test_routing_with_zero_current()
+        print("✓ test_routing_with_zero_current passed.")
+        test_routing_extreme_wind_rejection()
+        print("✓ test_routing_extreme_wind_rejection passed.")
+        test_empty_pfz_advisory_handling()
+        print("✓ test_empty_pfz_advisory_handling passed.")
         
         print("\nAll backend tests passed successfully!")
     except AssertionError as e:
