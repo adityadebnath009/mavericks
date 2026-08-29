@@ -1,0 +1,1 @@
+{"weather_agent": {"status": "cached_weather", "wind": "45 km/h", "source": "offline_json"}, "ocean_agent": {"status": "cached_ocean", "wave": "2.1m", "source": "offline_json"}}
