@@ -155,7 +155,7 @@ class INCOISGeoServerClient:
         delta = 0.005
         bbox = f"{lon - delta},{lat - delta},{lon + delta},{lat + delta}"
         
-        url = "https://incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/ows"
+        url = "https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/ows"
         params = {
             "SERVICE": "WMS",
             "VERSION": "1.1.1",
@@ -211,7 +211,7 @@ class INCOISGeoServerClient:
         os.makedirs(CACHE_DIR, exist_ok=True)
         
         # 1. Try fetching fresh WFS GeoJSON
-        url = "https://incois.gov.in/geoserver/PFZ_Automation/ows"
+        url = "https://www.incois.gov.in/geoserver/PFZ_Automation/ows"
         params = {
             "service": "WFS",
             "version": "1.1.0",

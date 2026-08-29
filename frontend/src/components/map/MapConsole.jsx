@@ -1,0 +1,1130 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import MapLegend from './MapLegend';
+import { getPointAnalytics } from '../../services/api';
+
+const getApiUrl = (path) => {
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port } = window.location;
+    if (protocol === 'file:' || ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '8000')) {
+      return `http://127.0.0.1:8000${path}`;
+    }
+  }
+  return path;
+};
+
+const getSuffix = (width) => {
+  if (width < 4.0) return '4';
+  if (width < 6.0) return '6';
+  return '7';
+};
+
+const EMPTY_FEATURE_COLLECTION = {
+  type: 'FeatureCollection',
+  features: []
+};
+
+/**
+ * MapConsole - WebGL MapLibre GL Map Engine for Naval Operations Console.
+ * Single persistent map instance with dynamic mode-based layer visibility toggling.
+ */
+export function MapConsole({
+  activeMode = 'routing',
+  selectedLocation = null,
+  onLocationSelect,
+  destinationLocation = null,
+  onDestinationSelect,
+  routeData = null,
+  pfzGeojson = null,
+  advisoriesGeojson = null,
+  geofenceGeojson = null,
+  gridGeojson = null,
+  vectorGrid = { windGeojson: null, currentGeojson: null },
+  sstOpacity = 0.65,
+  chlOpacity = 0.65,
+  beamWidth = 3.5,
+  layersOverride = {},
+  onPfzInspect,
+  className = ''
+}) {
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const boatMarkerRef = useRef(null);
+  const destMarkerRef = useRef(null);
+  const popupRef = useRef(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const isInitialMountRef = useRef(true);
+
+  // Keep callback refs fresh to avoid stale closures in MapLibre event listeners
+  const onLocationSelectRef = useRef(onLocationSelect);
+  const onDestinationSelectRef = useRef(onDestinationSelect);
+  const onPfzInspectRef = useRef(onPfzInspect);
+  const activeModeRef = useRef(activeMode);
+  const beamWidthRef = useRef(beamWidth);
+  const layersOverrideRef = useRef(layersOverride);
+  const selectedLocationRef = useRef(selectedLocation);
+
+  useEffect(() => { onLocationSelectRef.current = onLocationSelect; }, [onLocationSelect]);
+  useEffect(() => { onDestinationSelectRef.current = onDestinationSelect; }, [onDestinationSelect]);
+  useEffect(() => { onPfzInspectRef.current = onPfzInspect; }, [onPfzInspect]);
+  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
+  useEffect(() => { beamWidthRef.current = beamWidth; }, [beamWidth]);
+  useEffect(() => { layersOverrideRef.current = layersOverride; }, [layersOverride]);
+  useEffect(() => { selectedLocationRef.current = selectedLocation; }, [selectedLocation]);
+
+  // Helper to safely set GeoJSON data on a source if present
+  const setSourceDataSafe = useCallback((sourceId, data) => {
+    if (!mapRef.current) return;
+    const source = mapRef.current.getSource(sourceId);
+    if (source && typeof source.setData === 'function') {
+      source.setData(data || EMPTY_FEATURE_COLLECTION);
+    }
+  }, []);
+
+  // 1. Map Initialization (mounted ONCE)
+  useEffect(() => {
+    if (mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [78.9629, 16.5000], // Centered over Indian peninsula & EEZ boundaries
+      zoom: 4.5,
+      maxBounds: [
+        [55.0, -5.0],  // South-West limit (Arabian Sea & Maldives)
+        [105.0, 35.0]  // North-East limit (Bay of Bengal & Andaman)
+      ]
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+    mapRef.current = map;
+
+    map.on('load', async () => {
+      if (!mapRef.current) return;
+
+      try {
+        // --- 1. Source: bsi-grid (Invisible Interaction Layer) ---
+        map.addSource('bsi-grid', {
+          type: 'geojson',
+          data: gridGeojson || EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 1: bsi-grid-fill (Invisible but clickable)
+        map.addLayer({
+          id: 'bsi-grid-fill',
+          type: 'fill',
+          source: 'bsi-grid',
+          paint: {
+            'fill-opacity': 0.0 // Completely invisible, used only for onClick events
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // --- 1.5. Source: bsi-points (For Smooth Heatmap) ---
+        map.addSource('bsi-points', {
+          type: 'geojson',
+          data: EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 2: bsi-heatmap (Beautiful smooth gradient)
+        map.addLayer({
+          id: 'bsi-heatmap',
+          type: 'heatmap',
+          source: 'bsi-points',
+          maxzoom: 9,
+          paint: {
+            // Increase weight based on BSI risk score (0 to 7)
+            'heatmap-weight': [
+              'interpolate',
+              ['linear'],
+              ['get', 'bsi'],
+              0, 0.1,
+              3, 0.4,
+              7, 1.0
+            ],
+            // Smooth Navik color ramp transition
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0, 'rgba(7, 17, 31, 0)',
+              0.2, '#18C7A0', // Sea Green (Safe)
+              0.5, '#EAB308', // Yellow
+              0.75, '#FFB547', // Amber (Moderate)
+              1, '#FF5C5C'    // Coral Red (Danger)
+            ],
+            // Adjust blur radius based on zoom level to keep it smooth
+            'heatmap-radius': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              3, 20,
+              6, 60
+            ],
+            'heatmap-opacity': 0.65
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // --- 2. Source: coastal-advisories ---
+        map.addSource('coastal-advisories', {
+          type: 'geojson',
+          data: advisoriesGeojson || EMPTY_FEATURE_COLLECTION
+        });
+
+        const initialSuffix = getSuffix(beamWidthRef.current);
+
+        // Layer 3: advisory-fill
+        map.addLayer({
+          id: 'advisory-fill',
+          type: 'fill',
+          source: 'coastal-advisories',
+          paint: {
+            'fill-color': [
+              'case',
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FFB547',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#FF5C5C',
+              '#18C7A0'
+            ],
+            'fill-opacity': 0.35
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // Layer 4: advisory-stroke
+        map.addLayer({
+          id: 'advisory-stroke',
+          type: 'line',
+          source: 'coastal-advisories',
+          paint: {
+            'line-color': [
+              'case',
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FB923C',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#F87171',
+              '#4ADE80'
+            ],
+            'line-width': 1.2
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // --- 3. Source: geofencing-layers ---
+        map.addSource('geofencing-layers', {
+          type: 'geojson',
+          data: geofenceGeojson || EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 5: mpa-fill (Restricted Sanctuaries)
+        map.addLayer({
+          id: 'mpa-fill',
+          type: 'fill',
+          source: 'geofencing-layers',
+          filter: ['==', ['get', 'type'], 'MPA'],
+          paint: {
+            'fill-color': '#a855f7',
+            'fill-opacity': 0.20
+          },
+          layout: { visibility: 'visible' }
+        });
+
+        // Layer 6: mpa-stroke
+        map.addLayer({
+          id: 'mpa-stroke',
+          type: 'line',
+          source: 'geofencing-layers',
+          filter: ['==', ['get', 'type'], 'MPA'],
+          paint: {
+            'line-color': '#9333ea',
+            'line-width': 1.8,
+            'line-dasharray': [3, 2]
+          },
+          layout: { visibility: 'visible' }
+        });
+
+        // Layer 7: eez-stroke (Indian EEZ Border)
+        map.addLayer({
+          id: 'eez-stroke',
+          type: 'line',
+          source: 'geofencing-layers',
+          filter: ['==', ['get', 'type'], 'EEZ'],
+          paint: {
+            'line-color': '#FF5C5C',
+            'line-width': 2.0,
+            'line-dasharray': [4, 3]
+          },
+          layout: { visibility: 'visible' }
+        });
+
+        // --- 4. Source: incois-sst (Raster WMS) ---
+        map.addSource('incois-sst', {
+          type: 'raster',
+          tiles: [
+            'https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:sst&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+          ],
+          tileSize: 256
+        });
+
+        // Layer 8: sst-raster
+        map.addLayer({
+          id: 'sst-raster',
+          type: 'raster',
+          source: 'incois-sst',
+          paint: {
+            'raster-opacity': sstOpacity
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // --- 5. Source: incois-chl (Raster WMS) ---
+        map.addSource('incois-chl', {
+          type: 'raster',
+          tiles: [
+            'https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:chl&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+          ],
+          tileSize: 256
+        });
+
+        // Layer 9: chl-raster
+        map.addLayer({
+          id: 'chl-raster',
+          type: 'raster',
+          source: 'incois-chl',
+          paint: {
+            'raster-opacity': chlOpacity
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // --- 6. Source: vector-wind ---
+        map.addSource('vector-wind', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+
+        // Layer 10: wind-arrows
+        map.addLayer({
+          id: 'wind-arrows',
+          type: 'symbol',
+          source: 'vector-wind',
+          layout: {
+            'icon-image': 'arrow-icon',
+            'icon-rotate': ['get', 'direction_deg'],
+            'icon-rotation-alignment': 'map',
+            'icon-allow-overlap': true,
+            'icon-size': 0.6,
+            visibility: 'none'
+          },
+          paint: {
+            'icon-color': [
+              'interpolate', ['linear'], ['get', 'speed_kmh'],
+              0, '#00D4FF',
+              20, '#18C7A0',
+              40, '#FFB547',
+              60, '#FF5C5C'
+            ],
+            'icon-halo-color': '#07111F',
+            'icon-halo-width': 1
+          }
+        });
+
+        // --- 7. Source: vector-current ---
+        map.addSource('vector-current', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+
+        // Layer 11: current-arrows
+        map.addLayer({
+          id: 'current-arrows',
+          type: 'symbol',
+          source: 'vector-current',
+          layout: {
+            'icon-image': 'arrow-icon',
+            'icon-rotate': ['get', 'direction_deg'],
+            'icon-rotation-alignment': 'map',
+            'icon-allow-overlap': true,
+            'icon-size': 0.6,
+            visibility: 'none'
+          },
+          paint: {
+            'icon-color': [
+              'interpolate', ['linear'], ['get', 'speed_ms'],
+              0, '#00D4FF',
+              0.5, '#18C7A0',
+              1.0, '#FFB547',
+              1.5, '#FF5C5C'
+            ],
+            'icon-halo-color': '#07111F',
+            'icon-halo-width': 1
+          }
+        });
+
+
+        // --- 6. Source: optimized-route (A* Path Vector) ---
+        map.addSource('optimized-route', {
+          type: 'geojson',
+          data: routeData?.route_coords?.length ? {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: routeData.route_coords }
+          } : EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 10: route-line (Cyan accent in Navik)
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'optimized-route',
+          paint: {
+            'line-color': '#00D4FF',
+            'line-width': 4.0
+          },
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            visibility: 'none'
+          }
+        });
+
+        // --- 7. Source: straight-route (Direct Baseline Comparison) ---
+        map.addSource('straight-route', {
+          type: 'geojson',
+          data: routeData?.straight_coords?.length ? {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: routeData.straight_coords }
+          } : EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 11: straight-line
+        map.addLayer({
+          id: 'straight-line',
+          type: 'line',
+          source: 'straight-route',
+          paint: {
+            'line-color': '#8FA8B8',
+            'line-width': 1.5,
+            'line-dasharray': [3, 3]
+          },
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            visibility: 'none'
+          }
+        });
+
+        // --- 8. Source: incois-pfz-lines (WFS PFZ Advisory Vectors) ---
+        map.addSource('incois-pfz-lines', {
+          type: 'geojson',
+          data: pfzGeojson || EMPTY_FEATURE_COLLECTION
+        });
+
+        // Layer 12: pfz-lines-stroke
+        map.addLayer({
+          id: 'pfz-lines-stroke',
+          type: 'line',
+          source: 'incois-pfz-lines',
+          paint: {
+            'line-color': '#FFB547',
+            'line-width': 2.5
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // -------------------------------------------------------------
+        // Fetch Initial Fallbacks if props were null
+        // -------------------------------------------------------------
+        if (!gridGeojson) {
+          fetch(getApiUrl('/api/safety/grid?day=1&hour=12'))
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data && mapRef.current) setSourceDataSafe('bsi-grid', data); })
+            .catch(() => {});
+        }
+
+        if (!advisoriesGeojson) {
+          fetch(getApiUrl('/api/safety/advisories'))
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data && mapRef.current) setSourceDataSafe('coastal-advisories', data); })
+            .catch(() => {});
+        }
+
+        if (!geofenceGeojson) {
+          fetch(getApiUrl('/api/geofence/geojson'))
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data && mapRef.current) setSourceDataSafe('geofencing-layers', data); })
+            .catch(() => {});
+        }
+
+        if (!pfzGeojson) {
+          fetch(getApiUrl('/api/incois/pfz-lines'))
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data && mapRef.current) setSourceDataSafe('incois-pfz-lines', data); })
+            .catch(() => {});
+        }
+
+        // -------------------------------------------------------------
+        // Interactive Popups & Event Handlers
+        // -------------------------------------------------------------
+
+        // Helper for Universal Ocean Point Telemetry Popup (Requirement R4)
+        const handleOceanPointClick = (lngLat) => {
+          const clickLat = lngLat.lat;
+          const clickLon = lngLat.lng;
+
+          if (popupRef.current) {
+            popupRef.current.remove();
+            popupRef.current = null;
+          }
+
+          const popupDom = document.createElement('div');
+          popupDom.className = 'bg-[#0D1B2A] text-[#EAF4F8] p-3.5 rounded-xl border border-[#00D4FF]/40 font-sans shadow-2xl space-y-2.5';
+          popupDom.style.maxWidth = '300px';
+          popupDom.innerHTML = `
+            <div class="flex items-center justify-between border-b border-[#20384D] pb-1.5">
+              <span class="font-mono text-xs font-bold text-[#00D4FF]">INCOIS Point Telemetry</span>
+              <span class="font-mono text-[9px] text-[#18C7A0] font-bold uppercase animate-pulse">SAMPLING...</span>
+            </div>
+            <div class="text-[10px] text-[#8FA8B8] font-mono space-y-1">
+              <div>Coordinates: <span class="text-[#EAF4F8] font-bold">${clickLat.toFixed(4)}°N, ${clickLon.toFixed(4)}°E</span></div>
+              <div class="text-[9px] text-[#8FA8B8] italic">Querying oceanographic telemetry...</div>
+            </div>
+          `;
+
+          const popup = new maplibregl.Popup({ maxWidth: 'none', className: 'navik-tactical-popup' })
+            .setLngLat(lngLat)
+            .setDOMContent(popupDom)
+            .addTo(map);
+          popupRef.current = popup;
+
+          getPointAnalytics(clickLat, clickLon)
+            .then(res => {
+              if (!popupRef.current || popupRef.current !== popup) return;
+              const metrics = res?.metrics || {};
+              const timestamp = res?.timestamp
+                ? new Date(res.timestamp).toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
+                : new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+              const source = res?.source || res?.provenance?.source || 'INCOIS OPeNDAP & WaveWatch III';
+
+              const getVal = (m, key1, key2) => {
+                const v = m[key1] ?? m[key2];
+                if (v && typeof v === 'object' && v.value != null) return Number(v.value);
+                if (v != null && typeof v !== 'object') return Number(v);
+                return null;
+              };
+              
+              const vSst = getVal(metrics, 'sst', 'sst_c');
+              const vChl = getVal(metrics, 'chlorophyll', 'chl_mg_m3');
+              const vWind = getVal(metrics, 'wind_speed', 'wind_speed_kmh');
+              const vCurr = getVal(metrics, 'current_speed', 'current_speed_ms');
+              const vWave = getVal(metrics, 'wave_height', 'wave_height_m');
+              
+              const sst = vSst != null ? `${vSst.toFixed(1)}°C` : 'N/A';
+              const chl = vChl != null ? `${vChl.toFixed(2)} mg/m³` : 'N/A';
+              const wind = vWind != null ? `${vWind.toFixed(1)} km/h` : 'N/A';
+              const curr = vCurr != null ? `${vCurr.toFixed(2)} m/s` : 'N/A';
+              const wave = vWave != null ? `${vWave.toFixed(2)} m` : 'N/A';
+
+              popupDom.innerHTML = `
+                <div class="bg-[#0D1B2A] text-[#EAF4F8] p-3.5 rounded-xl border border-[#20384D] font-sans shadow-2xl space-y-2.5" style="max-width: 300px;">
+                  <div class="flex items-center justify-between border-b border-[#20384D] pb-1.5">
+                    <span class="font-mono text-xs font-bold text-[#00D4FF]">Ocean Point Telemetry</span>
+                    <span class="font-mono text-[9px] text-[#18C7A0] font-bold">INCOIS 0.1°</span>
+                  </div>
+                  
+                  <div class="text-[10px] text-[#8FA8B8] space-y-1 font-medium">
+                    <div class="flex justify-between font-mono">
+                      <span>Coordinates:</span>
+                      <span class="text-[#EAF4F8] font-bold">${clickLat.toFixed(4)}°N, ${clickLon.toFixed(4)}°E</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-[9px]">
+                      <span>Timestamp:</span>
+                      <span class="text-[#8FA8B8]">${timestamp}</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-[9px]">
+                      <span>Source:</span>
+                      <span class="text-[#18C7A0] truncate max-w-[170px]" title="${source}">${source}</span>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-1.5 pt-1 text-[9px] font-mono bg-[#07111F] p-2 rounded-lg border border-[#20384D]/70">
+                    <div class="flex items-center justify-between"><span class="text-[#8FA8B8]">Wind:</span> <span class="text-[#FFB547] font-bold">${wind}</span></div>
+                    <div class="flex items-center justify-between"><span class="text-[#8FA8B8]">Current:</span> <span class="text-[#00D4FF] font-bold">${curr}</span></div>
+                    <div class="flex items-center justify-between"><span class="text-[#8FA8B8]">SST:</span> <span class="text-[#FF5C5C] font-bold">${sst}</span></div>
+                    <div class="flex items-center justify-between"><span class="text-[#8FA8B8]">CHL:</span> <span class="text-[#18C7A0] font-bold">${chl}</span></div>
+                    <div class="col-span-2 flex items-center justify-between border-t border-[#20384D]/60 pt-1">
+                      <span class="text-[#8FA8B8]">Wave Height (Hs):</span>
+                      <span class="text-[#EAF4F8] font-bold">${wave}</span>
+                    </div>
+                  </div>
+
+                  <div class="pt-1 flex gap-2">
+                    <button
+                      type="button"
+                      id="btn-set-departure"
+                      class="flex-1 py-1 px-2 rounded bg-[#18C7A0]/15 hover:bg-[#18C7A0]/25 border border-[#18C7A0]/40 text-[#18C7A0] font-mono text-[9px] font-bold transition cursor-pointer text-center"
+                    >
+                      Set Departure
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-set-destination"
+                      class="flex-1 py-1 px-2 rounded bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 border border-[#00D4FF]/40 text-[#00D4FF] font-mono text-[9px] font-bold transition cursor-pointer text-center"
+                    >
+                      Set Destination
+                    </button>
+                  </div>
+                </div>
+              `;
+
+              const depBtn = popupDom.querySelector('#btn-set-departure');
+              if (depBtn) {
+                depBtn.addEventListener('click', () => {
+                  if (onLocationSelectRef.current) {
+                    onLocationSelectRef.current({ lat: clickLat, lon: clickLon });
+                  }
+                });
+              }
+
+              const destBtn = popupDom.querySelector('#btn-set-destination');
+              if (destBtn) {
+                destBtn.addEventListener('click', () => {
+                  if (onDestinationSelectRef.current) {
+                    onDestinationSelectRef.current({ lat: clickLat, lon: clickLon });
+                  }
+                });
+              }
+            })
+            .catch(() => {
+              if (!popupRef.current || popupRef.current !== popup) return;
+              popupDom.innerHTML = `
+                <div class="bg-[#0D1B2A] text-[#EAF4F8] p-3 rounded-lg border border-[#FF5C5C]/40 font-sans space-y-1.5" style="max-width: 240px;">
+                  <span class="font-mono text-xs font-bold text-[#FF5C5C]">Telemetry Unavailable</span>
+                  <p class="text-[10px] text-[#8FA8B8]">Data unavailable for coordinate ${clickLat.toFixed(4)}°N, ${clickLon.toFixed(4)}°E.</p>
+                </div>
+              `;
+            });
+
+          if (onLocationSelectRef.current && activeModeRef.current !== 'routing') {
+            onLocationSelectRef.current({ lat: clickLat, lon: clickLon });
+          }
+        };
+
+        // 1. BSI Grid Cell Click (triggers universal point telemetry)
+        map.on('click', 'bsi-grid-fill', (e) => {
+          handleOceanPointClick(e.lngLat);
+        });
+
+        map.on('mouseenter', 'bsi-grid-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'bsi-grid-fill', () => { map.getCanvas().style.cursor = ''; });
+
+        // 2. Coastal District Advisory Click
+        map.on('click', 'advisory-fill', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['advisory-fill'] });
+          if (!features.length) return;
+          const props = features[0].properties || {};
+
+          const district = props.DistrictNa || props.ENG || props.name || "Coastal Strip";
+          const state = props.state || "";
+          const suffix = getSuffix(beamWidthRef.current);
+          const limitStr = suffix === '4' ? '4m' : suffix === '6' ? '6m' : '7m';
+
+          let advisoryText = props[`ENG${suffix}`] || props[`HIN${suffix}`] || props.Advisory_E || "";
+          advisoryText = advisoryText.trim();
+
+          if (!advisoryText) {
+            const warningColor = props[`Color${suffix}`];
+            if (warningColor === 'Green' || warningColor === 'Safe' || !warningColor) {
+              advisoryText = `${district} district, Boats less than ${limitStr} wide can safely sail.`;
+            } else {
+              advisoryText = "No advisory details available for this sector.";
+            }
+          }
+
+          const cleanedAdvisory = advisoryText
+            .replace(/<img[^>]*>/gi, '')
+            .replace(/^(\s*<br\s*\/?>\s*)+/i, '')
+            .replace(/font-size\s*:\s*[^;']*(px|rem|em)?/gi, 'font-size: 11px')
+            .replace(/line-height\s*:\s*[^;']*(px|rem|em)?/gi, 'line-height: 1.3')
+            .trim();
+
+          if (popupRef.current) popupRef.current.remove();
+
+          const popupContent = document.createElement('div');
+          popupContent.className = 'bg-[#0D1B2A] text-[#EAF4F8] p-3.5 rounded-xl border border-[#20384D] font-sans shadow-2xl space-y-2';
+          popupContent.style.maxWidth = '420px';
+          popupContent.innerHTML = `
+            <div class="flex items-center justify-between border-b border-[#20384D] pb-1.5">
+              <span class="font-mono text-xs font-bold text-[#00D4FF]">${district} ${state ? `(${state})` : ''}</span>
+              <span class="font-mono text-[9px] text-[#18C7A0] font-bold uppercase tracking-wider">INCOIS SVAS</span>
+            </div>
+            <div class="text-[11px] leading-relaxed text-[#8FA8B8] font-medium pt-1">
+              ${cleanedAdvisory}
+            </div>
+          `;
+
+          popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
+            .setLngLat(e.lngLat)
+            .setDOMContent(popupContent)
+            .addTo(map);
+
+          if (onLocationSelectRef.current) {
+            onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+          }
+        });
+
+        map.on('mouseenter', 'advisory-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'advisory-fill', () => { map.getCanvas().style.cursor = ''; });
+
+        // 3. Marine Protected Area (MPA) Click
+        map.on('click', 'mpa-fill', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['mpa-fill'] });
+          if (!features.length) return;
+          const name = features[0].properties?.name || 'Marine Protected Sanctuary';
+
+          if (popupRef.current) popupRef.current.remove();
+
+          popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="bg-[#0D1B2A] text-[#EAF4F8] p-3 rounded-lg border border-[#a855f7]/40 font-sans space-y-1.5 shadow-2xl" style="max-width: 250px;">
+                <h4 class="font-mono text-xs font-extrabold text-[#a855f7] border-b border-[#20384D] pb-1">Restricted Sanctuary (MPA)</h4>
+                <p class="text-[10px] text-[#8FA8B8] leading-relaxed font-semibold">
+                  ${name}<br>
+                  <span class="text-[9px] text-[#FF5C5C] font-normal">Commercial fishing and non-authorized transit prohibited.</span>
+                </p>
+              </div>
+            `)
+            .addTo(map);
+
+          if (onLocationSelectRef.current) {
+            onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+          }
+        });
+
+        map.on('mouseenter', 'mpa-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'mpa-fill', () => { map.getCanvas().style.cursor = ''; });
+
+        // 4. PFZ Vector Line Click & Inspection
+        map.on('click', 'pfz-lines-stroke', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['pfz-lines-stroke'] });
+          if (!features.length) return;
+          const feature = features[0];
+          const props = feature.properties || {};
+          const pfzId = feature.id || props.id || 'PFZ-Line';
+
+          if (onPfzInspectRef.current) {
+            onPfzInspectRef.current(feature);
+          }
+
+          if (popupRef.current) popupRef.current.remove();
+
+          const vesselLat = selectedLocationRef.current?.lat ?? 18.96;
+          const vesselLon = selectedLocationRef.current?.lon ?? 72.82;
+          const clickLat = e.lngLat.lat;
+          const clickLon = e.lngLat.lng;
+
+          // Calculate approximate great-circle distance
+          const dLat = (clickLat - vesselLat) * Math.PI / 180;
+          const dLon = (clickLon - vesselLon) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(vesselLat * Math.PI / 180) * Math.cos(clickLat * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distanceKm = Math.round(6371 * c);
+
+          const popupDom = document.createElement('div');
+          popupDom.className = 'bg-[#0D1B2A] text-[#EAF4F8] p-3.5 rounded-xl border border-[#20384D] font-sans shadow-2xl space-y-2.5';
+          popupDom.style.maxWidth = '280px';
+          popupDom.innerHTML = `
+            <div class="flex items-center justify-between border-b border-[#20384D] pb-1.5">
+              <span class="font-mono text-xs font-bold text-[#FFB547]">PFZ High Catch Zone</span>
+              <span class="font-mono text-[9px] text-[#8FA8B8]">INCOIS WFS</span>
+            </div>
+            <div class="text-[10px] text-[#8FA8B8] space-y-1 font-medium">
+              <div class="flex justify-between"><span>Identifier:</span> <span class="font-mono text-[#EAF4F8] font-semibold">${pfzId}</span></div>
+              <div class="flex justify-between"><span>Vessel Proximity:</span> <span class="font-mono text-[#00D4FF] font-bold">${distanceKm} km</span></div>
+              <div class="flex justify-between"><span>SST Optimal Range:</span> <span class="font-mono text-[#18C7A0]">28°C — 30°C</span></div>
+              <div class="flex justify-between"><span>Chlorophyll Front:</span> <span class="font-mono text-[#18C7A0]">High Gradient</span></div>
+            </div>
+            <div class="pt-1">
+              <button 
+                type="button"
+                id="btn-navigate-pfz"
+                class="w-full bg-[#00D4FF]/20 hover:bg-[#00D4FF]/30 border border-[#00D4FF]/50 text-[#00D4FF] text-[10px] font-mono font-bold py-1.5 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
+              >
+                Set as Route Target
+              </button>
+            </div>
+          `;
+
+          const navigateBtn = popupDom.querySelector('#btn-navigate-pfz');
+          if (navigateBtn) {
+            navigateBtn.addEventListener('click', () => {
+              if (onDestinationSelectRef.current) {
+                onDestinationSelectRef.current({ lat: clickLat, lon: clickLon });
+              }
+              if (popupRef.current) popupRef.current.remove();
+            });
+          }
+
+          popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
+            .setLngLat(e.lngLat)
+            .setDOMContent(popupDom)
+            .addTo(map);
+        });
+
+        map.on('mouseenter', 'pfz-lines-stroke', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'pfz-lines-stroke', () => { map.getCanvas().style.cursor = ''; });
+
+        // 5. Universal Ocean Canvas Left-Click (Requirement R4)
+        map.on('click', (e) => {
+          // If clicked feature on interactive boundary/line layers, let feature-specific handlers handle it
+          const features = map.queryRenderedFeatures(e.point, {
+            layers: ['advisory-fill', 'mpa-fill', 'pfz-lines-stroke'].filter(l => map.getLayer(l))
+          });
+          if (features.length > 0) return;
+
+          handleOceanPointClick(e.lngLat);
+        });
+
+        setMapLoaded(true);
+      } catch (err) {
+        console.error('Error initializing map layers:', err);
+      }
+    });
+
+    return () => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
+      if (boatMarkerRef.current) {
+        boatMarkerRef.current.remove();
+        boatMarkerRef.current = null;
+      }
+      if (destMarkerRef.current) {
+        destMarkerRef.current.remove();
+        destMarkerRef.current = null;
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // 2. React to GeoJSON Prop Updates
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (gridGeojson) {
+      setSourceDataSafe('bsi-grid', gridGeojson);
+
+      // Dynamically extract the centers of every blocky polygon to feed the smooth Heatmap engine
+      const pointsData = {
+        type: 'FeatureCollection',
+        features: (gridGeojson.features || []).map(f => {
+          const cLat = f.properties.center_lat ?? f.geometry.coordinates[0][0][1];
+          const cLon = f.properties.center_lon ?? f.geometry.coordinates[0][0][0];
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [cLon, cLat] },
+            properties: f.properties
+          };
+        })
+      };
+      setSourceDataSafe('bsi-points', pointsData);
+    }
+  }, [gridGeojson, mapLoaded, setSourceDataSafe]);
+
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (advisoriesGeojson) setSourceDataSafe('coastal-advisories', advisoriesGeojson);
+  }, [advisoriesGeojson, mapLoaded, setSourceDataSafe]);
+
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (geofenceGeojson) setSourceDataSafe('geofencing-layers', geofenceGeojson);
+  }, [geofenceGeojson, mapLoaded, setSourceDataSafe]);
+
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (pfzGeojson) setSourceDataSafe('incois-pfz-lines', pfzGeojson);
+  }, [pfzGeojson, mapLoaded, setSourceDataSafe]);
+
+  // 3. React to Route Data Prop Updates
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    const routeGeo = routeData?.route_coords?.length ? {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: routeData.route_coords }
+    } : EMPTY_FEATURE_COLLECTION;
+
+    const straightGeo = routeData?.straight_coords?.length ? {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: routeData.straight_coords }
+    } : EMPTY_FEATURE_COLLECTION;
+
+    setSourceDataSafe('optimized-route', routeGeo);
+    setSourceDataSafe('straight-route', straightGeo);
+  }, [routeData, mapLoaded, setSourceDataSafe]);
+
+  // 4. Dynamic Mode-Based Layer Visibility Engine (via setLayoutProperty without canvas reload)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const map = mapRef.current;
+    const hasRoute = Boolean(routeData?.route_coords?.length);
+
+    const modeVisibilityMap = {
+      routing: {
+        'route-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
+        'straight-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
+        'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
+        'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
+        'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',
+        'bsi-grid-fill': layersOverride.bsiRisk ? 'visible' : 'none',
+        'bsi-heatmap': (layersOverride.bsiRisk !== false && activeMode === 'weather') || layersOverride.bsiRisk || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
+        'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
+        'sst-raster': layersOverride.sst ? 'visible' : 'none',
+        'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
+        'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none'
+      },
+      fisheries: {
+        'sst-raster': layersOverride.sst !== false ? 'visible' : 'none',
+        'chl-raster': layersOverride.chlorophyll !== false ? 'visible' : 'none',
+        'pfz-lines-stroke': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
+        'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none',
+        'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
+        'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
+        'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',
+        'bsi-grid-fill': layersOverride.bsiRisk ? 'visible' : 'none',
+        'bsi-heatmap': (layersOverride.bsiRisk !== false && activeMode === 'weather') || layersOverride.bsiRisk || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
+        'advisory-stroke': layersOverride.advisories ? 'visible' : 'none'
+      },
+      weather: {
+        'bsi-grid-fill': layersOverride.bsiRisk !== false ? 'visible' : 'none',
+        'bsi-heatmap': layersOverride.bsiRisk !== false || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'advisory-fill': layersOverride.advisories !== false ? 'visible' : 'none',
+        'advisory-stroke': layersOverride.advisories !== false ? 'visible' : 'none',
+        'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
+        'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
+        'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',
+        'sst-raster': layersOverride.sst ? 'visible' : 'none',
+        'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
+        'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
+        'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none'
+      }
+    };
+
+    const currentVisibility = modeVisibilityMap[activeMode] || modeVisibilityMap.routing;
+
+    Object.entries(currentVisibility).forEach(([layerId, visibility]) => {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', visibility);
+      }
+    });
+  }, [activeMode, layersOverride, mapLoaded, routeData]);
+
+  // 5. Dynamic Raster Opacity (via setPaintProperty)
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && mapRef.current.getLayer('sst-raster')) {
+      mapRef.current.setPaintProperty('sst-raster', 'raster-opacity', sstOpacity);
+    }
+  }, [sstOpacity, mapLoaded]);
+
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && mapRef.current.getLayer('chl-raster')) {
+      mapRef.current.setPaintProperty('chl-raster', 'raster-opacity', chlOpacity);
+    }
+  }, [chlOpacity, mapLoaded]);
+
+  // 6. Dynamic Coastal Advisory Paint Property per Beam Width
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && mapRef.current.getLayer('advisory-fill')) {
+      const suffix = getSuffix(beamWidth);
+      mapRef.current.setPaintProperty('advisory-fill', 'fill-color', [
+        'case',
+        ['==', ['get', `Color${suffix}`], 'orange'], '#FFB547',
+        ['==', ['get', `Color${suffix}`], 'red'], '#FF5C5C',
+        '#18C7A0'
+      ]);
+      mapRef.current.setPaintProperty('advisory-stroke', 'line-color', [
+        'case',
+        ['==', ['get', `Color${suffix}`], 'orange'], '#FB923C',
+        ['==', ['get', `Color${suffix}`], 'red'], '#F87171',
+        '#4ADE80'
+      ]);
+    }
+  }, [beamWidth, mapLoaded]);
+
+
+  // 7. Dynamic Weather Grid Heatmap Styling
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const heatmapLayer = mapRef.current.getLayer('bsi-heatmap');
+    if (!heatmapLayer) return;
+
+    if (layersOverride.windSpeed) {
+      // Wind Speed Heatmap (Blues to Reds)
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
+        'interpolate', ['linear'], ['get', 'wind_speed_kmh'],
+        0, 0.1,
+        25, 0.5,
+        50, 1.0
+      ]);
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(7, 17, 31, 0)',
+        0.2, '#1E3A8A', // Deep Blue
+        0.5, '#3B82F6', // Blue
+        0.75, '#FFB547', // Amber
+        1, '#FF5C5C'    // Red
+      ]);
+    } else if (layersOverride.currentSpeed) {
+      // Currents Heatmap (Greens to Reds)
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
+        'interpolate', ['linear'], ['get', 'current_speed_ms'],
+        0, 0.1,
+        0.6, 0.5,
+        1.5, 1.0
+      ]);
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(7, 17, 31, 0)',
+        0.2, '#065F46', // Deep Green
+        0.5, '#10B981', // Emerald
+        0.75, '#FFB547', // Amber
+        1, '#FF5C5C'    // Red
+      ]);
+    } else {
+      // Default SVAS BSI Risk Heatmap (Navik Palette)
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
+        'interpolate', ['linear'], ['get', 'bsi'],
+        0, 0.1,
+        3, 0.4,
+        7, 1.0
+      ]);
+      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(7, 17, 31, 0)',
+        0.2, '#18C7A0', // Sea Green (Safe)
+        0.5, '#EAB308', // Yellow
+        0.75, '#FFB547', // Amber (Moderate)
+        1, '#FF5C5C'    // Coral Red (Danger)
+      ]);
+    }
+  }, [layersOverride.windSpeed, layersOverride.currentSpeed, mapLoaded]);
+
+  // 8. Vessel Marker Management (Draggable with dragend handler)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    if (selectedLocation && selectedLocation.lat != null && selectedLocation.lon != null) {
+      const coords = [selectedLocation.lon, selectedLocation.lat];
+
+      if (boatMarkerRef.current) {
+        boatMarkerRef.current.setLngLat(coords);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'custom-boat-marker group';
+        el.style.width = '38px';
+        el.style.height = '38px';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.cursor = 'grab';
+        el.style.filter = 'drop-shadow(0px 0px 8px rgba(0, 212, 255, 0.7))';
+        el.innerHTML = `
+          <img src="/boat_marker.svg" alt="Vessel Pointer" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" />
+        `;
+
+        const marker = new maplibregl.Marker({ element: el, draggable: true })
+          .setLngLat(coords)
+          .addTo(mapRef.current);
+
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          if (onLocationSelectRef.current) {
+            onLocationSelectRef.current({ lat: lngLat.lat, lon: lngLat.lng });
+          }
+        });
+
+        boatMarkerRef.current = marker;
+      }
+
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+      }
+    } else {
+      if (boatMarkerRef.current) {
+        boatMarkerRef.current.remove();
+        boatMarkerRef.current = null;
+      }
+    }
+  }, [selectedLocation, mapLoaded]);
+
+  // 9. Destination Marker Management (Draggable with dragend handler)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    const dest = destinationLocation || (
+      routeData?.route_coords?.length
+        ? { lon: routeData.route_coords[routeData.route_coords.length - 1][0], lat: routeData.route_coords[routeData.route_coords.length - 1][1] }
+        : null
+    );
+
+    if (dest && dest.lat != null && dest.lon != null) {
+      const coords = [dest.lon, dest.lat];
+
+      if (destMarkerRef.current) {
+        destMarkerRef.current.setLngLat(coords);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'custom-destination-marker';
+        el.style.width = '38px';
+        el.style.height = '38px';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.cursor = 'grab';
+        el.style.filter = 'drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.7))';
+        el.innerHTML = `
+          <img src="/destination.svg" alt="Destination Target" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;" />
+        `;
+
+        const marker = new maplibregl.Marker({ element: el, draggable: true })
+          .setLngLat(coords)
+          .addTo(mapRef.current);
+
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          if (onDestinationSelectRef.current) {
+            onDestinationSelectRef.current({ lat: lngLat.lat, lon: lngLat.lng });
+          }
+        });
+
+        destMarkerRef.current = marker;
+      }
+    } else {
+      if (destMarkerRef.current) {
+        destMarkerRef.current.remove();
+        destMarkerRef.current = null;
+      }
+    }
+  }, [destinationLocation, routeData, mapLoaded]);
+
+  return (
+    <div className={`w-full h-full relative bg-[#07111F] overflow-hidden ${className}`}>
+      {/* MapLibre WebGL Canvas Container */}
+      <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* Floating Tactical Legend Overlay */}
+      <MapLegend activeMode={activeMode} />
+    </div>
+  );
+}
+
+export default MapConsole;

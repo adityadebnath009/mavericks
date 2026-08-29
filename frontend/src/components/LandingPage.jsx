@@ -30,6 +30,7 @@ import {
   Info
 } from 'lucide-react';
 import TacticalGlobe from './TacticalGlobe';
+import SpotlightCard from './SpotlightCard';
 
 // 9 Specialized AI Agents Data & Technical Specifications
 const AGENT_SPECIFICATIONS = [
@@ -557,7 +558,7 @@ export default function LandingPage({ onLaunchConsole }) {
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={() => handleLaunch('map')}
-                className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] transition-all cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] transition-shadow duration-300 cursor-pointer"
               >
                 <Compass className="w-4 h-4" />
                 <span>Launch Operations Console</span>
@@ -1034,9 +1035,10 @@ export default function LandingPage({ onLaunchConsole }) {
           {CAPABILITY_CARDS.map((card, idx) => {
             const Icon = card.icon;
             return (
-              <div 
+              <SpotlightCard 
                 key={idx}
-                className="bg-[#13263A] border border-[#20384D] rounded-2xl p-6 space-y-4 hover:border-[#00D4FF]/40 transition-all shadow-lg flex flex-col justify-between"
+                className="p-6 space-y-4 shadow-lg flex flex-col justify-between h-full hover:border-[#00D4FF]/40 transition-colors"
+                spotlightColor="rgba(0, 212, 255, 0.10)"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -1071,7 +1073,7 @@ export default function LandingPage({ onLaunchConsole }) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </SpotlightCard>
             );
           })}
         </div>
@@ -1204,7 +1206,7 @@ export default function LandingPage({ onLaunchConsole }) {
             <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-end">
               <button
                 onClick={() => handleLaunch('map')}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm hover:shadow-[0_0_30px_rgba(0,212,255,0.4)] transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] transition-shadow duration-300 cursor-pointer"
               >
                 <Compass className="w-4 h-4" />
                 <span>Launch Operations Console</span>
