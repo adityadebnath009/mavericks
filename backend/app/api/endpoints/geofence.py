@@ -212,6 +212,8 @@ def check_geofence_status(
         return evaluate_geofence_offline(lat, lon)
 
 
+_cached_geofence_geojson = None
+
 @router.get("/geojson")
 @router.get("/geojson/")
 def get_geofence_geojson(db: Session = db_dependency):
@@ -220,6 +222,10 @@ def get_geofence_geojson(db: Session = db_dependency):
     in GeoJSON format to render directly on the interactive map.
     Falls back to 'data/boundaries/boundaries_fallback.geojson' if remote database is unreachable.
     """
+    global _cached_geofence_geojson
+    if _cached_geofence_geojson is not None:
+        return _cached_geofence_geojson
+
     try:
         # 1. Fetch simplified EEZ boundary
         query_eez = text("""
@@ -264,10 +270,11 @@ def get_geofence_geojson(db: Session = db_dependency):
                 })
 
         if features:
-            return {
+            _cached_geofence_geojson = {
                 "type": "FeatureCollection",
                 "features": features
             }
+            return _cached_geofence_geojson
         # Fallback if table was empty
         return load_fallback_geojson()
     except Exception:

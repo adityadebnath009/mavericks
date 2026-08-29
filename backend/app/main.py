@@ -7,7 +7,6 @@ from app.api.router import api_router
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
 
-api_router = APIRouter()
 planner = PlannerAgent()
 
 app = FastAPI(

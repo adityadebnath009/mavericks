@@ -101,6 +101,19 @@ export function MapConsole({
     mapRef.current = map;
 
     map.on('load', async () => {
+      // 0. Load Arrow Icon for Vector Grids
+      const arrowSvg = `
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2 L20 20 L12 16 L4 20 Z" fill="black" />
+        </svg>
+      `;
+      const img = new Image(24, 24);
+      img.onload = () => {
+        if (!map.hasImage('arrow-icon')) {
+          map.addImage('arrow-icon', img, { sdf: true });
+        }
+      };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(arrowSvg);
       if (!mapRef.current) return;
 
       try {
@@ -260,7 +273,7 @@ export function MapConsole({
         map.addSource('incois-sst', {
           type: 'raster',
           tiles: [
-            'https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:sst&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+            getApiUrl('/api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox={bbox-epsg-3857}')
           ],
           tileSize: 256
         });
@@ -280,7 +293,7 @@ export function MapConsole({
         map.addSource('incois-chl', {
           type: 'raster',
           tiles: [
-            'https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms?service=WMS&request=GetMap&layers=PFZ-TUNA-SST-CHL:chl&styles=&format=image/png&transparent=true&version=1.1.1&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}'
+            getApiUrl('/api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:chl&bbox={bbox-epsg-3857}')
           ],
           tileSize: 256
         });
@@ -850,6 +863,16 @@ export function MapConsole({
     if (pfzGeojson) setSourceDataSafe('incois-pfz-lines', pfzGeojson);
   }, [pfzGeojson, mapLoaded, setSourceDataSafe]);
 
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (vectorGrid?.windGeojson) {
+      setSourceDataSafe('vector-wind', vectorGrid.windGeojson);
+    }
+    if (vectorGrid?.currentGeojson) {
+      setSourceDataSafe('vector-current', vectorGrid.currentGeojson);
+    }
+  }, [vectorGrid, mapLoaded, setSourceDataSafe]);
+
   // 3. React to Route Data Prop Updates
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
@@ -887,7 +910,9 @@ export function MapConsole({
         'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
-        'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none'
+        'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none'
       },
       fisheries: {
         'sst-raster': layersOverride.sst !== false ? 'visible' : 'none',
@@ -901,7 +926,9 @@ export function MapConsole({
         'bsi-grid-fill': layersOverride.bsiRisk ? 'visible' : 'none',
         'bsi-heatmap': (layersOverride.bsiRisk !== false && activeMode === 'weather') || layersOverride.bsiRisk || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
         'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
-        'advisory-stroke': layersOverride.advisories ? 'visible' : 'none'
+        'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
+        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none'
       },
       weather: {
         'bsi-grid-fill': layersOverride.bsiRisk !== false ? 'visible' : 'none',
@@ -914,6 +941,8 @@ export function MapConsole({
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none'
       }

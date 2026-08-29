@@ -633,8 +633,19 @@ def get_safety_grid(
         except Exception as cache_err:
             logger.error(f"Error reading grid cache: {cache_err}")
 
+
+    def clean_nan(val, rnd=2):
+        import math
+        try:
+            f = float(val)
+            if math.isnan(f) or math.isinf(f):
+                return None
+            return round(f, rnd)
+        except:
+            return None
+
     def _compute_grid():
-        ww3_url = IncoisDatasetResolver.WW3_URL
+        ww3_url = IncoisDatasetResolver.get_ww3_url()
         ds = xr.open_dataset(ww3_url)
 
         # Calculate target date offset
@@ -644,18 +655,18 @@ def get_safety_grid(
 
         # Bounding box coordinates with a step size of 4 (~0.4 degree spacing, ~3750 cells)
         grid_slice = ds.sel(
-            IOYAXIS=slice(5.0, 25.0),
-            IOXAXIS=slice(65.0, 95.0)
+            lat=slice(5.0, 25.0),
+            lon=slice(65.0, 95.0)
         ).isel(
-            IOYAXIS=slice(None, None, 4),
-            IOXAXIS=slice(None, None, 4)
+            lat=slice(None, None, 4),
+            lon=slice(None, None, 4)
         ).sel(
             TIME=[lookback_time, target_time],
             method="nearest"
         )
 
-        lats = grid_slice.IOYAXIS.values
-        lons = grid_slice.IOXAXIS.values
+        lats = grid_slice.lat.values
+        lons = grid_slice.lon.values
 
         hsea_initial = grid_slice.PHS00.isel(TIME=0).values
         hsea_final = grid_slice.PHS00.isel(TIME=1).values
@@ -695,7 +706,8 @@ def get_safety_grid(
             for j in range(n_lons):
                 val = int(bsi[i, j])
                 hs_val = float(hs[i, j])
-                if np.isnan(val) or np.isnan(hs_val) or hs_val <= 0.0:
+                wind_val = float(wind_speed_kmh[i, j])
+                if np.isnan(val) or np.isnan(hs_val) or hs_val <= 0.0 or np.isnan(wind_val):
                     continue  # Skip land cells
 
                 lat_c = float(lats[i])
@@ -734,13 +746,13 @@ def get_safety_grid(
                     },
                     "properties": {
                         "bsi": val,
-                        "hs": round(hs_val, 2),
-                        "wind_speed_kmh": round(wind_val, 1),
-                        "current_speed_ms": round(curr_val, 2),
-                        "wind_dir_deg": round(wind_dir_val, 1),
-                        "current_dir_deg": round(curr_dir_val, 1),
-                        "center_lat": round(float(lat_c), 4),
-                        "center_lon": round(float(lon_c), 4),
+                        "hs": clean_nan(hs_val, 2),
+                        "wind_speed_kmh": clean_nan(wind_val, 1),
+                        "current_speed_ms": clean_nan(curr_val, 2),
+                        "wind_dir_deg": clean_nan(wind_dir_val, 1),
+                        "current_dir_deg": clean_nan(curr_dir_val, 1),
+                        "center_lat": clean_nan(lat_c, 4),
+                        "center_lon": clean_nan(lon_c, 4),
                         "color": color
                     }
                 })

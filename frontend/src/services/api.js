@@ -16,7 +16,7 @@ import {
   generateMockPointAnalytics
 } from './mockData';
 
-const API_TIMEOUT_MS = 3500;
+const API_TIMEOUT_MS = 15000;
 
 export const getApiUrl = (path) => {
   if (typeof window !== 'undefined') {

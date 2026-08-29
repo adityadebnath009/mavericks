@@ -396,6 +396,7 @@ export function OperationsDashboard({
               onDestinationSelect={setDestinationLocation}
               routeData={routeData}
               pfzGeojson={pfzGeojson}
+              vectorGrid={vectorGrid}
               advisoriesGeojson={advisoriesGeojson}
               geofenceGeojson={geofenceGeojson}
               gridGeojson={gridGeojson}

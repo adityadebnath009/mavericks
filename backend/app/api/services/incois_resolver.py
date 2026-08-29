@@ -331,9 +331,10 @@ class IncoisDatasetResolver:
             curr_slice = ds_curr.sel(LAT=slice(5, 25), LON=slice(65, 95), DEPTH1_1=0.0).sel(TAXIS=target_timestamp, method="nearest").coarsen(LAT=2, LON=2, boundary="trim").mean()
             
             wind_vectors = []
+            lon_grid, lat_grid = np.meshgrid(ww3_slice.lon.values, ww3_slice.lat.values)
             for lat_val, lon_val, u, v in zip(
-                ww3_slice.lat.values.ravel(),
-                ww3_slice.lon.values.ravel(),
+                lat_grid.ravel(),
+                lon_grid.ravel(),
                 ww3_slice.UWND.values.ravel(),
                 ww3_slice.VWND.values.ravel()
             ):
@@ -350,9 +351,10 @@ class IncoisDatasetResolver:
                     })
                     
             curr_vectors = []
+            lon_grid_c, lat_grid_c = np.meshgrid(curr_slice.LON.values, curr_slice.LAT.values)
             for lat_val, lon_val, u, v in zip(
-                curr_slice.LAT.values.ravel(),
-                curr_slice.LON.values.ravel(),
+                lat_grid_c.ravel(),
+                lon_grid_c.ravel(),
                 curr_slice.U.values.ravel(),
                 curr_slice.V.values.ravel()
             ):
