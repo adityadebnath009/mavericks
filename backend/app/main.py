@@ -1,9 +1,14 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from app.api.router import api_router
+from app.models import ChatRequest, PipelineResult
+from app.agents.planner_agent import PlannerAgent
+
+api_router = APIRouter()
+planner = PlannerAgent()
 
 app = FastAPI(
     title="ORCA Marine Portal API",
