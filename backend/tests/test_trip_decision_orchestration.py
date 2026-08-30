@@ -19,21 +19,13 @@ def test_routing_failure_propagation():
         }
         mock_gf.return_value = {"is_inside_eez": True, "is_inside_mpa": False}
         
+        # Test DataUnavailableError propagation
         mock_routing.side_effect = DataUnavailableError("Grid missing")
         res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T12:00:00Z", 4.0, 15.0, 10.0, None)
         assert res["decision"] == "REJECTED_NO_SAFE_ROUTE"
         assert len(res["alternatives"]) == 1
         assert res["alternatives"][0]["status"] == "DATA_UNAVAILABLE"
         print("✓ test_routing_failure_propagation passed")
-
-# Add dummies to satisfy run_all.py imports
-def test_temporal_forecast_resolver_interpolation(): pass
-def test_time_dependent_pfz_routing(): pass
-def test_pfz_candidate_evaluation_and_ranking(): pass
-def test_dynamic_temporal_wave_jump_routing(): pass
-def test_routing_with_zero_current(): pass
-def test_routing_extreme_wind_rejection(): pass
-def test_empty_pfz_advisory_handling(): pass
 
 if __name__ == "__main__":
     test_no_pfz_found()

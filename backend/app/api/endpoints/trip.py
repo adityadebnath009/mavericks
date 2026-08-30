@@ -21,8 +21,9 @@ class TripRequest(BaseModel):
     start: Coordinate
     departure_time: str = Field(description="Departure timestamp (ISO format, e.g. 2026-08-29T06:00:00)")
     vessel: Vessel = Field(default_factory=Vessel)
+from app.schemas.routing import TripAnalysisResponse
 
-@router.post("/analyze")
+@router.post("/analyze", response_model=TripAnalysisResponse)
 def analyze_trip(request: TripRequest, db: Session = Depends(get_db)):
     """
     Orchestrated Spatio-Temporal Trip Analysis Endpoint.

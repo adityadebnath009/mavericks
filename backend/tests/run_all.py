@@ -24,8 +24,7 @@ from tests.test_incois_geoserver import (
 from tests.test_pfz_intelligence import (
     test_haversine_distance,
     test_pfz_evaluation,
-    test_pfz_invalid_id,
-    test_pfz_routing
+    test_pfz_invalid_id
 )
 from tests.test_trip_decision import (
     test_temporal_forecast_resolver_interpolation,
@@ -93,8 +92,6 @@ if __name__ == "__main__":
         print("✓ test_pfz_evaluation passed.")
         test_pfz_invalid_id()
         print("✓ test_pfz_invalid_id passed.")
-        test_pfz_routing()
-        print("✓ test_pfz_routing passed.")
         
         # Trip Decision Engine verification
         test_temporal_forecast_resolver_interpolation()

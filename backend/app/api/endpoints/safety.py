@@ -178,20 +178,22 @@ def get_safety_assessment(
             formatted_time = pd.to_datetime(step_ww3["timestamp"]).strftime("%d %b • %H:%M UTC")
             
             # Track peak values & timestamps
-            if hs > peak_wave_height:
+            if hs is not None and hs > peak_wave_height:
                 peak_wave_height = hs
                 peak_wave_time = formatted_time
                 
-            if wind_speed > peak_wind_speed:
+            if wind_speed is not None and wind_speed > peak_wind_speed:
                 peak_wind_speed = wind_speed
                 peak_wind_time = formatted_time
                 
-            if curr_speed > peak_current_speed:
+            if curr_speed is not None and curr_speed > peak_current_speed:
                 peak_current_speed = curr_speed
                 peak_curr_time = formatted_time
                 
-            peak_wave_steepness = max(peak_wave_steepness, stp)
-            peak_directional_spread = max(peak_directional_spread, spr)
+            if stp is not None:
+                peak_wave_steepness = max(peak_wave_steepness, stp)
+            if spr is not None:
+                peak_directional_spread = max(peak_directional_spread, spr)
             
             # BSI calculation (strictly wave indices, currents/wind separate)
             bsi = BSICalculator.calculate_bsi(
@@ -477,23 +479,23 @@ def get_safety_assessment(
             "directional_spread": round(peak_directional_spread, 2)
         },
         "raw_metrics": {
-            "wave_height_m": round(peak_wave_height, 2),
-            "wind_speed_kmh": round(peak_wind_speed, 2),
-            "current_speed_ms": round(peak_current_speed, 2),
+            "wave_height_m": round(peak_wave_height, 2) if peak_wave_height is not None else None,
+            "wind_speed_kmh": round(peak_wind_speed, 2) if peak_wind_speed is not None else None,
+            "current_speed_ms": round(peak_current_speed, 2) if peak_current_speed is not None else None,
             "distance_to_border_km": distance_eez_km,
             "is_inside_eez": is_inside_eez,
             "is_inside_mpa": is_inside_mpa,
             "mpa_name": mpa_name,
             
             # Inspect metrics (12:00 UTC)
-            "inspect_hs": round(inspect_hs, 2),
-            "inspect_stp": round(inspect_stp, 4),
-            "inspect_spr": round(inspect_spr, 2),
-            "inspect_hsea": round(inspect_hsea, 2),
-            "inspect_t02": round(inspect_t02, 1),
-            "inspect_mwd": round(inspect_mwd, 0),
-            "inspect_wind": round(inspect_wind, 1),
-            "inspect_curr": round(inspect_curr, 2),
+            "inspect_hs": round(inspect_hs, 2) if inspect_hs is not None else None,
+            "inspect_stp": round(inspect_stp, 4) if inspect_stp is not None else None,
+            "inspect_spr": round(inspect_spr, 2) if inspect_spr is not None else None,
+            "inspect_hsea": round(inspect_hsea, 2) if inspect_hsea is not None else None,
+            "inspect_t02": round(inspect_t02, 1) if inspect_t02 is not None else None,
+            "inspect_mwd": round(inspect_mwd, 0) if inspect_mwd is not None else None,
+            "inspect_wind": round(inspect_wind, 1) if inspect_wind is not None else None,
+            "inspect_curr": round(inspect_curr, 2) if inspect_curr is not None else None,
             
             # Peak timestamps
             "peak_wind_time": peak_wind_time,

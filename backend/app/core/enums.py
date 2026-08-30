@@ -1,0 +1,14 @@
+from enum import Enum
+
+class TripDecision(str, Enum):
+    INVALID_REQUEST = "INVALID_REQUEST"
+    DATA_UNAVAILABLE = "DATA_UNAVAILABLE"
+    REJECTED_NO_SAFE_ROUTE = "REJECTED_NO_SAFE_ROUTE"
+    CAUTION = "CAUTION"
+    RECOMMENDED = "RECOMMENDED"
+
+class RiskLevel(str, Enum):
+    LOW = "LOW"
+    MODERATE = "MODERATE"
+    HIGH = "HIGH"
+    EXTREME = "EXTREME"
