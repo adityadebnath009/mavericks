@@ -12,6 +12,7 @@ const STATUS_META = {
   loading: { label: 'LOADING', className: 'text-[#FFB547]', dot: 'bg-[#FFB547]' },
   live: { label: 'LIVE', className: 'text-[#18C7A0]', dot: 'bg-[#18C7A0]' },
   cached: { label: 'CACHED', className: 'text-[#FFB547]', dot: 'bg-[#FFB547]' },
+  fallback: { label: 'FALLBACK', className: 'text-[#FFB547]', dot: 'bg-[#FFB547]' },
   unavailable: { label: 'OFFLINE', className: 'text-[#FF5C5C]', dot: 'bg-[#FF5C5C]' }
 };
 
