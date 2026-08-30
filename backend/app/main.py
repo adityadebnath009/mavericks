@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.api.router import api_router
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
-
+from app.services.cache_updater import periodic_cache_refresh_worker
 planner = PlannerAgent()
 
 app = FastAPI(
@@ -34,6 +35,8 @@ def pre_warm_grid_cache():
     """
     import threading
     from app.api.endpoints.safety import get_safety_grid
+
+    asyncio.create_task(periodic_cache_refresh_worker(interval_hours=5))
     
     def worker():
         print("Pre-warming safety grid and advisories cache in background...")
