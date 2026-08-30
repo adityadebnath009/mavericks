@@ -73,13 +73,20 @@ def get_pfz_advisory_lines():
 
 @router.get("/vector-grid")
 @router.get("/vector-grid/")
-def get_vector_grid(day: int = Query(1, ge=1, le=3)):
+def get_vector_grid(
+    day: int = Query(1, ge=1, le=3),
+    hour: int = Query(12, ge=0, le=21, description="Forecast hour in 3-hour UTC steps")
+):
     """
-    Returns a gridded vector field of Wind and Currents for MapLibre arrow rendering.
+    Returns a gridded vector field of Wind and Currents for the exact
+    forecast day/hour requested by the frontend.
     """
+    if hour % 3 != 0:
+        raise HTTPException(status_code=400, detail="hour must be one of 0, 3, 6, 9, 12, 15, 18, or 21")
+
     try:
         from app.api.services.incois_resolver import IncoisDatasetResolver
-        return IncoisDatasetResolver.resolve_vector_grid(day=day)
+        return IncoisDatasetResolver.resolve_vector_grid(day=day, hour=hour)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Vector grid generation failed: {str(e)}")
 
@@ -102,7 +109,7 @@ def wms_tile_proxy(
     """
     from fastapi.responses import Response
     import requests
-    
+
     incois_url = "https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms"
     params = {
         "service": service,
@@ -117,7 +124,7 @@ def wms_tile_proxy(
         "srs": srs,
         "bbox": bbox
     }
-    
+
     try:
         res = requests.get(incois_url, params=params, timeout=10)
         res.raise_for_status()
