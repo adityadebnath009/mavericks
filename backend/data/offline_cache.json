@@ -1,33 +1,71 @@
 {
-  "goa_safe": {
-    "weather_payload": {
-      "status": "cached_demo",
-      "plain_language_summary": "Calm seas. Safe to proceed.",
-      "wind_speed": "12 km/h",
-      "wave_height": "0.8m",
-      "risk_score": 15
+  "puri_optimal": {
+    "weather_agent": {
+      "max_wind_speed": 12.5,
+      "max_wind_gust": 15.0,
+      "min_visibility": 15000.0,
+      "max_precip_probability": 5,
+      "has_active_alerts": false,
+      "highest_severity": "INFO",
+      "imd_color_code": "GREEN (No Warning)",
+      "weather_safety_score": 95,
+      "active_hazards": [],
+      "timeline_alerts": [],
+      "hourly_risk_curve": [5, 5, 10, 5, 5],
+      "plain_language_summary": "Calm seas off the Puri coast. Optimal conditions for departure.",
+      "execution_mode": "DEMO_CACHE"
     },
-    "ocean_payload": {
-      "status": "cached_demo",
+    "ocean_agent": {
+      "max_pfz_probability": 0.94,
+      "coincidence_edge_detected": true,
+      "highly_suitable_species": ["Yellowfin Tuna", "Silver Pomfret"],
+      "execution_mode": "DEMO_CACHE"
+    }
+  },
+  "goa_safe": {
+    "weather_agent": {
+      "max_wind_speed": 42.0,
+      "max_wind_gust": 56.0,
+      "min_visibility": 8000.0,
+      "max_precip_probability": 30,
+      "has_active_alerts": true,
+      "highest_severity": "MODERATE",
+      "imd_color_code": "YELLOW (Be Updated / Watch)",
+      "weather_safety_score": 65,
+      "active_hazards": ["Squally Winds"],
+      "timeline_alerts": [],
+      "hourly_risk_curve": [20, 35, 35, 20, 15],
+      "plain_language_summary": "Calm seas. Safe to proceed. Squally conditions detected, but overall safe.",
+      "execution_mode": "DEMO_CACHE"
+    },
+    "ocean_agent": {
       "max_pfz_probability": 0.88,
       "coincidence_edge_detected": true,
-      "highly_suitable_species": ["Indian Mackerel", "Oil Sardine"]
+      "highly_suitable_species": ["Indian Mackerel", "Oil Sardine"],
+      "execution_mode": "DEMO_CACHE"
     }
   },
   "paradip_cyclone": {
-    "weather_payload": {
-      "status": "cached_demo",
+    "weather_agent": {
+      "max_wind_speed": 115.0,
+      "max_wind_gust": 140.0,
+      "min_visibility": 200.0,
+      "max_precip_probability": 100,
+      "has_active_alerts": true,
+      "highest_severity": "EXTREME",
+      "imd_color_code": "RED (Take Action / Warning)",
+      "weather_safety_score": 5,
+      "active_hazards": ["Cyclone Danger Radius", "Heavy Rainfall", "Low Visibility"],
+      "timeline_alerts": [],
+      "hourly_risk_curve": [85, 95, 95, 90, 80],
       "plain_language_summary": "EXTREME DANGER. Active cyclone warning. Do not leave port.",
-      "wind_speed": "85 km/h",
-      "wave_height": "5.2m",
-      "risk_score": 92,
-      "override_triggered": "cyclone_warning"
+      "execution_mode": "DEMO_CACHE"
     },
-    "ocean_payload": {
-      "status": "cached_demo",
+    "ocean_agent": {
       "max_pfz_probability": 0.0,
       "coincidence_edge_detected": false,
-      "highly_suitable_species": []
+      "highly_suitable_species": [],
+      "execution_mode": "DEMO_CACHE"
     }
   }
 }
