@@ -77,7 +77,7 @@ export function WeatherTimelinePanel({
             </div>
             <div className="w-full h-24 mt-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={forecastTimeline} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
+                <BarChart data={forecastTimeline || []} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
                   <XAxis dataKey="time" tick={{ fill: '#8FA8B8', fontSize: 8 }} axisLine={false} tickLine={false} />
                   <YAxis domain={[0, 7]} tick={{ fill: '#8FA8B8', fontSize: 8 }} axisLine={false} tickLine={false} />
                   <Tooltip 
@@ -87,7 +87,7 @@ export function WeatherTimelinePanel({
                     formatter={(value) => [`${value} / 7`, 'BSI Score']}
                   />
                   <Bar dataKey="bsi" radius={[3, 3, 0, 0]}>
-                    {forecastTimeline.map((entry, index) => (
+                    {(forecastTimeline || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={getBarColor(entry.bsi)} />
                     ))}
                   </Bar>
@@ -104,7 +104,7 @@ export function WeatherTimelinePanel({
             </div>
             <div className="w-full h-24 mt-1">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={forecastTimeline} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
+                <AreaChart data={forecastTimeline || []} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
                   <defs>
                     <linearGradient id="waveFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4}/>
@@ -133,7 +133,7 @@ export function WeatherTimelinePanel({
             </div>
             <div className="w-full h-24 mt-1">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={forecastTimeline} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
+                <AreaChart data={forecastTimeline || []} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
                   <defs>
                     <linearGradient id="windFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#FFB547" stopOpacity={0.4}/>
@@ -162,7 +162,7 @@ export function WeatherTimelinePanel({
             </div>
             <div className="w-full h-24 mt-1">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={forecastTimeline} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
+                <AreaChart data={forecastTimeline || []} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
                   <defs>
                     <linearGradient id="currFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#18C7A0" stopOpacity={0.4}/>

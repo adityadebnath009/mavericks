@@ -324,8 +324,14 @@ export function MapConsole({
             'icon-image': 'arrow-icon',
             'icon-rotate': ['get', 'direction_deg'],
             'icon-rotation-alignment': 'map',
-            'icon-allow-overlap': true,
-            'icon-size': 0.6,
+            'icon-allow-overlap': false,
+            'icon-size': [
+              'interpolate', ['linear'], ['zoom'],
+              3, 0.2,
+              6, 0.6,
+              9, 1.0
+            ],
+            'icon-padding': 2,
             visibility: 'none'
           },
           paint: {
@@ -356,8 +362,14 @@ export function MapConsole({
             'icon-image': 'arrow-icon',
             'icon-rotate': ['get', 'direction_deg'],
             'icon-rotation-alignment': 'map',
-            'icon-allow-overlap': true,
-            'icon-size': 0.6,
+            'icon-allow-overlap': false,
+            'icon-size': [
+              'interpolate', ['linear'], ['zoom'],
+              3, 0.2,
+              6, 0.6,
+              9, 1.0
+            ],
+            'icon-padding': 2,
             visibility: 'none'
           },
           paint: {
@@ -905,7 +917,7 @@ export function MapConsole({
         'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
         'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',
         'bsi-grid-fill': layersOverride.bsiRisk ? 'visible' : 'none',
-        'bsi-heatmap': (layersOverride.bsiRisk !== false && activeMode === 'weather') || layersOverride.bsiRisk || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'bsi-heatmap': layersOverride.bsiRisk ? 'visible' : 'none',
         'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
         'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
@@ -924,7 +936,7 @@ export function MapConsole({
         'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
         'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',
         'bsi-grid-fill': layersOverride.bsiRisk ? 'visible' : 'none',
-        'bsi-heatmap': (layersOverride.bsiRisk !== false && activeMode === 'weather') || layersOverride.bsiRisk || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'bsi-heatmap': layersOverride.bsiRisk ? 'visible' : 'none',
         'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
         'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
         'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
@@ -932,7 +944,7 @@ export function MapConsole({
       },
       weather: {
         'bsi-grid-fill': layersOverride.bsiRisk !== false ? 'visible' : 'none',
-        'bsi-heatmap': layersOverride.bsiRisk !== false || layersOverride.windSpeed || layersOverride.currentSpeed ? 'visible' : 'none',
+        'bsi-heatmap': layersOverride.bsiRisk ? 'visible' : 'none',
         'advisory-fill': layersOverride.advisories !== false ? 'visible' : 'none',
         'advisory-stroke': layersOverride.advisories !== false ? 'visible' : 'none',
         'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
@@ -990,62 +1002,7 @@ export function MapConsole({
   }, [beamWidth, mapLoaded]);
 
 
-  // 7. Dynamic Weather Grid Heatmap Styling
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-    const heatmapLayer = mapRef.current.getLayer('bsi-heatmap');
-    if (!heatmapLayer) return;
 
-    if (layersOverride.windSpeed) {
-      // Wind Speed Heatmap (Blues to Reds)
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
-        'interpolate', ['linear'], ['get', 'wind_speed_kmh'],
-        0, 0.1,
-        25, 0.5,
-        50, 1.0
-      ]);
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
-        'interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(7, 17, 31, 0)',
-        0.2, '#1E3A8A', // Deep Blue
-        0.5, '#3B82F6', // Blue
-        0.75, '#FFB547', // Amber
-        1, '#FF5C5C'    // Red
-      ]);
-    } else if (layersOverride.currentSpeed) {
-      // Currents Heatmap (Greens to Reds)
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
-        'interpolate', ['linear'], ['get', 'current_speed_ms'],
-        0, 0.1,
-        0.6, 0.5,
-        1.5, 1.0
-      ]);
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
-        'interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(7, 17, 31, 0)',
-        0.2, '#065F46', // Deep Green
-        0.5, '#10B981', // Emerald
-        0.75, '#FFB547', // Amber
-        1, '#FF5C5C'    // Red
-      ]);
-    } else {
-      // Default SVAS BSI Risk Heatmap (Navik Palette)
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-weight', [
-        'interpolate', ['linear'], ['get', 'bsi'],
-        0, 0.1,
-        3, 0.4,
-        7, 1.0
-      ]);
-      mapRef.current.setPaintProperty('bsi-heatmap', 'heatmap-color', [
-        'interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(7, 17, 31, 0)',
-        0.2, '#18C7A0', // Sea Green (Safe)
-        0.5, '#EAB308', // Yellow
-        0.75, '#FFB547', // Amber (Moderate)
-        1, '#FF5C5C'    // Coral Red (Danger)
-      ]);
-    }
-  }, [layersOverride.windSpeed, layersOverride.currentSpeed, mapLoaded]);
 
   // 8. Vessel Marker Management (Draggable with dragend handler)
   useEffect(() => {

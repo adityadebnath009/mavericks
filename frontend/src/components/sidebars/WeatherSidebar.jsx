@@ -69,6 +69,14 @@ export function WeatherSidebar({
     }));
   };
 
+  const handleToggleBsiHeatmap = () => {
+    if (!setLayersOverride) return;
+    setLayersOverride(prev => ({
+      ...prev,
+      bsiRisk: !prev.bsiRisk
+    }));
+  };
+
   return (
     <aside className="w-full h-full flex flex-col justify-between overflow-y-auto p-4 space-y-4 select-none font-sans text-xs">
       <div className="space-y-4">
@@ -96,8 +104,8 @@ export function WeatherSidebar({
             <span className="text-[9px] font-mono text-[#00D4FF] font-bold">GPU SHADER</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            {/* Wind Speed Heatmap Toggle */}
+                    <div className="grid grid-cols-3 gap-2">
+            {/* Wind Vector Toggle */}
             <button
               type="button"
               onClick={handleToggleWindHeatmap}
@@ -112,7 +120,7 @@ export function WeatherSidebar({
                 <Wind className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.windSpeed ? 'ACTIVE (km/h)' : 'OFF'}
+                {layersOverride.windSpeed ? 'ACTIVE' : 'OFF'}
               </span>
             </button>
 
@@ -127,14 +135,34 @@ export function WeatherSidebar({
               }`}
             >
               <div className="flex items-center justify-between w-full">
-                <span className="text-[8px] font-mono uppercase font-bold">CURRENT VECTORS</span>
+                <span className="text-[8px] font-mono uppercase font-bold">CURRENTS</span>
                 <Compass className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.currentSpeed ? 'ACTIVE (m/s)' : 'OFF'}
+                {layersOverride.currentSpeed ? 'ACTIVE' : 'OFF'}
+              </span>
+            </button>
+            
+            {/* BSI Heatmap Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleBsiHeatmap}
+              className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                layersOverride.bsiRisk
+                  ? 'bg-[#FF5C5C]/20 border-[#FF5C5C] text-[#FF5C5C] shadow-[0_0_10px_rgba(255,92,92,0.25)]'
+                  : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:border-[#8FA8B8]/50'
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[8px] font-mono uppercase font-bold">BSI HEATMAP</span>
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-[9px] font-mono font-bold mt-1">
+                {layersOverride.bsiRisk ? 'ACTIVE' : 'OFF'}
               </span>
             </button>
           </div>
+
         </SpotlightCard>
 
         {/* 3. 3-Day Forecast Epoch Cards */}
