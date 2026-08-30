@@ -55,8 +55,8 @@ export function WeatherSidebar({
     if (!setLayersOverride) return;
     setLayersOverride(prev => ({
       ...prev,
-      windSpeed: !prev.windSpeed,
-      currentSpeed: false
+      windVectors: !prev.windVectors,
+      currentVectors: false
     }));
   };
 
@@ -64,8 +64,8 @@ export function WeatherSidebar({
     if (!setLayersOverride) return;
     setLayersOverride(prev => ({
       ...prev,
-      currentSpeed: !prev.currentSpeed,
-      windSpeed: false
+      currentVectors: !prev.currentVectors,
+      windVectors: false
     }));
   };
 
@@ -110,7 +110,7 @@ export function WeatherSidebar({
               type="button"
               onClick={handleToggleWindHeatmap}
               className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                layersOverride.windSpeed
+                layersOverride.windVectors
                   ? 'bg-[#00D4FF]/20 border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.25)]'
                   : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:border-[#8FA8B8]/50'
               }`}
@@ -120,7 +120,7 @@ export function WeatherSidebar({
                 <Wind className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.windSpeed ? 'ACTIVE' : 'OFF'}
+                {layersOverride.windVectors ? 'ACTIVE' : 'OFF'}
               </span>
             </button>
 
@@ -129,7 +129,7 @@ export function WeatherSidebar({
               type="button"
               onClick={handleToggleCurrentHeatmap}
               className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                layersOverride.currentSpeed
+                layersOverride.currentVectors
                   ? 'bg-[#18C7A0]/20 border-[#18C7A0] text-[#18C7A0] shadow-[0_0_10px_rgba(24,199,160,0.25)]'
                   : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:border-[#8FA8B8]/50'
               }`}
@@ -139,7 +139,7 @@ export function WeatherSidebar({
                 <Compass className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.currentSpeed ? 'ACTIVE' : 'OFF'}
+                {layersOverride.currentVectors ? 'ACTIVE' : 'OFF'}
               </span>
             </button>
             

@@ -455,38 +455,7 @@ export function MapConsole({
           layout: { visibility: 'none' }
         });
 
-        // -------------------------------------------------------------
-        // Fetch Initial Fallbacks if props were null
-        // -------------------------------------------------------------
-        if (!gridGeojson) {
-          fetch(getApiUrl('/api/safety/grid?day=1&hour=12'))
-            .then(res => res.ok ? res.json() : null)
-            .then(data => { if (data && mapRef.current) setSourceDataSafe('bsi-grid', data); })
-            .catch(() => {});
-        }
 
-        if (!advisoriesGeojson) {
-          fetch(getApiUrl('/api/safety/advisories'))
-            .then(res => res.ok ? res.json() : null)
-            .then(data => { if (data && mapRef.current) setSourceDataSafe('coastal-advisories', data); })
-            .catch(() => {});
-        }
-
-        if (!geofenceGeojson) {
-          fetch(getApiUrl('/api/geofence/geojson'))
-            .then(res => res.ok ? res.json() : null)
-            .then(data => { if (data && mapRef.current) setSourceDataSafe('geofencing-layers', data); })
-            .catch(() => {});
-        }
-
-        if (!pfzGeojson) {
-          fetch(getApiUrl('/api/incois/pfz-lines'))
-            .then(res => res.ok ? res.json() : null)
-            .then(data => { if (data && mapRef.current) setSourceDataSafe('incois-pfz-lines', data); })
-            .catch(() => {});
-        }
-
-        // -------------------------------------------------------------
         // Interactive Popups & Event Handlers
         // -------------------------------------------------------------
 
@@ -923,8 +892,8 @@ export function MapConsole({
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
-        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
-        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none'
+        'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentVectors ? 'visible' : 'none'
       },
       fisheries: {
         'sst-raster': layersOverride.sst !== false ? 'visible' : 'none',
@@ -939,8 +908,8 @@ export function MapConsole({
         'bsi-heatmap': layersOverride.bsiRisk ? 'visible' : 'none',
         'advisory-fill': layersOverride.advisories ? 'visible' : 'none',
         'advisory-stroke': layersOverride.advisories ? 'visible' : 'none',
-        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
-        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none'
+        'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentVectors ? 'visible' : 'none'
       },
       weather: {
         'bsi-grid-fill': layersOverride.bsiRisk !== false ? 'visible' : 'none',
@@ -953,8 +922,8 @@ export function MapConsole({
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
-        'wind-arrows': layersOverride.windSpeed ? 'visible' : 'none',
-        'current-arrows': layersOverride.currentSpeed ? 'visible' : 'none',
+        'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
+        'current-arrows': layersOverride.currentVectors ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none'
       }
