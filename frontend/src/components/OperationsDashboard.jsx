@@ -21,33 +21,48 @@ import {
   calculateRoute
 } from '../services/api';
 
-import {
-  MOCK_SAFETY_DATA,
-  MOCK_FORECAST_TIMELINE,
-  MOCK_GRID_GEOJSON,
-  MOCK_ADVISORIES_GEOJSON,
-  MOCK_GEOFENCE_GEOJSON,
-  MOCK_PFZ_LINES,
-  generateMockRoute
-} from '../services/mockData';
-
 const VALID_MODES = ['routing', 'fisheries', 'weather'];
+const HOURS = [0, 3, 6, 9, 12, 15, 18, 21];
 
-/**
- * OperationsDashboard (Smart Parent / State Manager)
- * Central orchestrator for the Navik Naval Operations Console.
- * Manages mode switching (Routing, Fisheries, Weather), MapLibre WebGL canvas,
- * SpotlightCard contextual sidebars, Recharts timeline panel, and Grounded RAG Safety Advisor.
- * Synchronizes with declarative React Router URL parameters and browser history.
- */
-export function OperationsDashboard({
-  onBackToLanding,
-  initialMode = 'routing'
-}) {
+const INITIAL_LOCATION = { lat: 18.9220, lon: 72.8347 };
+const INITIAL_DESTINATION = { lat: 10.5667, lon: 72.6417 };
+
+const INITIAL_STATUS = {
+  safety: 'loading',
+  forecast: 'loading',
+  grid: 'loading',
+  vectors: 'loading',
+  advisories: 'loading',
+  geofence: 'loading',
+  pfz: 'loading'
+};
+
+const emptyVectorGrid = { windGeojson: null, currentGeojson: null, timestamp: null };
+
+function classifyPayload(payload) {
+  const source = String(
+    payload?.source || payload?.provenance?.source || payload?.metadata?.source || ''
+  ).toLowerCase();
+
+  if (source.includes('cache')) return 'cached';
+  if (source.includes('fallback') || source.includes('open-meteo') || source.includes('mock')) return 'cached';
+  return 'live';
+}
+
+function classifyError() {
+  return 'unavailable';
+}
+
+function resultOf(promise) {
+  return promise
+    .then(data => ({ ok: true, data }))
+    .catch(error => ({ ok: false, error }));
+}
+
+export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }) {
   const { mode: urlMode } = useParams();
   const navigate = useNavigate();
 
-  // 1. Core Workspace Navigation State (Hydrated from URL params or props)
   const initialResolvedMode = urlMode === 'advisor'
     ? 'routing'
     : (VALID_MODES.includes(urlMode) ? urlMode : (initialMode === 'advisor' ? 'routing' : initialMode || 'routing'));
@@ -55,7 +70,6 @@ export function OperationsDashboard({
   const [activeMode, setActiveMode] = useState(initialResolvedMode);
   const [isChatOpen, setIsChatOpen] = useState(urlMode === 'advisor' || initialMode === 'advisor');
 
-  // Synchronize state when browser URL parameter changes (Back/Forward buttons & deep-linking)
   useEffect(() => {
     if (urlMode === 'advisor') {
       setActiveMode('routing');
@@ -67,7 +81,6 @@ export function OperationsDashboard({
     }
   }, [urlMode, navigate]);
 
-  // Mode switch handler updating browser history via URL
   const handleModeChange = useCallback((newMode) => {
     if (VALID_MODES.includes(newMode)) {
       setActiveMode(newMode);
@@ -75,170 +88,141 @@ export function OperationsDashboard({
     }
   }, [navigate]);
 
-  // Return to landing page handler
   const handleReturnToLanding = useCallback(() => {
-    if (onBackToLanding) {
-      onBackToLanding();
-    } else {
-      navigate('/');
-    }
+    if (onBackToLanding) onBackToLanding();
+    else navigate('/');
   }, [onBackToLanding, navigate]);
 
-  // 2. Spatial & Hydrodynamic Parameters
-  const [selectedLocation, setSelectedLocation] = useState({ lat: 18.9220, lon: 72.8347 }); // Mumbai Port
-  const [destinationLocation, setDestinationLocation] = useState({ lat: 10.5667, lon: 72.6417 }); // Lakshadweep (Kavaratti)
+  const [selectedLocation, setSelectedLocation] = useState(INITIAL_LOCATION);
+  const [destinationLocation, setDestinationLocation] = useState(INITIAL_DESTINATION);
   const [beamWidth, setBeamWidth] = useState(3.5);
-
-  // 3. Temporal Forecast Horizon Parameters
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedHour, setSelectedHour] = useState(12);
 
-  // 4. Data State
-  const [safetyData, setSafetyData] = useState(MOCK_SAFETY_DATA);
-  const [forecastTimeline, setForecastTimeline] = useState(MOCK_FORECAST_TIMELINE);
-  const [routeData, setRouteData] = useState(() => generateMockRoute(
-    { lat: 18.9220, lon: 72.8347 },
-    { lat: 10.5667, lon: 72.6417 },
-    3.5
-  ));
-  const [gridGeojson, setGridGeojson] = useState(MOCK_GRID_GEOJSON);
-  const [advisoriesGeojson, setAdvisoriesGeojson] = useState(MOCK_ADVISORIES_GEOJSON);
-  const [geofenceGeojson, setGeofenceGeojson] = useState(MOCK_GEOFENCE_GEOJSON);
-  const [pfzGeojson, setPfzGeojson] = useState(MOCK_PFZ_LINES);
-  const [vectorGrid, setVectorGrid] = useState({ windGeojson: null, currentGeojson: null });
+  const [safetyData, setSafetyData] = useState(null);
+  const [forecastTimeline, setForecastTimeline] = useState(null);
+  const [routeData, setRouteData] = useState(null);
+  const [gridGeojson, setGridGeojson] = useState(null);
+  const [advisoriesGeojson, setAdvisoriesGeojson] = useState(null);
+  const [geofenceGeojson, setGeofenceGeojson] = useState(null);
+  const [pfzGeojson, setPfzGeojson] = useState(null);
+  const [vectorGrid, setVectorGrid] = useState(emptyVectorGrid);
+  const [dataStatus, setDataStatus] = useState(INITIAL_STATUS);
 
-  // 5. Fisheries & Visual Overlays State
   const [sstOpacity, setSstOpacity] = useState(0.65);
   const [chlOpacity, setChlOpacity] = useState(0.65);
   const [selectedPfz, setSelectedPfz] = useState(null);
   const [layersOverride, setLayersOverride] = useState({});
-
-  // 6. Loading & Async State
   const [isLoading, setIsLoading] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
 
-  // -------------------------------------------------------------
-  // Initial Data Fetching & Telemetry Hydration
-  // -------------------------------------------------------------
+  // Authoritative safety state: exact selected location + selected day/hour.
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
+    setDataStatus(prev => ({ ...prev, safety: 'loading' }));
 
-    async function loadInitialData() {
-      setIsLoading(true);
-      try {
-        const [grid, adv, geo, pfz, vectors] = await Promise.all([
-          getGrid(selectedDay, selectedHour),
-          getAdvisories(),
-          getGeofence(),
-          getPfzLines(),
-          getVectorGrid(selectedDay)
-        ]);
-
-        if (isMounted) {
-          if (grid) setGridGeojson(grid);
-          if (adv) setAdvisoriesGeojson(adv);
-          if (geo) setGeofenceGeojson(geo);
-          if (pfz) setPfzGeojson(pfz);
-          if (vectors) setVectorGrid(vectors);
-        }
-      } catch (err) {
-        console.warn('[OperationsDashboard] Error loading initial map data:', err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+    resultOf(getSafety(
+      selectedLocation.lat,
+      selectedLocation.lon,
+      beamWidth,
+      selectedDay,
+      selectedHour
+    )).then(result => {
+      if (!active) return;
+      if (result.ok) {
+        setSafetyData(result.data);
+        setDataStatus(prev => ({ ...prev, safety: classifyPayload(result.data) }));
+      } else {
+        setDataStatus(prev => ({ ...prev, safety: classifyError() }));
       }
-    }
+    });
 
-    loadInitialData();
+    return () => { active = false; };
+  }, [selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // -------------------------------------------------------------
-  // 1. Fetch New Weather Grid when Time/Day changes
-  // -------------------------------------------------------------
+  // Location/day-sensitive 24-hour forecast.
   useEffect(() => {
-    let isMounted = true;
-    async function fetchNewGrid() {
-      try {
-        const grid = await getGrid(selectedDay, selectedHour);
-        if (isMounted && grid) setGridGeojson(grid);
-      } catch (err) {
-        console.warn('[OperationsDashboard] Error fetching grid:', err);
+    let active = true;
+    if (selectedLocation?.lat == null || selectedLocation?.lon == null) return () => { active = false; };
+    setDataStatus(prev => ({ ...prev, forecast: 'loading' }));
+
+    resultOf(getForecast(selectedLocation.lat, selectedLocation.lon, selectedDay)).then(result => {
+      if (!active) return;
+      if (result.ok) {
+        setForecastTimeline(result.data);
+        setDataStatus(prev => ({ ...prev, forecast: classifyPayload(result.data) }));
+      } else {
+        setDataStatus(prev => ({ ...prev, forecast: classifyError() }));
       }
-    }
-    fetchNewGrid();
-    return () => { isMounted = false; };
+    });
+
+    return () => { active = false; };
+  }, [selectedLocation.lat, selectedLocation.lon, selectedDay]);
+
+  // Exact temporal synchronization: BSI grid + wind/current vectors use the same day/hour.
+  useEffect(() => {
+    let active = true;
+    setDataStatus(prev => ({ ...prev, grid: 'loading', vectors: 'loading' }));
+
+    Promise.all([
+      resultOf(getGrid(selectedDay, selectedHour)),
+      resultOf(getVectorGrid(selectedDay, selectedHour))
+    ]).then(([gridResult, vectorResult]) => {
+      if (!active) return;
+
+      if (gridResult.ok) {
+        setGridGeojson(gridResult.data);
+        setDataStatus(prev => ({ ...prev, grid: classifyPayload(gridResult.data) }));
+      } else {
+        setDataStatus(prev => ({ ...prev, grid: classifyError() }));
+      }
+
+      if (vectorResult.ok) {
+        setVectorGrid(vectorResult.data);
+        setDataStatus(prev => ({ ...prev, vectors: classifyPayload(vectorResult.data) }));
+      } else {
+        setVectorGrid(emptyVectorGrid);
+        setDataStatus(prev => ({ ...prev, vectors: classifyError() }));
+      }
+    });
+
+    return () => { active = false; };
   }, [selectedDay, selectedHour]);
 
-  // -------------------------------------------------------------
-  // 2. Fetch Forecast Timeline when Location or Day changes
-  // -------------------------------------------------------------
+  // Location-independent operational overlays are loaded once and refreshed explicitly.
   useEffect(() => {
-    let isMounted = true;
-    async function fetchForecastOnly() {
-      if (!selectedLocation?.lat || !selectedLocation?.lon) return;
-      try {
-        const forecast = await getForecast(selectedLocation.lat, selectedLocation.lon, selectedDay);
-        if (isMounted && forecast) setForecastTimeline(forecast);
-      } catch (err) {}
-    }
-    fetchForecastOnly();
-    return () => { isMounted = false; };
-  }, [selectedLocation, selectedDay]);
+    let active = true;
+    setDataStatus(prev => ({ ...prev, advisories: 'loading', geofence: 'loading', pfz: 'loading' }));
 
-  // -------------------------------------------------------------
-  // 3. Hydrate Sidebar dynamically when Grid or Location changes
-  // -------------------------------------------------------------
-  useEffect(() => {
-     if (!selectedLocation?.lat || !selectedLocation?.lon || !gridGeojson?.features) return;
-     
-     let closestFeature = null;
-     let minDistance = Infinity;
-     
-     for (const feature of gridGeojson.features) {
-        const props = feature.properties;
-        const cLat = props.center_lat ?? feature.geometry.coordinates[0][0][1];
-        const cLon = props.center_lon ?? feature.geometry.coordinates[0][0][0];
-        const dLat = cLat - selectedLocation.lat;
-        const dLon = cLon - selectedLocation.lon;
-        const dist = dLat*dLat + dLon*dLon;
-        if (dist < minDistance) {
-           minDistance = dist;
-           closestFeature = feature;
-        }
-     }
-     
-     if (closestFeature) {
-        const props = closestFeature.properties;
-        const bsi = props.bsi || 0;
-        const color = props.color || 'green';
-        const rating = color === 'red' ? 'DANGER' : color === 'orange' ? 'WARNING' : color === 'yellow' ? 'CAUTION' : 'SAFE';
-        
-        setSafetyData(prev => ({
-          ...prev,
-          rating: rating,
-          bsi_metrics: { ...prev.bsi_metrics, bsi_score: bsi },
-          raw_metrics: {
-            ...prev.raw_metrics,
-            inspect_hs: props.hs,
-            inspect_wind: props.wind_speed_kmh,
-            inspect_curr: props.current_speed_ms,
-            inspect_mwd: props.wind_dir_deg,
-            inspect_hsea: props.hs ? props.hs * 0.7 : 0.8
-          }
-        }));
-     }
-  }, [selectedLocation, gridGeojson]);
+    Promise.all([
+      resultOf(getAdvisories()),
+      resultOf(getGeofence()),
+      resultOf(getPfzLines())
+    ]).then(([adv, geo, pfz]) => {
+      if (!active) return;
 
-  // -------------------------------------------------------------
-  // Calculate Weather-Optimized A* Safe Route
-  // -------------------------------------------------------------
+      if (adv.ok) {
+        setAdvisoriesGeojson(adv.data);
+        setDataStatus(prev => ({ ...prev, advisories: classifyPayload(adv.data) }));
+      } else setDataStatus(prev => ({ ...prev, advisories: classifyError() }));
+
+      if (geo.ok) {
+        setGeofenceGeojson(geo.data);
+        setDataStatus(prev => ({ ...prev, geofence: classifyPayload(geo.data) }));
+      } else setDataStatus(prev => ({ ...prev, geofence: classifyError() }));
+
+      if (pfz.ok) {
+        setPfzGeojson(pfz.data);
+        setDataStatus(prev => ({ ...prev, pfz: classifyPayload(pfz.data) }));
+      } else setDataStatus(prev => ({ ...prev, pfz: classifyError() }));
+    });
+
+    return () => { active = false; };
+  }, []);
+
   const handleCalculateRoute = useCallback(async () => {
     if (!selectedLocation || !destinationLocation) return;
     setIsRouteLoading(true);
-
     try {
       const result = await calculateRoute(
         selectedLocation,
@@ -249,50 +233,66 @@ export function OperationsDashboard({
       );
       setRouteData(result);
     } catch (err) {
-      console.warn('[OperationsDashboard] A* Route calculation fallback engaged:', err);
-      setRouteData(generateMockRoute(selectedLocation, destinationLocation, beamWidth));
+      console.warn('[OperationsDashboard] Route unavailable:', err);
+      setRouteData(null);
     } finally {
       setIsRouteLoading(false);
     }
   }, [selectedLocation, destinationLocation, beamWidth, selectedDay, selectedHour]);
 
-  // Clear / Reset Route
-  const handleClearRoute = useCallback(() => {
-    setRouteData(null);
-  }, []);
+  const handleClearRoute = useCallback(() => setRouteData(null), []);
 
-  // Manual Telemetry Refresh
+  // One explicit global refresh: all seven dynamic datasets are fired together.
   const handleRefresh = useCallback(async () => {
     setIsLoading(true);
-    try {
-      const [safety, forecast, grid] = await Promise.all([
-        getSafety(selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour),
-        getForecast(selectedLocation.lat, selectedLocation.lon, selectedDay),
-        getGrid(selectedDay, selectedHour)
-      ]);
-      if (safety) setSafetyData(safety);
-      if (forecast) setForecastTimeline(forecast);
-      if (grid) setGridGeojson(grid);
-    } catch (err) {
-      console.warn('[OperationsDashboard] Refresh error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedLocation, beamWidth, selectedDay, selectedHour]);
+    setDataStatus({
+      safety: 'loading',
+      forecast: 'loading',
+      grid: 'loading',
+      vectors: 'loading',
+      advisories: 'loading',
+      geofence: 'loading',
+      pfz: 'loading'
+    });
 
-  // -------------------------------------------------------------
-  // Construct Live Context for Grounded RAG Safety Advisor
-  // -------------------------------------------------------------
+    const results = await Promise.all([
+      resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour)),
+      resultOf(getForecast(selectedLocation.lat, selectedLocation.lon, selectedDay)),
+      resultOf(getGrid(selectedDay, selectedHour)),
+      resultOf(getVectorGrid(selectedDay, selectedHour)),
+      resultOf(getAdvisories()),
+      resultOf(getGeofence()),
+      resultOf(getPfzLines())
+    ]);
+
+    const [safety, forecast, grid, vectors, advisories, geofence, pfz] = results;
+
+    if (safety.ok) setSafetyData(safety.data);
+    if (forecast.ok) setForecastTimeline(forecast.data);
+    if (grid.ok) setGridGeojson(grid.data);
+    if (vectors.ok) setVectorGrid(vectors.data);
+    else setVectorGrid(emptyVectorGrid);
+    if (advisories.ok) setAdvisoriesGeojson(advisories.data);
+    if (geofence.ok) setGeofenceGeojson(geofence.data);
+    if (pfz.ok) setPfzGeojson(pfz.data);
+
+    setDataStatus({
+      safety: safety.ok ? classifyPayload(safety.data) : classifyError(),
+      forecast: forecast.ok ? classifyPayload(forecast.data) : classifyError(),
+      grid: grid.ok ? classifyPayload(grid.data) : classifyError(),
+      vectors: vectors.ok ? classifyPayload(vectors.data) : classifyError(),
+      advisories: advisories.ok ? classifyPayload(advisories.data) : classifyError(),
+      geofence: geofence.ok ? classifyPayload(geofence.data) : classifyError(),
+      pfz: pfz.ok ? classifyPayload(pfz.data) : classifyError()
+    });
+
+    setIsLoading(false);
+  }, [selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour]);
+
   const overallRisk = routeData?.summary?.overall_risk || safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
-  const maxWave = safetyData?.raw_metrics?.inspect_hs != null 
-    ? `${Number(safetyData.raw_metrics.inspect_hs).toFixed(1)}m` 
-    : '1.2m';
-  const peakWind = safetyData?.raw_metrics?.wind_speed_kmh != null 
-    ? `${Number(safetyData.raw_metrics.wind_speed_kmh).toFixed(1)} km/h` 
-    : '18.5 km/h';
-  const distBorder = safetyData?.raw_metrics?.distance_to_border_km != null 
-    ? `${Number(safetyData.raw_metrics.distance_to_border_km).toFixed(1)} km` 
-    : '116.9 km (CLEAR)';
+  const maxWave = safetyData?.raw_metrics?.inspect_hs != null ? `${Number(safetyData.raw_metrics.inspect_hs).toFixed(1)}m` : 'N/A';
+  const peakWind = safetyData?.raw_metrics?.wind_speed_kmh != null ? `${Number(safetyData.raw_metrics.wind_speed_kmh).toFixed(1)} km/h` : 'N/A';
+  const distBorder = safetyData?.raw_metrics?.distance_to_border_km != null ? `${Number(safetyData.raw_metrics.distance_to_border_km).toFixed(1)} km` : 'N/A';
 
   const liveContext = {
     active_workspace: activeMode === 'routing' ? 'Tactical Routing' : activeMode === 'fisheries' ? 'Ocean Analytics' : 'Meteorological Hazards',
@@ -300,21 +300,20 @@ export function OperationsDashboard({
     destination_coords: destinationLocation,
     beam_width: `${beamWidth.toFixed(1)}m`,
     current_risk_score: overallRisk,
-    bsi_score: safetyData?.bsi_metrics?.bsi_score ?? 1,
+    bsi_score: safetyData?.bsi_metrics?.bsi_score ?? null,
     max_wave_height: maxWave,
     wind_speed: peakWind,
     distance_to_border: distBorder,
-    avoided_hazards: routeData?.summary?.avoided_hazards || ['Gulf of Mannar MPA', 'High Wave Gradient']
+    avoided_hazards: routeData?.summary?.avoided_hazards || []
   };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#07111F] text-[#EAF4F8] font-sans overflow-hidden select-none">
-      
-      {/* 1. Global Naval Top Header HUD */}
       <TopHeader
         activeMode={activeMode}
         selectedLocation={selectedLocation}
         safetyData={safetyData}
+        dataStatus={dataStatus}
         isLoading={isLoading}
         onRefresh={handleRefresh}
         onBackToLanding={handleReturnToLanding}
@@ -322,10 +321,7 @@ export function OperationsDashboard({
         isChatOpen={isChatOpen}
       />
 
-      {/* 2. Main Workspace: WorkspaceNav Rail + Contextual Sidebar + Map & Timeline */}
       <div className="flex flex-1 overflow-hidden relative">
-        
-        {/* Far-Left Vertical Icon Rail */}
         <WorkspaceNav
           activeMode={activeMode}
           setActiveMode={handleModeChange}
@@ -334,7 +330,6 @@ export function OperationsDashboard({
           onBackToLanding={handleReturnToLanding}
         />
 
-        {/* Contextual SpotlightCard Sidebar */}
         <div className="w-[360px] sm:w-[380px] lg:w-[420px] min-w-[320px] h-full bg-[#0D1B2A] border-r border-[#20384D] flex flex-col shrink-0 z-10">
           <SpotlightCard className="h-full rounded-none border-0 bg-transparent flex flex-col">
             {activeMode === 'routing' && (
@@ -374,7 +369,7 @@ export function OperationsDashboard({
                 selectedDay={selectedDay}
                 setSelectedDay={setSelectedDay}
                 selectedHour={selectedHour}
-                setSelectedHour={setSelectedHour}
+                setSelectedHour={(hour) => HOURS.includes(hour) && setSelectedHour(hour)}
                 safetyData={safetyData}
                 layersOverride={layersOverride}
                 setLayersOverride={setLayersOverride}
@@ -383,10 +378,7 @@ export function OperationsDashboard({
           </SpotlightCard>
         </div>
 
-        {/* Center Panel: MapConsole WebGL Engine + Bottom Weather Timeline */}
         <main className="flex-1 flex flex-col h-full bg-[#07111F] relative overflow-hidden">
-          
-          {/* Interactive WebGL Map Canvas */}
           <div className="flex-1 relative">
             <MapConsole
               activeMode={activeMode}
@@ -406,30 +398,25 @@ export function OperationsDashboard({
               layersOverride={layersOverride}
               onPfzInspect={(pfzFeature) => {
                 setSelectedPfz(pfzFeature);
-                if (activeMode !== 'fisheries') {
-                  handleModeChange('fisheries');
-                }
+                if (activeMode !== 'fisheries') handleModeChange('fisheries');
               }}
             />
           </div>
 
-          {/* Bottom 24-Hour Diurnal Weather Timeline Panel */}
           <WeatherTimelinePanel
             forecastTimeline={forecastTimeline}
             selectedHour={selectedHour}
-            onSelectHour={setSelectedHour}
+            onSelectHour={(hour) => HOURS.includes(hour) && setSelectedHour(hour)}
             selectedDay={selectedDay}
           />
         </main>
 
-        {/* 3. Slide-Out Grounded RAG Safety Advisor Drawer */}
         <SafetyAdvisorChat
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
           liveContext={liveContext}
           activeMode={activeMode}
         />
-
       </div>
     </div>
   );
