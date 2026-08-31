@@ -1,68 +1,64 @@
 import math
 import heapq
-import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+import logging
 
-from sqlalchemy.orm import Session
-from app.api.endpoints.geofence import evaluate_geofence_offline
-from app.api.services.pfz_intelligence import haversine_distance
 from app.api.services.forecast_data import ForecastDataService
+from app.api.endpoints.geofence import evaluate_geofence_offline
 from app.core.exceptions import DataUnavailableError
 
 logger = logging.getLogger(__name__)
 
+# ==============================================================================
+# SIH26176 - NAVIK MARINE RISK & PHYSICS THRESHOLDS
+# ==============================================================================
+# 1. Capsize Safety Limit: wave_height_m >= critical_height (1.5 * beam_m)
+# 2. Risk Tiers (Deterministic Floors):
+#    - MODERATE (>= 1.0m or BSI >= 1)
+#    - HIGH (>= 2.0m or BSI >= 2)
+#    - EXTREME (BSI >= 4 or wave >= critical_height)
+# 3. Vessel Length Penalty:
+#    - Used to prune extreme hazards (wave > length_m * 0.5)
+# ==============================================================================
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
 class PFZRoutingService:
     @staticmethod
-    def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        lat1_rad = math.radians(lat1)
-        lat2_rad = math.radians(lat2)
-        dlon_rad = math.radians(lon2 - lon1)
-        y = math.sin(dlon_rad) * math.cos(lat2_rad)
-        x = math.cos(lat1_rad) * math.sin(lat2_rad) - math.sin(lat1_rad) * math.cos(lat2_rad) * math.cos(dlon_rad)
-        bearing_rad = math.atan2(y, x)
-        return (math.degrees(bearing_rad) + 360.0) % 360.0
+    def calculate_bearing(lat1, lon1, lat2, lon2):
+        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+        dlon = lon2 - lon1
+        x = math.sin(dlon) * math.cos(lat2)
+        y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(dlon))
+        initial_bearing = math.atan2(x, y)
+        return (math.degrees(initial_bearing) + 360) % 360
 
     @classmethod
-    def calculate_optimal_route(
-        cls,
-        start_lat: float,
-        start_lon: float,
-        end_lat: float,
-        end_lon: float,
-        beam_m: float,
-        cruising_speed_kn: float,
-        departure_time: str,
-    ) -> dict:
-        vessel_speed_kmh = cruising_speed_kn * 1.852
-        critical_height = 1.5 * beam_m
-        
-        # 1. Resolve starting time
+    def calculate_optimal_route(cls, start_lat, start_lon, end_lat, end_lon, beam_m, cruising_speed_kn, departure_time, length_m=10.0):
         try:
-            dt_str = departure_time.replace("Z", "")
-            if "T" in dt_str:
-                dep_dt = datetime.fromisoformat(dt_str)
-            else:
-                dep_dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
-        except Exception as parse_err:
-            raise DataUnavailableError(f"Invalid departure_time '{departure_time}'") from parse_err
-
-        # Validate start and end nodes are in the forecast domain immediately
+            dep_dt = datetime.fromisoformat(departure_time.replace('Z', '+00:00'))
+        except Exception as e:
+            raise DataUnavailableError(f"Invalid departure time: {str(e)}")
+            
         try:
             ForecastDataService.get_environment(start_lat, start_lon, dep_dt)
         except DataUnavailableError as e:
             raise DataUnavailableError(f"Start location unavailable: {str(e)}")
-
-        # 2. Get active grid nodes
-        grid_nodes = ForecastDataService.get_grid_nodes()
-        # Ensure start and end are in the search space
+            
         start_node = (start_lat, start_lon)
         end_node = (end_lat, end_lon)
-        all_nodes = set(grid_nodes)
+        vessel_speed_kmh = cruising_speed_kn * 1.852
+        critical_height = beam_m * 1.5
+
+        all_nodes = set(ForecastDataService.get_grid_nodes())
         all_nodes.add(start_node)
         all_nodes.add(end_node)
 
-        # 3. Validate Start and End nodes against Geofence
         try:
             start_gf = evaluate_geofence_offline(start_lat, start_lon)
             if start_gf.get("is_inside_mpa") or not start_gf.get("is_inside_eez"):
@@ -74,115 +70,109 @@ class PFZRoutingService:
         except Exception as e:
             raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
 
-        # 4. Dijkstra Setup
         queue = []
-        heapq.heappush(queue, (0.0, start_node, dep_dt, [start_node]))
+        heapq.heappush(queue, (0.0, start_node, dep_dt, [(start_node, dep_dt)]))
         visited = set()
         shortest_path = None
         
-        geofence_cache = {
-            start_node: start_gf,
-            end_node: end_gf
-        }
+        geofence_cache = {start_node: start_gf, end_node: end_gf}
+        env_cache = {}
 
         while queue:
             cost, u, u_time, path = heapq.heappop(queue)
 
-            if u in visited:
+            state_key = (u, u_time.strftime('%Y%m%d%H'))
+            if state_key in visited:
                 continue
-            visited.add(u)
+            visited.add(state_key)
+
+            if (u_time - dep_dt).total_seconds() > 72 * 3600:
+                continue
 
             if u == end_node or haversine_distance(u[0], u[1], end_node[0], end_node[1]) < 5.0:
                 if u != end_node:
-                    path.append(end_node)
+                    path.append((end_node, u_time))
                 shortest_path = path
                 break
 
             u_lat, u_lon = u
             for v in all_nodes:
-                # Find valid neighbors on the grid (approx < 75km apart to bound search)
-                if abs(v[0] - u_lat) <= 0.65 and abs(v[1] - u_lon) <= 0.65 and v != u:
-                    dist = haversine_distance(u_lat, u_lon, v[0], v[1])
-                    
-                    # 4. Geofencing Strict Check
-                    if v not in geofence_cache:
-                        try:
-                            gf = evaluate_geofence_offline(v[0], v[1])
-                            geofence_cache[v] = gf
-                        except Exception as e:
-                            raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
-                            
-                    gf = geofence_cache[v]
-                    if gf.get("is_inside_mpa") or not gf.get("is_inside_eez"):
-                        continue
-                        
-                    # 5. Environment at estimated arrival
-                    # Base transit time roughly estimating speed for u_time propagation
-                    rough_transit = dist / vessel_speed_kmh
-                    arrival_time = u_time + timedelta(hours=rough_transit)
-                    
+                if u == v or abs(v[0] - u_lat) > 0.65 or abs(v[1] - u_lon) > 0.65:
+                    continue
+                dist = haversine_distance(u_lat, u_lon, v[0], v[1])
+                
+                if v not in geofence_cache:
                     try:
-                        env = ForecastDataService.get_environment(v[0], v[1], arrival_time)
+                        gf = evaluate_geofence_offline(v[0], v[1])
+                        geofence_cache[v] = gf
+                    except Exception as e:
+                        raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
+                        
+                gf = geofence_cache[v]
+                if gf.get("is_inside_mpa") or not gf.get("is_inside_eez"):
+                    continue
+                    
+                rough_transit = dist / vessel_speed_kmh
+                arrival_time = u_time + timedelta(hours=rough_transit)
+                
+                env_cache_key = (v[0], v[1], arrival_time.strftime('%Y%m%d%H'))
+                if env_cache_key not in env_cache:
+                    try:
+                        env_cache[env_cache_key] = ForecastDataService.get_environment(v[0], v[1], arrival_time)
                     except DataUnavailableError:
-                        continue # Impassable due to missing data (land / out of bounds)
+                        env_cache[env_cache_key] = None
                         
-                    # Hard capsize constraint
-                    if env.wave_height_m >= critical_height or env.bsi >= 4:
-                        continue
-                        
-                    # Speed physics
-                    boat_bearing = cls.calculate_bearing(u_lat, u_lon, v[0], v[1])
-                    delta_theta = math.radians(env.current_direction_deg - boat_bearing)
-                    curr_speed_kmh = env.current_speed_ms * 3.6
-                    curr_parallel_kmh = curr_speed_kmh * math.cos(delta_theta)
-
-                    delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
-                    effective_boat_speed = vessel_speed_kmh - delta_v
-                    effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
+                env = env_cache[env_cache_key]
+                if env is None:
+                    continue
                     
-                    if effective_speed <= 0:
-                        continue
-                        
-                    transit_time_hrs = dist / effective_speed
+                if env.wave_height_m >= critical_height or env.bsi >= 4 or env.wave_height_m > (length_m * 0.5):
+                    continue
                     
-                    exact_arrival_time = u_time + timedelta(hours=transit_time_hrs)
+                boat_bearing = cls.calculate_bearing(u_lat, u_lon, v[0], v[1])
+                delta_theta = math.radians(env.current_direction_deg - boat_bearing)
+                curr_speed_kmh = env.current_speed_ms * 3.6
+                curr_parallel_kmh = curr_speed_kmh * math.cos(delta_theta)
 
-                    bsi_penalty = 5.0 * (env.bsi ** 2)
-                    border_penalty = 20.0 if gf.get("distance_to_border_km", 999.0) < 5.0 else 0.0
+                delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
+                effective_boat_speed = vessel_speed_kmh - delta_v
+                max_hull_speed = max(30.0, 2.5 * math.sqrt(length_m)) 
+                effective_boat_speed = min(effective_boat_speed, max_hull_speed)
+                
+                effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
+                
+                if effective_speed <= 0:
+                    continue
+                    
+                transit_time_hrs = dist / effective_speed
+                exact_arrival_time = u_time + timedelta(hours=transit_time_hrs)
 
-                    edge_cost = transit_time_hrs + bsi_penalty + border_penalty
-                    heapq.heappush(queue, (cost + edge_cost, v, exact_arrival_time, path + [v]))
+                bsi_penalty = 5.0 * (env.bsi ** 2)
+                border_penalty = 20.0 if gf.get("distance_to_border_km", 999.0) < 5.0 else 0.0
 
-        # No safe route found
+                edge_cost = transit_time_hrs + bsi_penalty + border_penalty
+                heapq.heappush(queue, (cost + edge_cost, v, exact_arrival_time, path + [(v, exact_arrival_time)]))
+
         if not shortest_path:
-            return {"route_coords": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+            return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
 
-        # 6. Build route snapshots and segments
         snapshots = []
         segments = []
-        current_time = dep_dt
-        
         current_segment_coords = []
         current_segment_risk = None
         current_segment_reason = None
         segment_index = 0
         
-        for idx, node in enumerate(shortest_path):
-            # Calculate Risk Level (Deterministic Floors)
-            # LOW: < 1.0m hs, BSI 0
-            # MODERATE: >= 1.0m hs or BSI >= 1
-            # HIGH: >= 2.0m hs or BSI >= 2
-            # EXTREME: >= critical_height or BSI >= 4
-            
+        for idx, (node, exact_time) in enumerate(shortest_path):
             try:
-                env = ForecastDataService.get_environment(node[0], node[1], current_time)
+                env = ForecastDataService.get_environment(node[0], node[1], exact_time)
                 
                 risk_lvl = "LOW"
                 reason = "Optimal sea state"
                 
-                if env.wave_height_m >= critical_height or env.bsi >= 4:
+                if env.wave_height_m >= critical_height or env.bsi >= 4 or env.wave_height_m > (length_m * 0.5):
                     risk_lvl = "EXTREME"
-                    reason = "Capsize limit exceeded"
+                    reason = "Capsize or length limit exceeded"
                 elif env.wave_height_m >= 2.0 or env.bsi >= 2:
                     risk_lvl = "HIGH"
                     reason = "Dangerous wave heights or steepness"
@@ -191,7 +181,7 @@ class PFZRoutingService:
                     reason = "Elevated sea state"
                     
                 snapshots.append({
-                    "time": current_time.isoformat(),
+                    "time": exact_time.isoformat(),
                     "lat": node[0],
                     "lon": node[1],
                     "wave_height_m": round(env.wave_height_m, 2),
@@ -203,13 +193,11 @@ class PFZRoutingService:
                     "risk": risk_lvl
                 })
                 
-                # Segment Logic
                 if current_segment_risk is None:
                     current_segment_risk = risk_lvl
                     current_segment_reason = reason
                     current_segment_coords.append([node[1], node[0]])
                 elif current_segment_risk != risk_lvl:
-                    # Risk changed, seal the old segment
                     segments.append({
                         "segment_index": segment_index,
                         "coordinates": current_segment_coords,
@@ -217,7 +205,6 @@ class PFZRoutingService:
                         "reason": current_segment_reason
                     })
                     segment_index += 1
-                    # Start new segment, overlapping by the current node
                     current_segment_coords = [current_segment_coords[-1], [node[1], node[0]]]
                     current_segment_risk = risk_lvl
                     current_segment_reason = reason
@@ -226,28 +213,6 @@ class PFZRoutingService:
                 
             except DataUnavailableError:
                 pass
-                
-            if idx < len(shortest_path) - 1:
-                next_node = shortest_path[idx+1]
-                dist = haversine_distance(node[0], node[1], next_node[0], next_node[1])
-                try:
-                    # Reuse `env` from above instead of querying again!
-                    boat_bearing = cls.calculate_bearing(node[0], node[1], next_node[0], next_node[1])
-                    delta_theta = math.radians(env.current_direction_deg - boat_bearing)
-                    curr_speed_kmh = env.current_speed_ms * 3.6
-                    curr_parallel_kmh = curr_speed_kmh * math.cos(delta_theta)
-
-                    delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
-                    effective_boat_speed = vessel_speed_kmh - delta_v
-                    effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
-                    
-                    if effective_speed <= 0:
-                        effective_speed = 0.1
-                        
-                except DataUnavailableError:
-                    effective_speed = min(30.0, vessel_speed_kmh)
-
-                current_time += timedelta(hours=dist / effective_speed)
 
         if current_segment_coords and len(current_segment_coords) > 1:
             segments.append({
@@ -259,7 +224,7 @@ class PFZRoutingService:
 
         return {
             "decision": "RECOMMENDED",
-            "route_coords": [[n[1], n[0]] for n in shortest_path],
+            "route_coords": [[n[0][1], n[0][0]] for n in shortest_path],
             "snapshots": snapshots,
             "segments": segments
         }
