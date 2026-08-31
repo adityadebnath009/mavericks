@@ -124,15 +124,25 @@ class ForecastDataService:
             return d, h
             
         t0_d, t0_h = get_dh(t0_hours)
-        nodes_t0 = cls.load_grid(t0_d, t0_h)
+        try:
+            nodes_t0 = cls.load_grid(t0_d, t0_h)
+        except (FileNotFoundError, OSError, EOFError) as e:
+            raise DataUnavailableError(f"Grid data unavailable for T0 ({t0_d}d {t0_h}h).") from e
+        
         props_t0 = cls._find_nearest_props(lat, lon, nodes_t0)
         
-        t1_d, t1_h = get_dh(t1_hours)
-        nodes_t1 = cls.load_grid(t1_d, t1_h)
-        props_t1 = cls._find_nearest_props(lat, lon, nodes_t1)
-                
-        # Temporal interpolation
-        fraction = (elapsed_hours - t0_hours) / 3.0
+        if elapsed_hours == float(t0_hours):
+            # Exact boundary (e.g. 72h), no T1 needed
+            props_t1 = props_t0
+            fraction = 0.0
+        else:
+            t1_d, t1_h = get_dh(t1_hours)
+            try:
+                nodes_t1 = cls.load_grid(t1_d, t1_h)
+            except (FileNotFoundError, OSError, EOFError) as e:
+                raise DataUnavailableError(f"Grid data unavailable for T1 ({t1_d}d {t1_h}h).") from e
+            props_t1 = cls._find_nearest_props(lat, lon, nodes_t1)
+            fraction = (elapsed_hours - t0_hours) / 3.0
         
         def interp(key, default_val=None):
             v0 = props_t0.get(key)

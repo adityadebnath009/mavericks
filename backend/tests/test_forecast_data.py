@@ -55,7 +55,15 @@ def test_get_environment_temporal_interpolation():
         return [
             (15.0, 75.0, {
                 "hs": float(hour), # hs = hour 
-                "bsi": 1
+                "bsi": 1,
+                "stp": 0.05,
+                "ss": 10.0,
+                "swind": 10.0,
+                "dir": 90.0,
+                "cur": 0.0,
+                "cur_dir": 90.0,
+                "hsea_initial": 1.0,
+                "hsea_final": 1.0
             })
         ]
         

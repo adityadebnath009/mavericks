@@ -1,27 +1,37 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Dict, Any, List
+from datetime import datetime
 
 from app.db.session import get_db
 from app.api.services.trip_decision import TripDecisionEngine
+from app.schemas.routing import TripAnalysisResponse
 
 router = APIRouter()
 
 class Coordinate(BaseModel):
-    lat: float
-    lon: float
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
 
 class Vessel(BaseModel):
     beam_m: float = Field(default=3.5, description="Vessel beam width in meters")
     length_m: float = Field(default=10.0, description="Vessel overall length in meters")
-    cruising_speed_kn: float = Field(default=8.0, description="Cruising speed in knots")
+    cruising_speed_kn: float = Field(default=8.0, gt=0, description="Cruising speed in knots")
 
 class TripRequest(BaseModel):
     start: Coordinate
     departure_time: str = Field(description="Departure timestamp (ISO format, e.g. 2026-08-29T06:00:00)")
     vessel: Vessel = Field(default_factory=Vessel)
-from app.schemas.routing import TripAnalysisResponse
+
+    @field_validator("departure_time")
+    @classmethod
+    def validate_departure_time(cls, v):
+        try:
+            datetime.fromisoformat(v.replace('Z', '+00:00'))
+        except ValueError:
+            raise ValueError("departure_time must be a valid ISO-8601 string")
+        return v
 
 @router.post("/analyze", response_model=TripAnalysisResponse)
 def analyze_trip(request: TripRequest, db: Session = Depends(get_db)):
@@ -39,8 +49,17 @@ def analyze_trip(request: TripRequest, db: Session = Depends(get_db)):
             cruising_speed_kn=request.vessel.cruising_speed_kn,
             db=db
         )
+        
+        # Implement strict API Exception Semantics
+        if result.get("decision") == "DATA_UNAVAILABLE":
+            from fastapi.responses import JSONResponse
+            # Valid request, but upstream environmental data is unavailable
+            return JSONResponse(status_code=503, content=result)
+        
+        # Valid request + safe route OR Valid request + no feasible route
+        # Both represent a mathematically valid domain evaluation and should return 200 OK
         return result
+        
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to analyze trip: {str(e)}")
+        # Prevent leaking stack traces for unexpected programming/server failures
+        raise HTTPException(status_code=500, detail="Internal server error")

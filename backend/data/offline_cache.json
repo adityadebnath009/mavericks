@@ -12,18 +12,17 @@
   },
   "puri_optimal": {
     "weather_agent": {
-      "max_wind_speed": 16.9,
-      "max_wind_gust": 32.8,
+      "max_wind_speed": 17.5,
+      "max_wind_gust": 34.9,
       "min_visibility": 1720.0,
-      "max_precip_probability": 98,
+      "max_precip_probability": 100,
       "has_active_alerts": true,
       "highest_severity": "EXTREME",
       "imd_color_code": "RED (Take Action / Warning)",
       "weather_safety_score": 10,
       "active_hazards": [
         "Cloud-to-Sea Lightning",
-        "Heavy Rainfall",
-        "Thunderstorm"
+        "Heavy Rainfall"
       ],
       "timeline_alerts": [
         {
@@ -62,9 +61,9 @@
           "timestamp": "2026-08-31 04:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 96.0,
+          "trigger_value": 95.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (96% probability)."
+          "message": "Heavy marine precipitation (95% probability)."
         },
         {
           "timestamp": "2026-08-31 05:00:00",
@@ -78,57 +77,73 @@
           "timestamp": "2026-08-31 06:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 97.0,
+          "trigger_value": 99.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (97% probability)."
+          "message": "Heavy marine precipitation (99% probability)."
         },
         {
           "timestamp": "2026-08-31 07:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 95.0,
+          "trigger_value": 100.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (95% probability)."
+          "message": "Heavy marine precipitation (100% probability)."
         },
         {
           "timestamp": "2026-08-31 08:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 92.0,
+          "trigger_value": 100.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 92% rain probability."
+          "message": "Severe electrical hazard: lightning cells with 100% rain probability."
         },
         {
           "timestamp": "2026-08-31 09:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 90.0,
+          "trigger_value": 100.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 90% rain probability."
+          "message": "Severe electrical hazard: lightning cells with 100% rain probability."
         },
         {
           "timestamp": "2026-08-31 10:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 87.0,
+          "trigger_value": 99.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (87% probability)."
+          "message": "Heavy marine precipitation (99% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 11:00:00",
+          "hazard_type": "Cloud-to-Sea Lightning",
+          "severity": "EXTREME",
+          "trigger_value": 98.0,
+          "threshold_value": 70.0,
+          "message": "Severe electrical hazard: lightning cells with 98% rain probability."
+        },
+        {
+          "timestamp": "2026-08-31 12:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 98.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (98% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 13:00:00",
+          "hazard_type": "Cloud-to-Sea Lightning",
+          "severity": "EXTREME",
+          "trigger_value": 97.0,
+          "threshold_value": 70.0,
+          "message": "Severe electrical hazard: lightning cells with 97% rain probability."
         },
         {
           "timestamp": "2026-08-31 14:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 71.0,
+          "trigger_value": 92.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 71% rain probability."
-        },
-        {
-          "timestamp": "2026-08-31 15:00:00",
-          "hazard_type": "Thunderstorm",
-          "severity": "HIGH",
-          "trigger_value": 95.0,
-          "threshold_value": 95.0,
-          "message": "Active convective storm cells (WMO 95)."
+          "message": "Severe electrical hazard: lightning cells with 92% rain probability."
         }
       ],
       "hourly_risk_curve": [
@@ -143,11 +158,11 @@
         90,
         90,
         45,
-        10,
-        10,
-        10,
         90,
-        65,
+        45,
+        90,
+        90,
+        10,
         10,
         10,
         10,
@@ -157,7 +172,7 @@
         10,
         10
       ],
-      "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall, Thunderstorm). Peak wind reaches 16.9 km/h with 98% max rain probability. Official IMD advisory level: RED (Take Action / Warning).",
+      "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall). Peak wind reaches 17.5 km/h with 100% max rain probability. Official IMD advisory level: RED (Take Action / Warning).",
       "execution_mode": "ROLLING_CACHE"
     },
     "ocean_agent": {
@@ -171,12 +186,12 @@
       ],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-08-31T10:59:25.580479Z"
+    "last_cached_at": "2026-08-31T14:40:11.250354Z"
   },
   "goa_safe": {
     "weather_agent": {
-      "max_wind_speed": 19.5,
-      "max_wind_gust": 43.6,
+      "max_wind_speed": 19.0,
+      "max_wind_gust": 45.7,
       "min_visibility": 2560.0,
       "max_precip_probability": 100,
       "has_active_alerts": true,
@@ -223,9 +238,9 @@
           "timestamp": "2026-08-31 04:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 95.0,
+          "trigger_value": 94.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (95% probability)."
+          "message": "Heavy marine precipitation (94% probability)."
         },
         {
           "timestamp": "2026-08-31 05:00:00",
@@ -239,41 +254,73 @@
           "timestamp": "2026-08-31 06:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 91.0,
+          "trigger_value": 93.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (91% probability)."
+          "message": "Heavy marine precipitation (93% probability)."
         },
         {
           "timestamp": "2026-08-31 07:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 90.0,
+          "trigger_value": 96.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (90% probability)."
+          "message": "Heavy marine precipitation (96% probability)."
         },
         {
           "timestamp": "2026-08-31 08:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 88.0,
+          "trigger_value": 98.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (88% probability)."
+          "message": "Heavy marine precipitation (98% probability)."
         },
         {
-          "timestamp": "2026-08-31 13:00:00",
-          "hazard_type": "Heavy Rainfall",
-          "severity": "MODERATE",
-          "trigger_value": 92.0,
-          "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (92% probability)."
-        },
-        {
-          "timestamp": "2026-08-31 14:00:00",
+          "timestamp": "2026-08-31 09:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
           "trigger_value": 98.0,
           "threshold_value": 85.0,
           "message": "Heavy marine precipitation (98% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 10:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 98.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (98% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 11:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 98.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (98% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 12:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 99.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (99% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 13:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 99.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (99% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 14:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 100.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (100% probability)."
         },
         {
           "timestamp": "2026-08-31 15:00:00",
@@ -303,33 +350,33 @@
           "timestamp": "2026-08-31 18:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 100.0,
+          "trigger_value": 97.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (100% probability)."
+          "message": "Heavy marine precipitation (97% probability)."
         },
         {
           "timestamp": "2026-08-31 19:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 100.0,
+          "trigger_value": 92.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (100% probability)."
+          "message": "Heavy marine precipitation (92% probability)."
         },
         {
           "timestamp": "2026-08-31 20:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 98.0,
+          "trigger_value": 88.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (98% probability)."
+          "message": "Heavy marine precipitation (88% probability)."
         },
         {
           "timestamp": "2026-08-31 21:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 92.0,
+          "trigger_value": 86.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (92% probability)."
+          "message": "Heavy marine precipitation (86% probability)."
         }
       ],
       "hourly_risk_curve": [
@@ -342,10 +389,10 @@
         45,
         45,
         45,
-        10,
-        10,
-        10,
-        10,
+        45,
+        45,
+        45,
+        45,
         45,
         45,
         45,
@@ -358,7 +405,7 @@
         10,
         10
       ],
-      "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 19.5 km/h with 100% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch).",
+      "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 19.0 km/h with 100% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch).",
       "execution_mode": "ROLLING_CACHE"
     },
     "ocean_agent": {
@@ -372,14 +419,14 @@
       ],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-08-31T10:59:27.053559Z"
+    "last_cached_at": "2026-08-31T14:42:01.319898Z"
   },
   "paradip_cyclone": {
     "weather_agent": {
       "max_wind_speed": 22.9,
-      "max_wind_gust": 45.4,
+      "max_wind_gust": 45.0,
       "min_visibility": 1700.0,
-      "max_precip_probability": 97,
+      "max_precip_probability": 100,
       "has_active_alerts": true,
       "highest_severity": "EXTREME",
       "imd_color_code": "RED (Take Action / Warning)",
@@ -425,9 +472,9 @@
           "timestamp": "2026-08-31 04:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 88.0,
+          "trigger_value": 87.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 88% rain probability."
+          "message": "Severe electrical hazard: lightning cells with 87% rain probability."
         },
         {
           "timestamp": "2026-08-31 05:00:00",
@@ -441,36 +488,68 @@
           "timestamp": "2026-08-31 06:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 86.0,
+          "trigger_value": 91.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (86% probability)."
+          "message": "Heavy marine precipitation (91% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 07:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 95.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (95% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 08:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 98.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (98% probability)."
         },
         {
           "timestamp": "2026-08-31 09:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 80.0,
+          "trigger_value": 100.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 80% rain probability."
+          "message": "Severe electrical hazard: lightning cells with 100% rain probability."
+        },
+        {
+          "timestamp": "2026-08-31 10:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 100.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (100% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 11:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 100.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (100% probability)."
+        },
+        {
+          "timestamp": "2026-08-31 12:00:00",
+          "hazard_type": "Heavy Rainfall",
+          "severity": "MODERATE",
+          "trigger_value": 99.0,
+          "threshold_value": 85.0,
+          "message": "Heavy marine precipitation (99% probability)."
         },
         {
           "timestamp": "2026-08-31 13:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
-          "trigger_value": 92.0,
+          "trigger_value": 97.0,
           "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (92% probability)."
+          "message": "Heavy marine precipitation (97% probability)."
         },
         {
           "timestamp": "2026-08-31 14:00:00",
-          "hazard_type": "Heavy Rainfall",
-          "severity": "MODERATE",
-          "trigger_value": 96.0,
-          "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (96% probability)."
-        },
-        {
-          "timestamp": "2026-08-31 15:00:00",
           "hazard_type": "Heavy Rainfall",
           "severity": "MODERATE",
           "trigger_value": 94.0,
@@ -478,20 +557,28 @@
           "message": "Heavy marine precipitation (94% probability)."
         },
         {
-          "timestamp": "2026-08-31 16:00:00",
-          "hazard_type": "Heavy Rainfall",
-          "severity": "MODERATE",
-          "trigger_value": 88.0,
-          "threshold_value": 85.0,
-          "message": "Heavy marine precipitation (88% probability)."
-        },
-        {
-          "timestamp": "2026-08-31 19:00:00",
+          "timestamp": "2026-08-31 15:00:00",
           "hazard_type": "Cloud-to-Sea Lightning",
           "severity": "EXTREME",
-          "trigger_value": 72.0,
+          "trigger_value": 89.0,
           "threshold_value": 70.0,
-          "message": "Severe electrical hazard: lightning cells with 72% rain probability."
+          "message": "Severe electrical hazard: lightning cells with 89% rain probability."
+        },
+        {
+          "timestamp": "2026-08-31 16:00:00",
+          "hazard_type": "Cloud-to-Sea Lightning",
+          "severity": "EXTREME",
+          "trigger_value": 83.0,
+          "threshold_value": 70.0,
+          "message": "Severe electrical hazard: lightning cells with 83% rain probability."
+        },
+        {
+          "timestamp": "2026-08-31 22:00:00",
+          "hazard_type": "Cloud-to-Sea Lightning",
+          "severity": "EXTREME",
+          "trigger_value": 71.0,
+          "threshold_value": 70.0,
+          "message": "Severe electrical hazard: lightning cells with 71% rain probability."
         }
       ],
       "hourly_risk_curve": [
@@ -502,25 +589,25 @@
         90,
         45,
         45,
-        10,
-        10,
+        45,
+        45,
+        90,
+        45,
+        45,
+        45,
+        45,
+        45,
+        90,
         90,
         10,
         10,
         10,
-        45,
-        45,
-        45,
-        45,
         10,
         10,
         90,
-        10,
-        10,
-        10,
         10
       ],
-      "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall). Peak wind reaches 22.9 km/h with 97% max rain probability. Official IMD advisory level: RED (Take Action / Warning).",
+      "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall). Peak wind reaches 22.9 km/h with 100% max rain probability. Official IMD advisory level: RED (Take Action / Warning).",
       "execution_mode": "ROLLING_CACHE"
     },
     "ocean_agent": {
@@ -534,14 +621,14 @@
       ],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-08-31T10:59:28.555621Z"
+    "last_cached_at": "2026-08-31T14:42:10.745654Z"
   },
   "visakhapatnam": {
     "weather_agent": {
-      "max_wind_speed": 16.3,
-      "max_wind_gust": 37.8,
+      "max_wind_speed": 16.5,
+      "max_wind_gust": 38.5,
       "min_visibility": 6620.0,
-      "max_precip_probability": 45,
+      "max_precip_probability": 71,
       "has_active_alerts": false,
       "highest_severity": "LOW",
       "imd_color_code": "GREEN (No Warning)",
@@ -588,11 +675,11 @@
       ],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-08-31T10:59:30.060254Z"
+    "last_cached_at": "2026-08-31T14:42:13.345174Z"
   },
   "kochi": {
     "weather_agent": {
-      "max_wind_speed": 17.5,
+      "max_wind_speed": 17.4,
       "max_wind_gust": 39.6,
       "min_visibility": 6020.0,
       "max_precip_probability": 76,
@@ -642,6 +729,6 @@
       ],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-08-31T10:59:31.474116Z"
+    "last_cached_at": "2026-08-31T14:42:22.228780Z"
   }
 }

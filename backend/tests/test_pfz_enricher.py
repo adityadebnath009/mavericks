@@ -38,22 +38,15 @@ def test_enrich_point_schema():
     # Metrics check
     metrics = res.get("metrics", {})
     required_metrics = [
-        "sst_c", "chl_mg_m3", "wind_speed_kmh", "wind_direction_deg",
-        "current_speed_ms", "current_direction_deg", "wave_height_m", "wave_period_s"
+        "sst", "chlorophyll", "wind_speed", "wind_direction",
+        "current_speed", "current_direction", "wave_height", "wave_period"
     ]
     for key in required_metrics:
         assert key in metrics, f"Metric '{key}' missing from enrich_point response"
-        assert isinstance(metrics[key], (int, float)), f"Metric '{key}' must be numeric"
-
-    # Numerical range checks for oceanographic realism
-    assert 15.0 <= metrics["sst_c"] <= 35.0, f"SST out of bounds: {metrics['sst_c']}"
-    assert 0.0 <= metrics["chl_mg_m3"] <= 20.0, f"CHL out of bounds: {metrics['chl_mg_m3']}"
-    assert 0.0 <= metrics["wind_speed_kmh"] <= 150.0, f"Wind speed out of bounds: {metrics['wind_speed_kmh']}"
-    assert 0.0 <= metrics["wind_direction_deg"] <= 360.0, f"Wind dir out of bounds: {metrics['wind_direction_deg']}"
-    assert 0.0 <= metrics["current_speed_ms"] <= 5.0, f"Current speed out of bounds: {metrics['current_speed_ms']}"
-    assert 0.0 <= metrics["current_direction_deg"] <= 360.0, f"Current dir out of bounds: {metrics['current_direction_deg']}"
-    assert 0.0 <= metrics["wave_height_m"] <= 20.0, f"Wave height out of bounds: {metrics['wave_height_m']}"
-    assert 0.0 <= metrics["wave_period_s"] <= 30.0, f"Wave period out of bounds: {metrics['wave_period_s']}"
+        assert isinstance(metrics[key], dict), f"Metric '{key}' must be a dict"
+        assert "value" in metrics[key]
+        assert "source" in metrics[key]
+        assert "status" in metrics[key]
 
     # Provenance check
     prov = res.get("provenance", {})

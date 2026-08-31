@@ -62,13 +62,28 @@ class PFZRoutingService:
         all_nodes.add(start_node)
         all_nodes.add(end_node)
 
-        # 3. Dijkstra Setup
+        # 3. Validate Start and End nodes against Geofence
+        try:
+            start_gf = evaluate_geofence_offline(start_lat, start_lon)
+            if start_gf.get("is_inside_mpa") or not start_gf.get("is_inside_eez"):
+                return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+                
+            end_gf = evaluate_geofence_offline(end_lat, end_lon)
+            if end_gf.get("is_inside_mpa") or not end_gf.get("is_inside_eez"):
+                return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+        except Exception as e:
+            raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
+
+        # 4. Dijkstra Setup
         queue = []
         heapq.heappush(queue, (0.0, start_node, dep_dt, [start_node]))
         visited = set()
         shortest_path = None
         
-        geofence_cache = {}
+        geofence_cache = {
+            start_node: start_gf,
+            end_node: end_gf
+        }
 
         while queue:
             cost, u, u_time, path = heapq.heappop(queue)
@@ -95,11 +110,10 @@ class PFZRoutingService:
                             gf = evaluate_geofence_offline(v[0], v[1])
                             geofence_cache[v] = gf
                         except Exception as e:
-                            # Fails closed on geofence error
-                            geofence_cache[v] = None
+                            raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
                             
                     gf = geofence_cache[v]
-                    if gf is None or gf.get("is_inside_mpa") or not gf.get("is_inside_eez"):
+                    if gf.get("is_inside_mpa") or not gf.get("is_inside_eez"):
                         continue
                         
                     # 5. Environment at estimated arrival
@@ -123,8 +137,12 @@ class PFZRoutingService:
                     curr_parallel_kmh = curr_speed_kmh * math.cos(delta_theta)
 
                     delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
-                    effective_boat_speed = max(2.0, vessel_speed_kmh - delta_v)
-                    effective_speed = max(2.0, min(30.0, effective_boat_speed + curr_parallel_kmh))
+                    effective_boat_speed = vessel_speed_kmh - delta_v
+                    effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
+                    
+                    if effective_speed <= 0:
+                        continue
+                        
                     transit_time_hrs = dist / effective_speed
                     
                     exact_arrival_time = u_time + timedelta(hours=transit_time_hrs)
@@ -213,15 +231,19 @@ class PFZRoutingService:
                 next_node = shortest_path[idx+1]
                 dist = haversine_distance(node[0], node[1], next_node[0], next_node[1])
                 try:
-                    env = ForecastDataService.get_environment(node[0], node[1], current_time)
+                    # Reuse `env` from above instead of querying again!
                     boat_bearing = cls.calculate_bearing(node[0], node[1], next_node[0], next_node[1])
                     delta_theta = math.radians(env.current_direction_deg - boat_bearing)
                     curr_speed_kmh = env.current_speed_ms * 3.6
                     curr_parallel_kmh = curr_speed_kmh * math.cos(delta_theta)
 
                     delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
-                    effective_boat_speed = max(2.0, vessel_speed_kmh - delta_v)
-                    effective_speed = max(2.0, min(30.0, effective_boat_speed + curr_parallel_kmh))
+                    effective_boat_speed = vessel_speed_kmh - delta_v
+                    effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
+                    
+                    if effective_speed <= 0:
+                        effective_speed = 0.1
+                        
                 except DataUnavailableError:
                     effective_speed = min(30.0, vessel_speed_kmh)
 

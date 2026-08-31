@@ -4,6 +4,7 @@ from app.db.session import get_db
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from app.core.exceptions import DataUnavailableError
 
 try:
     from shapely.geometry import Point, shape
@@ -78,10 +79,7 @@ def evaluate_geofence_offline(lat: float, lon: float):
                 except Exception:
                     pass
     else:
-        # Land/ocean bounding box heuristic fallback for Indian maritime area
-        if 4.0 <= lat <= 24.0 and 65.0 <= lon <= 96.0:
-            is_inside_eez = True
-            distance_eez = 120.0
+        raise DataUnavailableError("Geofence data is missing or malformed.")
 
     if is_inside_mpa:
         status = "DANGER_INSIDE_RESTRICTED_ZONE"

@@ -6,8 +6,21 @@ def test_no_pfz_found():
     with patch("app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs") as mock_wfs:
         mock_wfs.return_value = {"features": []}
         res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T12:00:00Z", 4.0, 15.0, 10.0, None)
-        assert res["decision"] == "REJECTED_NO_SAFE_ROUTE"
+        assert res["decision"] == "DATA_UNAVAILABLE"
         print("✓ test_no_pfz_found passed")
+
+def test_all_candidates_rejected_no_safe_route():
+    with patch("app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs") as mock_wfs, \
+         patch("app.api.services.trip_decision.evaluate_geofence_offline") as mock_gf:
+        mock_wfs.return_value = {
+            "features": [{"id": "pfz1", "geometry": {"type": "LineString", "coordinates": [[75.0, 15.0], [75.1, 15.1]]}}]
+        }
+        mock_gf.return_value = {"is_inside_mpa": True, "mpa_name": "Test MPA"}
+        
+        res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T12:00:00Z", 4.0, 15.0, 10.0, None)
+        assert res["decision"] == "REJECTED_NO_SAFE_ROUTE"
+        assert "inaccessible" in res["reason"].lower()
+        print("✓ test_all_candidates_rejected_no_safe_route passed")
 
 def test_routing_failure_propagation():
     with patch("app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs") as mock_wfs, \
