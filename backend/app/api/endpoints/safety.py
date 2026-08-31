@@ -53,7 +53,12 @@ def get_safety_assessment(
     curr_records = []
     
     try:
-        ww3_records, curr_records = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_records = ww3_res.records if ww3_res else None
+        curr_records = curr_res.records if curr_res else None
+        
+        if not ww3_records or not curr_records:
+            raise Exception("Empty records")
         incois_success = True
     except Exception as e:
         # Fallback to local / Open-Meteo in case of remote server timeout/offline/land grid
@@ -148,7 +153,8 @@ def get_safety_assessment(
         daily_bsi_forecast = {}
         for d in [1, 2, 3]:
             try:
-                ww3_d, _ = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, d)
+                ww3_res, _ = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, d)
+                ww3_d = ww3_res.records if ww3_res else []
                 d_bsi = [BSICalculator.calculate_bsi(s["stp"], s["hs"], s["spr"], s["hsea_initial"], s["hsea_final"]) for s in ww3_d]
                 max_score = max(d_bsi)
                 daily_bsi_forecast[f"day{d}"] = {
@@ -594,6 +600,10 @@ def generate_fallback_grid(day: int = 1, hour: int = 12):
                 "properties": {
                     "bsi": val,
                     "hs": round(float(base_hs), 2),
+                    "stp": 0.015,
+                    "spr": 0.25,
+                    "hsea_initial": round(float(base_hs) * 0.9, 2),
+                    "hsea_final": round(float(base_hs), 2),
                     "wind_speed_kmh": round(float(base_wind), 1),
                     "current_speed_ms": round(float(base_curr), 2),
                     "wind_dir_deg": round(float(base_wind_dir), 1),
@@ -708,6 +718,11 @@ def get_safety_grid(
             for j in range(n_lons):
                 val = int(bsi[i, j])
                 hs_val = float(hs[i, j])
+                stp_val = float(stp[i, j])
+                spr_val = float(spr_raw[i, j])
+                hsea_i_val = float(hsea_initial[i, j])
+                hsea_f_val = float(hsea_final[i, j])
+                
                 wind_val = float(wind_speed_kmh[i, j])
                 if np.isnan(val) or np.isnan(hs_val) or hs_val <= 0.0 or np.isnan(wind_val):
                     continue  # Skip land cells
@@ -735,7 +750,6 @@ def get_safety_grid(
                 else:
                     color = "green"
 
-                wind_val = float(wind_speed_kmh[i, j])
                 curr_val = 0.1 + hs_val * 0.18
                 wind_dir_val = float(wind_dir_deg[i, j])
                 curr_dir_val = float(mwd_grid[i, j]) if not np.isnan(mwd_grid[i, j]) else 112.0
@@ -749,6 +763,10 @@ def get_safety_grid(
                     "properties": {
                         "bsi": val,
                         "hs": clean_nan(hs_val, 2),
+                        "stp": clean_nan(stp_val, 4),
+                        "spr": clean_nan(spr_val, 4),
+                        "hsea_initial": clean_nan(hsea_i_val, 2),
+                        "hsea_final": clean_nan(hsea_f_val, 2),
                         "wind_speed_kmh": clean_nan(wind_val, 1),
                         "current_speed_ms": clean_nan(curr_val, 2),
                         "wind_dir_deg": clean_nan(wind_dir_val, 1),
@@ -777,7 +795,9 @@ def get_safety_grid(
                     logger.error(f"Error writing grid cache: {cache_write_err}")
                 return res
             return generate_fallback_grid(day, hour)
-        except Exception:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             return generate_fallback_grid(day, hour)
 
 
@@ -793,7 +813,9 @@ def get_point_forecast_timeline(
     for the selected point coordinate to drive Recharts charts.
     """
     try:
-        ww3_records, curr_records = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_records = ww3_res.records if ww3_res else []
+        curr_records = curr_res.records if curr_res else []
 
         timeline_data = []
         for k in range(8):

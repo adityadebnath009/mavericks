@@ -223,7 +223,9 @@ class PFZEnricherService:
 
         # Attempt WW3 Waves & NIO Currents NetCDF resolution
         try:
-            ww3_recs, curr_recs = IncoisDatasetResolver.resolve_latest_forecast(grid_lat, grid_lon, day=1)
+            ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(grid_lat, grid_lon, day=1)
+            ww3_recs = ww3_res.records if ww3_res else None
+            curr_recs = curr_res.records if curr_res else None
             if ww3_recs and curr_recs:
                 step_ww3 = ww3_recs[4] if len(ww3_recs) > 4 else ww3_recs[0]
                 step_curr = curr_recs[4] if len(curr_recs) > 4 else curr_recs[0]

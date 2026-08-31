@@ -21,8 +21,8 @@ class PFZRouteRequest(BaseModel):
     start: VesselLocation
     end: VesselLocation
     beam_m: float = 3.5
-    day: int = 1
-    hour: int = 12
+    cruising_speed_kn: float = 8.0
+    departure_time: str
 
 @router.get("")
 @router.get("/")
@@ -67,8 +67,8 @@ def calculate_pfz_route(request: PFZRouteRequest, db: Session = Depends(get_db))
             end_lat=request.end.lat,
             end_lon=request.end.lon,
             beam_m=request.beam_m,
-            day=request.day,
-            hour=request.hour,
+            cruising_speed_kn=request.cruising_speed_kn,
+            departure_time=request.departure_time,
             db=db
         )
         return res

@@ -127,37 +127,54 @@ class ForecastDataService:
         nodes_t0 = cls.load_grid(t0_d, t0_h)
         props_t0 = cls._find_nearest_props(lat, lon, nodes_t0)
         
-        if t1_hours > 71:
-            props_t1 = props_t0
-        else:
-            t1_d, t1_h = get_dh(t1_hours)
-            try:
-                nodes_t1 = cls.load_grid(t1_d, t1_h)
-                props_t1 = cls._find_nearest_props(lat, lon, nodes_t1)
-            except DataUnavailableError:
-                props_t1 = props_t0
+        t1_d, t1_h = get_dh(t1_hours)
+        nodes_t1 = cls.load_grid(t1_d, t1_h)
+        props_t1 = cls._find_nearest_props(lat, lon, nodes_t1)
                 
         # Temporal interpolation
         fraction = (elapsed_hours - t0_hours) / 3.0
         
-        def interp(v0, v1):
+        def interp(key, default_val=None):
+            v0 = props_t0.get(key)
+            v1 = props_t1.get(key)
             if v0 is None or v1 is None:
-                return v0 or v1 or 0.0
+                if default_val is not None:
+                    v0 = v0 if v0 is not None else default_val
+                    v1 = v1 if v1 is not None else default_val
+                else:
+                    raise DataUnavailableError(f"Missing required environmental variable '{key}' at coordinates ({lat}, {lon}) for timestamps T0/T1.")
             return v0 + (v1 - v0) * fraction
 
-        # BSI is categorical discrete, take t0
-        bsi = props_t0.get("bsi", 0)
+        hs = interp("hs")
+        stp = interp("stp")
+        spr_deg = interp("spr")
+        hsea_i = interp("hsea_initial")
+        hsea_f = interp("hsea_final")
+        
+        # Convert directional spread from degrees to ratio for BSI calculation
+        import numpy as np
+        spr_rad = np.radians(spr_deg)
+        ss = float(np.sqrt(2.0 * (1.0 - np.cos(spr_rad))))
+        
+        from app.api.services.bsi_calculator import BSICalculator
+        bsi = BSICalculator.calculate_bsi(
+            Ss=stp,
+            Hs=hs,
+            ss=ss,
+            Hsea_initial=hsea_i,
+            Hsea_final=hsea_f
+        )
 
         return EnvironmentSnapshot(
             timestamp=timestamp,
             lat=lat,
             lon=lon,
-            wave_height_m=interp(props_t0.get("hs"), props_t1.get("hs")),
-            wave_steepness=interp(props_t0.get("stp", 0.015), props_t1.get("stp", 0.015)),
-            directional_spread=interp(props_t0.get("spr", 0.25), props_t1.get("spr", 0.25)),
-            wind_speed_kmh=interp(props_t0.get("wind_speed_kmh"), props_t1.get("wind_speed_kmh")),
-            wind_direction_deg=interp(props_t0.get("wind_dir_deg"), props_t1.get("wind_dir_deg")),
-            current_speed_ms=interp(props_t0.get("current_speed_ms"), props_t1.get("current_speed_ms")),
-            current_direction_deg=interp(props_t0.get("current_dir_deg"), props_t1.get("current_dir_deg")),
+            wave_height_m=hs,
+            wave_steepness=stp,
+            directional_spread=ss,
+            wind_speed_kmh=interp("wind_speed_kmh"),
+            wind_direction_deg=interp("wind_dir_deg"),
+            current_speed_ms=interp("current_speed_ms"),
+            current_direction_deg=interp("current_dir_deg"),
             bsi=bsi
         )

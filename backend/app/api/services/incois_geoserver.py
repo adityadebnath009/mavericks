@@ -206,10 +206,22 @@ class INCOISGeoServerClient:
     def get_pfz_lines_wfs() -> dict:
         """
         Queries the WFS service to retrieve dynamic PFZ lines in GeoJSON format.
-        Caches results locally to survive network downtime.
+        Caches results locally and strictly respects the daily 17:00 INCOIS publishing cadence
+        to prevent unnecessary network latency.
         """
         os.makedirs(CACHE_DIR, exist_ok=True)
         
+        # Check cache validity (12 hours to safely cover the 17:00 IST refresh)
+        if os.path.exists(WFS_CACHE_PATH):
+            cache_age = time.time() - os.path.getmtime(WFS_CACHE_PATH)
+            if cache_age < 12 * 3600:
+                try:
+                    with open(WFS_CACHE_PATH, "r", encoding="utf-8") as f:
+                        return json.load(f)
+                except Exception as ex:
+                    logger.error(f"Error loading cached WFS lines: {ex}")
+                    # Fall through to fetch fresh
+
         # 1. Try fetching fresh WFS GeoJSON
         url = "https://www.incois.gov.in/geoserver/PFZ_Automation/ows"
         params = {
@@ -231,13 +243,13 @@ class INCOISGeoServerClient:
         except Exception as e:
             logger.error(f"Failed to fetch PFZ lines WFS from INCOIS: {e}")
 
-        # 2. Offline fallback from local cache file
+        # 2. Offline fallback from local cache file (if network failed but file is stale)
         if os.path.exists(WFS_CACHE_PATH):
             try:
                 with open(WFS_CACHE_PATH, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as ex:
-                logger.error(f"Error loading cached WFS lines: {ex}")
+                logger.error(f"Error loading stale cached WFS lines: {ex}")
                 
         # Empty GeoJSON FeatureCollection fallback
         return {

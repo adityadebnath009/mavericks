@@ -24,20 +24,39 @@ class TripDecisionEngine:
         cruising_speed_kn: float,
         db: Session
     ) -> dict:
+        try:
+            return cls._analyze_trip_internal(
+                start_lat, start_lon, departure_time, beam_m, length_m, cruising_speed_kn, db
+            )
+        except DataUnavailableError as e:
+            return {
+                "decision": TripDecision.DATA_UNAVAILABLE.value,
+                "reason": str(e),
+                "decision_reasons": [{"message": str(e)}],
+                "alternatives": []
+            }
+
+    @classmethod
+    def _analyze_trip_internal(
+        cls,
+        start_lat: float,
+        start_lon: float,
+        departure_time: str,
+        beam_m: float,
+        length_m: float,
+        cruising_speed_kn: float,
+        db: Session
+    ) -> dict:
         # 1. Fetch active PFZ contour candidates from WFS
         try:
             pfz_geojson = INCOISGeoServerClient.get_pfz_lines_wfs()
         except Exception as e:
             logger.error(f"Error fetching WFS contours: {e}")
-            pfz_geojson = {"type": "FeatureCollection", "features": []}
+            raise DataUnavailableError("PFZ advisory WFS service is currently offline or unreachable.")
 
         features = pfz_geojson.get("features", [])
         if not features:
-            return {
-                "decision": TripDecision.REJECTED_NO_SAFE_ROUTE.value,
-                "reason": "No active INCOIS PFZ Advisory zones found in coastal waters.",
-                "alternatives": []
-            }
+            raise DataUnavailableError("No active INCOIS PFZ Advisory zones found in coastal waters.")
 
         evaluated_candidates = []
         approved_trips = []
