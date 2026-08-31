@@ -2,6 +2,8 @@ from fastapi import APIRouter, Query, HTTPException
 from app.api.services.incois_geoserver import INCOISGeoServerClient
 from app.api.services.pfz_enricher import PFZEnricherService
 
+
+
 router = APIRouter()
 
 @router.get("/capabilities")
@@ -97,7 +99,7 @@ def wms_tile_proxy(
     incois_url = "https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms"
     params = {"service": service, "request": request, "layers": layers, "styles": styles, "format": format, "transparent": transparent, "version": version, "width": width, "height": height, "srs": srs, "bbox": bbox}
     try:
-        res = requests.get(incois_url, params=params, timeout=10)
+        res = requests.get(incois_url, params=params, timeout=30)
         res.raise_for_status()
         return Response(content=res.content, media_type="image/png")
     except Exception as e:

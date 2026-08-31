@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 
+
+
 import pandas as pd
 import numpy as np
 import xarray as xr
@@ -48,13 +50,20 @@ class IncoisDatasetResolver:
         for dataset in root.findall(".//thredds:dataset", namespace):
             name = dataset.attrib.get("name", "")
             if name.startswith(prefix) and name.endswith(".nc"):
+                # Check for explicit access tag first
+                url_path = None
                 access = dataset.find("thredds:access[@serviceName='opendap']", namespace)
                 if access is not None:
                     url_path = access.attrib.get("urlPath")
-                    if url_path:
-                        base = catalog_url.split("/thredds/")[0]
-                        dods_url = f"{base}/thredds/dodsC/{url_path}"
-                        candidates.append((name, dods_url))
+                
+                # Fallback to direct urlPath attribute (new INCOIS THREDDS format)
+                if not url_path:
+                    url_path = dataset.attrib.get("urlPath")
+                    
+                if url_path:
+                    base = catalog_url.split("/thredds/")[0]
+                    dods_url = f"{base}/thredds/dodsC/{url_path}"
+                    candidates.append((name, dods_url))
 
         if not candidates:
             raise RuntimeError(f"No valid {prefix} OPeNDAP dataset found in catalog.")
@@ -63,31 +72,30 @@ class IncoisDatasetResolver:
 
     @classmethod
     def get_ww3_url(cls) -> str:
-        url = "https://incois.gov.in/thredds/catalog/OOS/INCOIS_WW3/catalog.xml"
+        url = "https://incois.gov.in/thredds/catalog/osf/ww3/catalog.xml"
         now = time.time()
         if url in cls._url_cache and now - cls._url_cache_time[url] < 3600:
             return cls._url_cache[url]
-        latest = cls._get_latest_catalog_dataset(url, "ww3_")
+        latest = cls._get_latest_catalog_dataset(url, "rsmc_nio_ww3_")
         cls._url_cache[url] = latest
         cls._url_cache_time[url] = now
         return latest
 
     @classmethod
     def get_currents_url(cls) -> str:
-        url = "https://incois.gov.in/thredds/catalog/OOS/Currents/catalog.xml"
+        url = "https://incois.gov.in/thredds/catalog/osf/currents/catalog.xml"
         now = time.time()
         if url in cls._url_cache and now - cls._url_cache_time[url] < 3600:
             return cls._url_cache[url]
-        latest = cls._get_latest_catalog_dataset(url, "currents_")
+        latest = cls._get_latest_catalog_dataset(url, "CURRENTS_NIO_")
         cls._url_cache[url] = latest
         cls._url_cache_time[url] = now
         return latest
         
     @classmethod
     def _extract_forecast_cycle(cls, url: str) -> str:
-        # Expected format: .../ww3_YYYYMMDD_HH.nc
         basename = url.split("/")[-1]
-        return basename.replace(".nc", "")
+        return basename.replace(".nc", "").replace("rsmc_nio_ww3_", "").replace("CURRENTS_NIO_", "")
 
     @classmethod
     def get_cache_paths(cls, native_lat: float, native_lon: float, day: int, forecast_cycle: str):
