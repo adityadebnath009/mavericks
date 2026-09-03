@@ -57,6 +57,21 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   const [isLoading, setIsLoading] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
 
+  // Geolocation: Auto-detect user's actual location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setSelectedLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
+        },
+        (error) => {
+          console.warn("Geolocation denied or failed. Defaulting to Mumbai.", error);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  }, []);
+
   useEffect(() => {
     if (urlMode === 'advisor') { setActiveMode('routing'); setIsChatOpen(true); }
     else if (urlMode && VALID_MODES.includes(urlMode)) setActiveMode(urlMode);

@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 import xml.etree.ElementTree as ET
+from contextlib import contextmanager
 
 from app.core.exceptions import DataUnavailableError
 
@@ -40,9 +41,9 @@ class IncoisDatasetResolver:
 
     @classmethod
     def _get_latest_catalog_dataset(cls, catalog_url: str, prefix: str) -> str:
+        from app.api.services.incois_client import incois_client
         import requests
-        response = requests.get(catalog_url, timeout=15)
-        response.raise_for_status()
+        response = incois_client.get(catalog_url, timeout=15)
         root = ET.fromstring(response.content)
         namespace = {"thredds": "http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"}
         candidates = []
@@ -107,7 +108,7 @@ class IncoisDatasetResolver:
         return os.path.join(ww3_dir, key), os.path.join(currents_dir, key)
 
     @classmethod
-    def resolve_latest_forecast(cls, lat: float, lon: float, day: int) -> Tuple[ForecastResult, ForecastResult]:
+    def resolve_latest_forecast(cls, lat: float, lon: float, day: int, purpose: str = "routing") -> Tuple[ForecastResult, ForecastResult]:
         # P0.1 Native grid coordinate (deterministic alignment to 0.1 deg WW3 grid)
         native_lat = round(lat, 1)
         native_lon = round(lon, 1)
@@ -172,11 +173,34 @@ class IncoisDatasetResolver:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(cls._fetch_remote, native_lat, native_lon, day, ww3_url, curr_url)
                     ww3_records, curr_records = future.result(timeout=15.0)
-            except concurrent.futures.TimeoutError:
-                raise TimeoutError("INCOIS OPENDAP remote server timed out.")
-            except DataUnavailableError:
-                raise
             except Exception as e:
+                if purpose == "visualization":
+                    import glob
+                    ww3_pattern = os.path.join(cls.CACHE_DIR, "ww3", f"lat_{native_lat}_lon_{native_lon}_day_{day}_cycle_*.pkl")
+                    curr_pattern = os.path.join(cls.CACHE_DIR, "currents", f"lat_{native_lat}_lon_{native_lon}_day_{day}_cycle_*.pkl")
+                    ww3_files = sorted(glob.glob(ww3_pattern), key=os.path.getmtime, reverse=True)
+                    curr_files = sorted(glob.glob(curr_pattern), key=os.path.getmtime, reverse=True)
+                    
+                    if ww3_files and curr_files:
+                        try:
+                            ww3_stale_cycle = ww3_files[0].split("_cycle_")[-1].replace(".pkl", "")
+                            curr_stale_cycle = curr_files[0].split("_cycle_")[-1].replace(".pkl", "")
+                            ww3_stale, ww3_prov = load_cache_file(ww3_files[0], "INCOIS_WW3", ww3_stale_cycle)
+                            curr_stale, curr_prov = load_cache_file(curr_files[0], "INCOIS_Currents", curr_stale_cycle)
+                            
+                            if ww3_stale is not None and curr_stale is not None:
+                                ww3_prov["stale_fallback"] = True
+                                curr_prov["stale_fallback"] = True
+                                cls._memory_cache[mem_key] = {"ww3": ww3_stale, "ww3_prov": ww3_prov, "curr": curr_stale, "curr_prov": curr_prov}
+                                cls._memory_cache_time[mem_key] = now
+                                return ForecastResult(ww3_stale, ww3_prov), ForecastResult(curr_stale, curr_prov)
+                        except Exception:
+                            pass
+                
+                if isinstance(e, concurrent.futures.TimeoutError):
+                    raise TimeoutError("INCOIS OPENDAP remote server timed out.")
+                if isinstance(e, DataUnavailableError):
+                    raise
                 raise RuntimeError(f"INCOIS Remote fetch error: {e}") from e
 
             # Atomic Write (P0.4)
@@ -221,10 +245,13 @@ class IncoisDatasetResolver:
 
     @classmethod
     def _fetch_remote(cls, lat: float, lon: float, day: int, ww3_url: str, curr_url: str):
+        from app.api.services.incois_client import incois_client
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            ds_ww3 = xr.open_dataset(ww3_url, engine="pydap")
-            ds_curr = xr.open_dataset(curr_url, engine="pydap")
+            with incois_client.pydap_transport_protection():
+                session = incois_client.get_session()
+                ds_ww3 = xr.open_dataset(ww3_url, engine="pydap", backend_kwargs={"session": session})
+                ds_curr = xr.open_dataset(curr_url, engine="pydap", backend_kwargs={"session": session})
 
         ww3_slice = ds_ww3.sel(lat=lat, lon=lon, method="nearest")
         curr_slice = ds_curr.sel(LAT=lat, LON=lon, DEPTH1_1=0.0, method="nearest")
@@ -323,10 +350,9 @@ class IncoisDatasetResolver:
 
     @classmethod
     def resolve_vector_grid(cls, day: int = 1, hour: int = 12) -> dict:
+        from app.api.services.incois_client import incois_client
         """Return the wind/current vector field for the exact requested 3-hour forecast step."""
         valid_hours = {0, 3, 6, 9, 12, 15, 18, 21}
-        if day not in {1, 2, 3}:
-            raise ValueError("day must be 1, 2, or 3")
         if hour not in valid_hours:
             raise ValueError("hour must be one of 0, 3, 6, 9, 12, 15, 18, or 21")
 
@@ -345,88 +371,102 @@ class IncoisDatasetResolver:
                     pass # We do not memory cache the heavy datasets here anymore to save RAM
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    return xr.open_dataset(url, engine="pydap")
+                    session = incois_client.get_session()
+                    return xr.open_dataset(url, engine="pydap", backend_kwargs={"session": session})
 
-            ds_ww3 = get_ds(cls.get_ww3_url())
-            ds_curr = get_ds(cls.get_currents_url())
+            with incois_client.pydap_transport_protection():
+                ds_ww3 = get_ds(cls.get_ww3_url())
+                ds_curr = get_ds(cls.get_currents_url())
 
-            # WW3 is published on the 3-hour forecast cadence used by the UI.
-            # Resolve the dataset's actual timestamp first, then select by timestamp.
-            target_index = (day - 1) * 8 + (hour // 3)
-            if target_index >= len(ds_ww3.TIME):
-                raise IndexError(f"Requested forecast step is outside WW3 TIME dimension: day={day}, hour={hour}")
+                # Determine temporal domain
+                time_vals = ds_ww3.TIME.values
+                if len(time_vals) == 0:
+                    from app.core.exceptions import DataUnavailableError
+                    raise DataUnavailableError("WW3 dataset has no TIME dimension.")
 
-            target_timestamp = ds_ww3.TIME.values[target_index]
-            target_timestamp = pd.to_datetime(target_timestamp)
+                start_time = pd.to_datetime(time_vals[0])
+                end_time = pd.to_datetime(time_vals[-1])
+                
+                # 'day 1' corresponds to the date of the first available forecast
+                base_date = start_time.normalize()
+                requested_time = base_date + pd.Timedelta(days=day - 1, hours=hour)
+                
+                if requested_time > end_time or requested_time < start_time:
+                    from app.core.exceptions import ForecastHorizonUnavailable
+                    raise ForecastHorizonUnavailable(
+                        f"Requested forecast {requested_time} is outside available horizon {start_time} to {end_time}"
+                    )
+                
+                target_timestamp = requested_time
 
-            ww3_slice = (
-                ds_ww3
-                .sel(lat=slice(5, 25), lon=slice(65, 95))
-                .sel(TIME=target_timestamp, method="nearest")
-                .coarsen(lat=2, lon=2, boundary="trim")
-                .mean()
-            )
+                ww3_slice = (
+                    ds_ww3
+                    .sel(lat=slice(5, 25), lon=slice(65, 95))
+                    .sel(TIME=target_timestamp, method="nearest")
+                    .coarsen(lat=2, lon=2, boundary="trim")
+                    .mean()
+                )
 
-            curr_slice = (
-                ds_curr
-                .sel(LAT=slice(5, 25), LON=slice(65, 95), DEPTH1_1=0.0)
-                .sel(TAXIS=target_timestamp, method="nearest")
-                .coarsen(LAT=2, LON=2, boundary="trim")
-                .mean()
-            )
+                curr_slice = (
+                    ds_curr
+                    .sel(LAT=slice(5, 25), LON=slice(65, 95), DEPTH1_1=0.0)
+                    .sel(TAXIS=target_timestamp, method="nearest")
+                    .coarsen(LAT=2, LON=2, boundary="trim")
+                    .mean()
+                )
 
-            wind_vectors = []
-            lon_grid, lat_grid = np.meshgrid(ww3_slice.lon.values, ww3_slice.lat.values)
-            for lat_val, lon_val, u, v in zip(
-                lat_grid.ravel(), lon_grid.ravel(),
-                ww3_slice.UWND.values.ravel(), ww3_slice.VWND.values.ravel()
-            ):
-                if np.isnan(u) or np.isnan(v):
-                    continue
-                speed = math.sqrt(u ** 2 + v ** 2) * 3.6
-                direction = (math.degrees(math.atan2(u, v)) + 180) % 360
-                wind_vectors.append({
-                    "lat": round(float(lat_val), 2),
-                    "lon": round(float(lon_val), 2),
-                    "u": round(float(u), 2),
-                    "v": round(float(v), 2),
-                    "speed_kmh": round(speed, 1),
-                    "direction_deg": round(direction, 1),
-                })
+                wind_vectors = []
+                lon_grid, lat_grid = np.meshgrid(ww3_slice.lon.values, ww3_slice.lat.values)
+                for lat_val, lon_val, u, v in zip(
+                    lat_grid.ravel(), lon_grid.ravel(),
+                    ww3_slice.UWND.values.ravel(), ww3_slice.VWND.values.ravel()
+                ):
+                    if np.isnan(u) or np.isnan(v):
+                        continue
+                    speed = math.sqrt(u ** 2 + v ** 2) * 3.6
+                    direction = (math.degrees(math.atan2(u, v)) + 180) % 360
+                    wind_vectors.append({
+                        "lat": round(float(lat_val), 2),
+                        "lon": round(float(lon_val), 2),
+                        "u": round(float(u), 2),
+                        "v": round(float(v), 2),
+                        "speed_kmh": round(speed, 1),
+                        "direction_deg": round(direction, 1),
+                    })
 
-            current_vectors = []
-            lon_grid_c, lat_grid_c = np.meshgrid(curr_slice.LON.values, curr_slice.LAT.values)
-            for lat_val, lon_val, u, v in zip(
-                lat_grid_c.ravel(), lon_grid_c.ravel(),
-                curr_slice.U.values.ravel(), curr_slice.V.values.ravel()
-            ):
-                if np.isnan(u) or np.isnan(v):
-                    continue
-                speed = math.sqrt(u ** 2 + v ** 2)
-                direction = math.degrees(math.atan2(u, v)) % 360
-                current_vectors.append({
-                    "lat": round(float(lat_val), 2),
-                    "lon": round(float(lon_val), 2),
-                    "u": round(float(u), 3),
-                    "v": round(float(v), 3),
-                    "speed_ms": round(speed, 2),
-                    "direction_deg": round(direction, 1),
-                })
+                current_vectors = []
+                lon_grid_c, lat_grid_c = np.meshgrid(curr_slice.LON.values, curr_slice.LAT.values)
+                for lat_val, lon_val, u, v in zip(
+                    lat_grid_c.ravel(), lon_grid_c.ravel(),
+                    curr_slice.U.values.ravel(), curr_slice.V.values.ravel()
+                ):
+                    if np.isnan(u) or np.isnan(v):
+                        continue
+                    speed = math.sqrt(u ** 2 + v ** 2)
+                    direction = math.degrees(math.atan2(u, v)) % 360
+                    current_vectors.append({
+                        "lat": round(float(lat_val), 2),
+                        "lon": round(float(lon_val), 2),
+                        "u": round(float(u), 3),
+                        "v": round(float(v), 3),
+                        "speed_ms": round(speed, 2),
+                        "direction_deg": round(direction, 1),
+                    })
 
-            grid_data = {
-                "wind": wind_vectors,
-                "current": current_vectors,
-                "timestamp": target_timestamp.isoformat(),
-                "day": day,
-                "hour": hour,
-                "source": "INCOIS WW3 + Currents",
-            }
+                grid_data = {
+                    "wind": wind_vectors,
+                    "current": current_vectors,
+                    "timestamp": target_timestamp.isoformat(),
+                    "day": day,
+                    "hour": hour,
+                    "source": "INCOIS WW3 + Currents",
+                }
 
-            os.makedirs(os.path.dirname(grid_cache), exist_ok=True)
-            with open(grid_cache, "w", encoding="utf-8") as f:
-                json.dump(grid_data, f)
-            return grid_data
+                os.makedirs(os.path.dirname(grid_cache), exist_ok=True)
+                with open(grid_cache, "w", encoding="utf-8") as f:
+                    json.dump(grid_data, f)
+                return grid_data
         except Exception:
-            import logging
-            logging.exception("Failed to generate vector grid")
-            raise
+                import logging
+                logging.exception("Failed to generate vector grid")
+                raise

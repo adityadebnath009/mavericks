@@ -537,9 +537,25 @@ class PFZEnricherService:
         })
 
         return enriched_props
+    @classmethod
+    def get_cached_pfz_collection(cls):
+        import os, json
+        # CACHE_DIR is at the top of pfz_enricher.py
+        cache_file = os.path.join(CACHE_DIR, "pfz_enrichment_cache.json")
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, "r") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return None
+    @classmethod
+    def get_raw_pfz_with_fallback(cls):
+        from app.core.exceptions import DataUnavailableError
+        return {"type": "FeatureCollection", "enrichment_status": "PARTIAL_RAW_FALLBACK", "features": []}
 
     @classmethod
-    def enrich_feature_collection(cls, geojson_data: dict) -> dict:
+    def enrich_feature_collection(cls, geojson_data: dict, cycle=None) -> dict:
         """
         Enriches all features in a WFS GeoJSON FeatureCollection.
         Removes all static species inference and populates median telemetry.
@@ -572,11 +588,14 @@ class PFZEnricherService:
             }
             enriched_features.append(enriched_feat)
 
-        return {
+        res = {
             "type": "FeatureCollection",
             "features": enriched_features,
-            "enriched_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            "enriched_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "enrichment_status": "READY"
         }
+        if cycle: res["pfz_cycle"] = cycle
+        return res
 
     @classmethod
     def _atomic_write_json(cls, target_path: str, payload: Dict[str, Any]):

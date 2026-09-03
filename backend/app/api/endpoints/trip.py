@@ -39,27 +39,16 @@ def analyze_trip(request: TripRequest, db: Session = Depends(get_db)):
     Orchestrated Spatio-Temporal Trip Analysis Endpoint.
     Evaluates weather, currents, geofencing, and capsizing risks to recommend optimal routes and safety windows.
     """
-    try:
-        result = TripDecisionEngine.analyze_trip(
-            start_lat=request.start.lat,
-            start_lon=request.start.lon,
-            departure_time=request.departure_time,
-            beam_m=request.vessel.beam_m,
-            length_m=request.vessel.length_m,
-            cruising_speed_kn=request.vessel.cruising_speed_kn,
-            db=db
-        )
-        
-        # Implement strict API Exception Semantics
-        if result.get("decision") == "DATA_UNAVAILABLE":
-            from fastapi.responses import JSONResponse
-            # Valid request, but upstream environmental data is unavailable
-            return JSONResponse(status_code=503, content=result)
-        
-        # Valid request + safe route OR Valid request + no feasible route
-        # Both represent a mathematically valid domain evaluation and should return 200 OK
-        return result
-        
-    except Exception as e:
-        # Prevent leaking stack traces for unexpected programming/server failures
-        raise HTTPException(status_code=500, detail="Internal server error")
+    result = TripDecisionEngine.analyze_trip(
+        start_lat=request.start.lat,
+        start_lon=request.start.lon,
+        departure_time=request.departure_time,
+        beam_m=request.vessel.beam_m,
+        length_m=request.vessel.length_m,
+        cruising_speed_kn=request.vessel.cruising_speed_kn,
+        db=db
+    )
+    
+    # Valid request + safe route OR Valid request + no feasible route
+    # Both represent a mathematically valid domain evaluation and should return 200 OK
+    return result

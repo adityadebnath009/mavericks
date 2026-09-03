@@ -583,7 +583,7 @@ def test_group_f_geofence_04():
 def test_group_f_geofence_05():
     # F05: Start point inside MPA -> rejected
     with patch('app.api.endpoints.geofence.load_fallback_geojson', return_value=mock_geofence_data()), \
-         patch('app.api.services.pfz_routing.haversine_distance') as mock_hav, \
+         patch('app.api.services.pfz_routing.haversine_distance', return_value=10.0) as mock_hav, \
          patch.object(ForecastDataService, 'get_environment', return_value=create_safe_env()):
         res = PFZRoutingService.calculate_optimal_route(
             15.0, 75.0, 12.0, 72.0, beam_m=3.0, cruising_speed_kn=10.0, departure_time="2026-08-26T00:00:00"
@@ -595,7 +595,7 @@ def test_group_f_geofence_05():
 def test_group_f_geofence_06():
     # F06: Destination inside MPA -> rejected
     with patch('app.api.endpoints.geofence.load_fallback_geojson', return_value=mock_geofence_data()), \
-         patch('app.api.services.pfz_routing.haversine_distance') as mock_hav, \
+         patch('app.api.services.pfz_routing.haversine_distance', return_value=10.0) as mock_hav, \
          patch.object(ForecastDataService, 'get_environment', return_value=create_safe_env()):
         res = PFZRoutingService.calculate_optimal_route(
             12.0, 72.0, 15.0, 75.0, beam_m=3.0, cruising_speed_kn=10.0, departure_time="2026-08-26T00:00:00"
@@ -624,17 +624,22 @@ def test_group_f_geofence_08():
     # F08: Malformed/empty geofence response -> must not silently become safe
     # We mock load_fallback_geojson to return empty (simulating missing file or broken JSON)
     with patch('app.api.endpoints.geofence.load_fallback_geojson', return_value={}), \
-         patch('app.api.services.pfz_routing.haversine_distance') as mock_hav, \
+         patch('app.api.services.pfz_routing.haversine_distance', return_value=10.0) as mock_hav, \
          patch.object(ForecastDataService, 'get_environment', return_value=create_safe_env()):
         # Try routing into an area that SHOULD be an MPA. Because geofence is broken,
         # it MUST fail closed with DataUnavailableError.
         try:
-            PFZRoutingService.calculate_optimal_route(
+            res = PFZRoutingService.calculate_optimal_route(
                 15.0, 75.0, 15.1, 75.1, beam_m=3.0, cruising_speed_kn=10.0, departure_time="2026-08-26T00:00:00"
             )
+            print("NO EXCEPTION, RES:", res)
             assert False, "Should have raised DataUnavailableError"
-        except DataUnavailableError:
+        except DataUnavailableError as e:
+            print("CAUGHT DATAUNAVAILABLEERROR:", str(e))
             pass
+        except Exception as e:
+            print("CAUGHT OTHER EXCEPTION:", str(e))
+            raise
         # Prove no routing attempt using guessed safety occurred
         mock_hav.assert_not_called()
 
@@ -958,14 +963,18 @@ def test_group_i_trip_04():
 def test_group_i_trip_05():
     # I05: PFZ discovery returns no features -> DATA_UNAVAILABLE
     with patch('app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs', return_value={"features": []}):
-        res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T00:00:00", 3.0, 10.0, 10.0, None)
-        assert res["decision"] == "DATA_UNAVAILABLE"
+        import pytest
+        from app.core.exceptions import DataUnavailableError
+        with pytest.raises(DataUnavailableError):
+            TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T00:00:00", 3.0, 10.0, 10.0, None)
 
 def test_group_i_trip_06():
     # I06: PFZ discovery/WFS failure -> DATA_UNAVAILABLE
     with patch('app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs', side_effect=Exception("WFS Error")):
-        res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T00:00:00", 3.0, 10.0, 10.0, None)
-        assert res["decision"] == "DATA_UNAVAILABLE"
+        import pytest
+        from app.core.exceptions import DataUnavailableError
+        with pytest.raises(DataUnavailableError):
+            TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T00:00:00", 3.0, 10.0, 10.0, None)
 
 def test_group_i_trip_07():
     # I07: One candidate has unavailable data, another is valid -> Valid candidate chosen

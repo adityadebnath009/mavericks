@@ -41,10 +41,7 @@ def get_pfz_lines():
     """
     Retrieves the raw WFS GeoJSON features representing Potential Fishing Zones.
     """
-    try:
-        return INCOISGeoServerClient.get_pfz_lines_wfs()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return INCOISGeoServerClient.get_pfz_lines_wfs()
 
 @router.post("/evaluate")
 @router.post("/evaluate/")
@@ -62,8 +59,6 @@ def evaluate_pfz_zone(request: PFZEvaluationRequest):
         return res
     except ValueError as val_err:
         raise HTTPException(status_code=404, detail=str(val_err))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/route")
 @router.post("/route/")
@@ -85,10 +80,3 @@ def calculate_pfz_route(request: PFZRouteRequest, db: Session = Depends(get_db))
         return res
     except FileNotFoundError as fnf:
         raise HTTPException(status_code=404, detail=str(fnf))
-    except DataUnavailableError as due:
-        raise HTTPException(status_code=503, detail=str(due))
-    except NoSafeRouteError as nsr:
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=200, content={"error": "REJECTED_NO_SAFE_ROUTE", "message": str(nsr)})
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error")

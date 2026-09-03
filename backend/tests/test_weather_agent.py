@@ -1,8 +1,10 @@
+import pytest
 import asyncio
 from datetime import datetime, timedelta
 from app.agents.marine_data_agent import MarineDataDiscoveryAgent, MeteorologicalData
 from app.agents.weather_agent import WeatherIntelligenceAgent
 
+@pytest.mark.asyncio
 async def test_weather_agent():
     print("=== Testing Weather Intelligence Agent ===")
     weather_agent = WeatherIntelligenceAgent()

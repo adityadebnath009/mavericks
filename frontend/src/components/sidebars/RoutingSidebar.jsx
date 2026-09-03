@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Navigation, 
   MapPin, 
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import SpotlightCard from '../common/SpotlightCard';
 import RiskBadge from '../common/RiskBadge';
-import { MOCK_PORTS } from '../../services/mockData';
+import { getNearbyLandingCenters } from '../../services/api';
 
 export function RoutingSidebar({
   selectedLocation = { lat: 18.9220, lon: 72.8347 },
@@ -33,13 +33,20 @@ export function RoutingSidebar({
   safetyData = null,
   isLoading = false
 }) {
-  const [selectedOriginPort, setSelectedOriginPort] = useState('mumbai');
+  const [selectedOriginPort, setSelectedOriginPort] = useState('');
   const [selectedDestPort, setSelectedDestPort] = useState('');
+  const [landingCenters, setLandingCenters] = useState([]);
+
+  useEffect(() => {
+    getNearbyLandingCenters(selectedLocation.lat || 18.9220, selectedLocation.lon || 72.8347)
+      .then(setLandingCenters)
+      .catch(console.error);
+  }, [selectedLocation.lat, selectedLocation.lon]);
 
   const handleOriginPortChange = (e) => {
     const portId = e.target.value;
     setSelectedOriginPort(portId);
-    const port = MOCK_PORTS.find(p => p.id === portId);
+    const port = landingCenters.find(p => p.id === portId);
     if (port && onLocationSelect) {
       onLocationSelect({ lat: port.lat, lon: port.lon });
     }
@@ -48,7 +55,7 @@ export function RoutingSidebar({
   const handleDestPortChange = (e) => {
     const portId = e.target.value;
     setSelectedDestPort(portId);
-    const port = MOCK_PORTS.find(p => p.id === portId);
+    const port = landingCenters.find(p => p.id === portId);
     if (port && onDestinationSelect) {
       onDestinationSelect({ lat: port.lat, lon: port.lon });
     }
@@ -112,9 +119,9 @@ export function RoutingSidebar({
               className="w-full bg-[#07111F] border border-[#20384D] rounded-lg px-2.5 py-1.5 text-xs text-[#EAF4F8] font-mono focus:border-[#00D4FF] focus:outline-none"
             >
               <option value="">-- Custom Coordinates --</option>
-              {MOCK_PORTS.map(port => (
+              {landingCenters.map(port => (
                 <option key={port.id} value={port.id}>
-                  {port.name} ({port.lat.toFixed(2)}°N, {port.lon.toFixed(2)}°E)
+                  {port.name}, {port.district} ({port.lat.toFixed(2)}°N, {port.lon.toFixed(2)}°E)
                 </option>
               ))}
             </select>
@@ -136,9 +143,9 @@ export function RoutingSidebar({
               className="w-full bg-[#07111F] border border-[#20384D] rounded-lg px-2.5 py-1.5 text-xs text-[#EAF4F8] font-mono focus:border-[#00D4FF] focus:outline-none"
             >
               <option value="">-- Drag White Pin on Map or Select --</option>
-              {MOCK_PORTS.map(port => (
+              {landingCenters.map(port => (
                 <option key={port.id} value={port.id}>
-                  {port.name} ({port.lat.toFixed(2)}°N, {port.lon.toFixed(2)}°E)
+                  {port.name}, {port.district} ({port.lat.toFixed(2)}°N, {port.lon.toFixed(2)}°E)
                 </option>
               ))}
             </select>

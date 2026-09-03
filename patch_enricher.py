@@ -3,74 +3,59 @@ import re
 with open("backend/app/api/services/pfz_enricher.py", "r") as f:
     content = f.read()
 
-# We need to replace _resolve_point_metrics completely to remove the fallbacks and return per-source diagnostics.
-new_resolve = """    @classmethod
-    def _resolve_point_metrics(cls, lat: float, lon: float) -> Tuple[Dict[str, Any], str]:
-        \"\"\"
-        Executes the Tier 1 INCOIS Live Services & Tier 2 Local Grid Cache.
-        Returns explicit N/A (None) rather than falling back to static math if datasets are unavailable,
-        providing per-source diagnostics.
-        \"\"\"
-        grid_lat = round(lat, 1)
-        grid_lon = round(lon, 1)
+# Replace _resolve_point_metrics completely
+old_func = """    def _resolve_point_metrics(cls, lat: float, lon: float, shutdown_event=None) -> Tuple[Dict[str, Any], str]:"""
 
+# We'll regex match from `def _resolve_point_metrics` to the end of that method (before `def _resolve_from_local_safety_grid`)
+
+new_func = """    def _resolve_point_metrics(cls, lat: float, lon: float, shutdown_event=None) -> Tuple[Dict[str, Any], str]:
+        from app.api.services.marine_forecast import MarineForecastService
         from app.api.services.incois_geoserver import INCOISGeoServerClient
-        from app.api.services.incois_resolver import IncoisDatasetResolver
-
-        metrics = {
-            "sst": {"value": None, "source": "INCOIS WMS", "status": "unavailable"},
-            "chlorophyll": {"value": None, "source": "INCOIS WMS", "status": "unavailable"},
-            "wind_speed": {"value": None, "source": "INCOIS OPeNDAP (WW3)", "status": "unavailable"},
-            "wind_direction": {"value": None, "source": "INCOIS OPeNDAP (WW3)", "status": "unavailable"},
-            "current_speed": {"value": None, "source": "INCOIS OPeNDAP (Currents)", "status": "unavailable"},
-            "current_direction": {"value": None, "source": "INCOIS OPeNDAP (Currents)", "status": "unavailable"},
-            "wave_height": {"value": None, "source": "INCOIS OPeNDAP (WW3)", "status": "unavailable"},
-            "wave_period": {"value": None, "source": "INCOIS OPeNDAP (WW3)", "status": "unavailable"}
-        }
-
-        # Attempt WMS GetFeatureInfo for SST
+        import datetime
+        
+        if shutdown_event and shutdown_event.is_set(): raise InterruptedError("Shutdown")
+        
+        env = MarineForecastService.get_environment(lat, lon, datetime.datetime.now(datetime.timezone.utc))
+        
+        if shutdown_event and shutdown_event.is_set(): raise InterruptedError("Shutdown")
+        
+        # Chlorophyll remains strictly INCOIS
+        chl_val = None
+        chl_status = "unavailable"
         try:
-            sst_res = INCOISGeoServerClient.get_feature_info(grid_lat, grid_lon, "PFZ-TUNA-SST-CHL:sst")
-            if sst_res.get("status") == "success" and sst_res.get("value") is not None:
-                v = float(sst_res["value"])
-                if 15.0 <= v <= 35.0:
-                    metrics["sst"] = {"value": round(v, 1), "source": "INCOIS WMS", "status": "ok"}
-        except Exception as e:
-            pass
-
-        # Attempt WMS GetFeatureInfo for Chlorophyll-a
-        try:
-            chl_res = INCOISGeoServerClient.get_feature_info(grid_lat, grid_lon, "PFZ-TUNA-SST-CHL:chl")
+            chl_res = INCOISGeoServerClient.get_feature_info(round(lat, 1), round(lon, 1), "PFZ-TUNA-SST-CHL:chl")
             if chl_res.get("status") == "success" and chl_res.get("value") is not None:
                 v = float(chl_res["value"])
                 if 0.01 <= v <= 20.0:
-                    metrics["chlorophyll"] = {"value": round(v, 2), "source": "INCOIS WMS", "status": "ok"}
-        except Exception as e:
-            pass
-
-        # Attempt WW3 Waves & NIO Currents NetCDF resolution
-        try:
-            ww3_recs, curr_recs = IncoisDatasetResolver.resolve_latest_forecast(grid_lat, grid_lon, day=1)
-            if ww3_recs and curr_recs:
-                step_ww3 = ww3_recs[4] if len(ww3_recs) > 4 else ww3_recs[0]
-                step_curr = curr_recs[4] if len(curr_recs) > 4 else curr_recs[0]
-
-                metrics["wind_speed"] = {"value": round(float(step_ww3.get("wind_speed_kmh", 15.0)), 1), "source": "INCOIS OPeNDAP", "status": "ok"}
-                metrics["wind_direction"] = {"value": round(float(step_ww3.get("wind_direction_deg", 210.0)), 1), "source": "INCOIS OPeNDAP", "status": "ok"}
-                metrics["wave_height"] = {"value": round(float(step_ww3.get("hs", 1.2)), 1), "source": "INCOIS OPeNDAP", "status": "ok"}
-                metrics["wave_period"] = {"value": round(float(step_ww3.get("t02", 6.5)), 1), "source": "INCOIS OPeNDAP", "status": "ok"}
-                
-                metrics["current_speed"] = {"value": round(float(step_curr.get("speed_m_s", 0.30)), 2), "source": "INCOIS OPeNDAP", "status": "ok"}
-                metrics["current_direction"] = {"value": round(float(step_curr.get("direction_deg", 120.0)), 1), "source": "INCOIS OPeNDAP", "status": "ok"}
-        except Exception as e:
-            pass
+                    chl_val = round(v, 2)
+                    chl_status = "ok"
+        except Exception: pass
+        
+        c = env.current
+        p = env.provenance
+        
+        def format_metric(val, name):
+            if val is None: return {"value": None, "source": p.get(name, {}).source if p.get(name) else "Unknown", "status": "unavailable"}
+            source = p.get(name).source if p.get(name) else "open-meteo"
+            return {"value": round(val, 2), "source": source, "status": "ok"}
             
-        return metrics, "INCOIS Direct Services\"\"\"
+        metrics = {
+            "sst": format_metric(c.sst_c, "sst_c"),
+            "chlorophyll": {"value": chl_val, "source": "INCOIS WMS", "status": "ok" if chl_val else "unavailable"},
+            "wind_speed": format_metric(c.wind_speed_ms * 3.6 if c.wind_speed_ms else None, "wind_speed_ms"), # convert to km/h for UI compat
+            "wind_direction": format_metric(c.wind_direction_deg, "wind_speed_ms"),
+            "current_speed": format_metric(c.current_speed_ms, "current_speed_ms"),
+            "current_direction": format_metric(c.current_direction_deg, "current_speed_ms"),
+            "wave_height": format_metric(c.wave_height_m, "wave_height_m"),
+            "wave_period": format_metric(c.wave_period_s, "wave_height_m")
+        }
+        
+        return metrics, "Live Services (OM+INCOIS)"
+"""
 
-    @classmethod
-    def _resolve_from_local_safety_grid"""
-
-content = re.sub(r'    @classmethod\n    def _resolve_point_metrics.*?    @classmethod\n    def _resolve_from_local_safety_grid', new_resolve, content, flags=re.DOTALL)
+# Replace the block
+pattern = re.compile(r'    def _resolve_point_metrics.*?return metrics, source', re.DOTALL)
+content = re.sub(pattern, new_func.strip() + '\n', content)
 
 with open("backend/app/api/services/pfz_enricher.py", "w") as f:
     f.write(content)

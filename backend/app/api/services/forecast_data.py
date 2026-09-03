@@ -18,8 +18,9 @@ class ForecastDataService:
 
     @classmethod
     def get_baseline_time(cls) -> datetime:
+        from datetime import timezone
         # Dynamically centralized baseline.
-        return datetime(2026, 8, 26, 0, 0, 0)
+        return datetime(2026, 8, 26, 0, 0, 0, tzinfo=timezone.utc)
 
     @classmethod
     def resolve_forecast_time(cls, departure_time: str) -> float:
@@ -30,6 +31,9 @@ class ForecastDataService:
                 dep_dt = datetime.fromisoformat(dt_str)
             else:
                 dep_dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+            from datetime import timezone
+            if dep_dt.tzinfo is None:
+                dep_dt = dep_dt.replace(tzinfo=timezone.utc)
         except Exception as e:
             raise DataUnavailableError(f"Invalid departure_time format: {departure_time}") from e
             
@@ -108,6 +112,9 @@ class ForecastDataService:
     @classmethod
     def get_environment(cls, lat: float, lon: float, timestamp: datetime) -> EnvironmentSnapshot:
         baseline_dt = cls.get_baseline_time()
+        from datetime import timezone
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
         elapsed_sec = (timestamp - baseline_dt).total_seconds()
         
         if elapsed_sec < 0 or elapsed_sec > 72.0 * 3600:
@@ -175,16 +182,21 @@ class ForecastDataService:
             Hsea_final=hsea_f
         )
 
+        from app.core.domain import EnvironmentalConditions, TimelineSeries, ProvenanceRecord
         return EnvironmentSnapshot(
-            timestamp=timestamp,
+            current=EnvironmentalConditions(
+                timestamp=timestamp,
+                wave_height_m=hs,
+                wind_speed_ms=interp("wind_speed_kmh") / 3.6 if interp("wind_speed_kmh") else 0.0,
+                wind_direction_deg=interp("wind_dir_deg"),
+                current_speed_ms=interp("current_speed_ms"),
+                current_direction_deg=interp("current_dir_deg"),
+                directional_spread=ss
+            ),
+            timeline=TimelineSeries(),
+            provenance={},
             lat=lat,
             lon=lon,
-            wave_height_m=hs,
             wave_steepness=stp,
-            directional_spread=ss,
-            wind_speed_kmh=interp("wind_speed_kmh"),
-            wind_direction_deg=interp("wind_dir_deg"),
-            current_speed_ms=interp("current_speed_ms"),
-            current_direction_deg=interp("current_dir_deg"),
             bsi=bsi
         )

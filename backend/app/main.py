@@ -4,6 +4,8 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.requests import Request
+from app.core.exceptions import DataUnavailableError, NoSafeRouteError
 from app.api.router import api_router
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
@@ -25,21 +27,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(DataUnavailableError)
+async def data_unavailable_exception_handler(request: Request, exc: DataUnavailableError):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "decision": "DATA_UNAVAILABLE",
+            "reason": str(exc),
+            "decision_reasons": [{"message": str(exc)}],
+            "alternatives": []
+        }
+    )
+
+@app.exception_handler(NoSafeRouteError)
+async def no_safe_route_exception_handler(request: Request, exc: NoSafeRouteError):
+    return JSONResponse(
+        status_code=200,
+        content={"error": "REJECTED_NO_SAFE_ROUTE", "message": str(exc)}
+    )
+
 # Register main API routers
 app.include_router(api_router, prefix="/api")
 
 @app.on_event("startup")
-def pre_warm_grid_cache():
+def start_cache_warmer():
     """
-    Spawns a background task to pre-warm the safety grid cache for all day/hour coordinates.
+    Spawns the background CacheWarmer daemon and starts the coastal advisories worker.
     """
     import threading
-    from app.api.endpoints.safety import get_safety_grid
+    from app.api.services.cache_warmer import cache_warmer
 
+    # Start the robust CacheWarmer
+    cache_warmer.start()
+    
+    # Existing legacy task
     asyncio.create_task(periodic_cache_refresh_worker(interval_hours=5))
     
+    # We leave the independent HTML advisories here
     def worker():
-        print("Pre-warming safety grid and advisories cache in background...")
         try:
             from app.api.endpoints.safety import get_coastal_advisories, get_advisory_animation
             get_coastal_advisories()
@@ -47,15 +72,13 @@ def pre_warm_grid_cache():
             print("Advisories cache pre-warming completed!")
         except Exception:
             pass
-        for day in [1, 2, 3]:
-            for hour in [0, 3, 6, 9, 12, 15, 18, 21]:
-                try:
-                    get_safety_grid(day, hour)
-                except Exception:
-                    pass
-        print("Safety grid cache pre-warming completed!")
 
     threading.Thread(target=worker, daemon=True).start()
+
+@app.on_event("shutdown")
+def stop_cache_warmer():
+    from app.api.services.cache_warmer import cache_warmer
+    cache_warmer.stop()
 
 # Serve React frontend assets statically (Single-Process Local Deployment rule)
 dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))

@@ -4,6 +4,7 @@ import time
 import logging
 import requests
 import xml.etree.ElementTree as ET
+from app.api.services.incois_client import incois_client, DataUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ class INCOISGeoServerClient:
         }
         
         try:
-            r = requests.get(url, params=params, timeout=8)
+            r = incois_client.get(url, params=params, timeout=8)
             if r.status_code == 200:
                 # Parse XML capabilities
                 root = ET.fromstring(r.content)
@@ -172,7 +173,7 @@ class INCOISGeoServerClient:
         }
         
         try:
-            r = requests.get(url, params=params, timeout=5)
+            r = incois_client.get(url, params=params, timeout=5)
             if r.status_code == 200:
                 data = r.json()
                 features = data.get("features", [])
@@ -233,7 +234,7 @@ class INCOISGeoServerClient:
         }
         
         try:
-            r = requests.get(url, params=params, timeout=10)
+            r = incois_client.get(url, params=params, timeout=10)
             if r.status_code == 200:
                 geojson_data = r.json()
                 # Cache successful request

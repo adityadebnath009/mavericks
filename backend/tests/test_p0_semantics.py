@@ -79,9 +79,9 @@ def test_p0_missing_t1():
             return [(15.0, 71.8, {"hs": 1.0, "stp": 0.01, "spr": 0.25, "hsea_initial": 1.0, "hsea_final": 1.0, "wind_speed_kmh": 10.0, "wind_dir_deg": 180, "current_speed_ms": 0.5, "current_dir_deg": 90})]
         mock_load.side_effect = side_effect
         
-        from datetime import datetime
+        from datetime import datetime, timezone
         try:
-            ForecastDataService.get_environment(15.0, 71.8, datetime(2026, 8, 27, 13, 0, 0))
+            ForecastDataService.get_environment(15.0, 71.8, datetime(2026, 8, 27, 13, 0, 0, tzinfo=timezone.utc))
             assert False, "Should have raised DataUnavailableError"
         except DataUnavailableError:
             pass
@@ -91,13 +91,13 @@ def test_p0_missing_bsi_inputs():
     """Test 5: Missing BSI inputs"""
     print("Running Test 5...")
     from app.api.services.forecast_data import ForecastDataService
-    from datetime import datetime
+    from datetime import datetime, timezone
     
     with patch("app.api.services.forecast_data.ForecastDataService.load_grid") as mock_load:
         mock_load.return_value = [(15.0, 71.8, {"hs": 1.0, "spr": 0.25, "hsea_initial": 1.0, "hsea_final": 1.0, "wind_speed_kmh": 10.0, "wind_dir_deg": 180, "current_speed_ms": 0.5, "current_dir_deg": 90})]
         
         try:
-            ForecastDataService.get_environment(15.0, 71.8, datetime(2026, 8, 27, 12, 0, 0))
+            ForecastDataService.get_environment(15.0, 71.8, datetime(2026, 8, 27, 12, 0, 0, tzinfo=timezone.utc))
             assert False, "Should have raised DataUnavailableError"
         except DataUnavailableError as e:
             assert "Missing required environmental variable 'stp'" in str(e)
@@ -114,7 +114,7 @@ def test_p0_wfs_failure():
             "departure_time": "2026-08-27T12:00:00Z"
         })
         
-        assert res.status_code == 200
+        assert res.status_code == 503
         assert res.json()["decision"] == "DATA_UNAVAILABLE"
     print("Test 6 passed.")
 

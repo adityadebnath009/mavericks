@@ -12,7 +12,8 @@ from app.core.exceptions import DataUnavailableError
 class Test50PFZCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.test_cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../cache/test_cache"))
+        import tempfile
+        cls.test_cache_dir = tempfile.mkdtemp()
         IncoisDatasetResolver.CACHE_DIR = cls.test_cache_dir
         
     def setUp(self):

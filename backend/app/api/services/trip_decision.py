@@ -24,17 +24,9 @@ class TripDecisionEngine:
         cruising_speed_kn: float,
         db: Session
     ) -> dict:
-        try:
-            return cls._analyze_trip_internal(
-                start_lat, start_lon, departure_time, beam_m, length_m, cruising_speed_kn, db
-            )
-        except DataUnavailableError as e:
-            return {
-                "decision": TripDecision.DATA_UNAVAILABLE.value,
-                "reason": str(e),
-                "decision_reasons": [{"message": str(e)}],
-                "alternatives": []
-            }
+        return cls._analyze_trip_internal(
+            start_lat, start_lon, departure_time, beam_m, length_m, cruising_speed_kn, db
+        )
 
     @classmethod
     def _analyze_trip_internal(

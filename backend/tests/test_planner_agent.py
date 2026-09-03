@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import json
 import os
@@ -18,6 +19,7 @@ async def fast_ocean_agent():
     await asyncio.sleep(1)
     return {"status": "live_ocean_data"}
 
+@pytest.mark.asyncio
 async def test_planner():
     print("=== Testing Planner Agent Orchestration & Failsafes ===\n")
     

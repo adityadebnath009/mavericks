@@ -982,6 +982,10 @@ export function MapConsole({
 
       if (boatMarkerRef.current) {
         boatMarkerRef.current.setLngLat(coords);
+        // Smoothly fly to the new location if the user selects a distant port
+        if (mapLoaded && mapRef.current) {
+           mapRef.current.easeTo({ center: coords, speed: 0.8, curve: 1 });
+        }
       } else {
         const el = document.createElement('div');
         el.className = 'custom-boat-marker group';

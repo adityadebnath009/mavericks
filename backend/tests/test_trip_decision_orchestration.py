@@ -5,8 +5,9 @@ from app.core.exceptions import DataUnavailableError
 def test_no_pfz_found():
     with patch("app.api.services.trip_decision.INCOISGeoServerClient.get_pfz_lines_wfs") as mock_wfs:
         mock_wfs.return_value = {"features": []}
-        res = TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T12:00:00Z", 4.0, 15.0, 10.0, None)
-        assert res["decision"] == "DATA_UNAVAILABLE"
+        import pytest
+        with pytest.raises(DataUnavailableError):
+            TripDecisionEngine.analyze_trip(15.0, 75.0, "2026-08-26T12:00:00Z", 4.0, 15.0, 10.0, None)
         print("✓ test_no_pfz_found passed")
 
 def test_all_candidates_rejected_no_safe_route():

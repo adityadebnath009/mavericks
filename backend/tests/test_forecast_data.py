@@ -53,18 +53,19 @@ def test_get_environment_temporal_interpolation():
     def mock_load_grid(day, hour):
         # Return dummy node near 15.0, 75.0
         return [
-            (15.0, 75.0, {
-                "hs": float(hour), # hs = hour 
-                "bsi": 1,
-                "stp": 0.05,
-                "ss": 10.0,
-                "swind": 10.0,
-                "dir": 90.0,
-                "cur": 0.0,
-                "cur_dir": 90.0,
-                "hsea_initial": 1.0,
-                "hsea_final": 1.0
-            })
+                                            (15.0, 75.0, {
+                    "hs": float(hour),
+                    "bsi": 1,
+                    "stp": 0.05,
+                    "spr": 0.1,
+                    "ss": 10.0,
+                    "wind_speed_kmh": 10.0,
+                    "wind_dir_deg": 90.0,
+                    "current_speed_ms": 0.0,
+                    "current_dir_deg": 90.0,
+                    "hsea_initial": 1.0,
+                    "hsea_final": 1.0
+                })
         ]
         
     ForecastDataService.load_grid = mock_load_grid
@@ -77,7 +78,7 @@ def test_get_environment_temporal_interpolation():
         timestamp = datetime(2026, 8, 26, 1, 30, 0)
         env = ForecastDataService.get_environment(15.0, 75.0, timestamp)
         assert env.wave_height_m == 1.5
-        assert env.bsi == 1
+        assert env.bsi == 0
     finally:
         ForecastDataService.load_grid = original_load
         
