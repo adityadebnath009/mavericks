@@ -1,0 +1,99 @@
+from typing import Any, Dict
+
+from app.intent import ParsedIntent
+
+
+class UserInteractionAgent:
+    """
+    Handles communication between the user and the
+    multi-agent marine intelligence system.
+    """
+
+    def extract_intent(self, text: str) -> ParsedIntent:
+        """
+        Converts raw user input into structured intent.
+
+        Version 1 uses deterministic rules.
+        """
+
+        text_lower = text.lower()
+
+        activity_type = "fishing"
+
+        if "travel" in text_lower or "transit" in text_lower:
+            activity_type = "transit"
+
+        return ParsedIntent(
+            activity_type=activity_type
+        )
+
+    def prepare_planner_request(
+        self,
+        intent: ParsedIntent,
+        latitude: float,
+        longitude: float
+    ) -> Dict[str, Any]:
+        """
+        Converts structured intent into parameters
+        understood by the Planner Agent.
+        """
+
+        return {
+            "lat": latitude,
+            "lon": longitude,
+            "days": 1,
+            "time_factor": 0.5
+        }
+
+    def generate_response(
+        self,
+        pipeline_result: Dict[str, Any],
+        intent: ParsedIntent
+    ) -> str:
+        """
+        Converts technical pipeline output into a
+        human-readable response.
+        """
+
+        weather = pipeline_result.get(
+            "weather_payload",
+            {}
+        )
+
+        ocean = pipeline_result.get(
+            "ocean_payload",
+            {}
+        )
+
+        weather_summary = weather.get(
+            "plain_language_summary"
+        )
+
+        pfz_score = ocean.get(
+            "average_pfz_score"
+        )
+
+        parts = []
+
+        if weather_summary:
+            parts.append(weather_summary)
+
+        if pfz_score is not None:
+            parts.append(
+                f"The fishing suitability score is "
+                f"{round(pfz_score, 2)}."
+            )
+
+        if pipeline_result.get("is_stale_fallback"):
+            parts.append(
+                "Please note that some information is based "
+                "on cached data."
+            )
+
+        if not parts:
+            return (
+                "Marine analysis was completed, but a detailed "
+                "summary could not be generated."
+            )
+
+        return " ".join(parts)

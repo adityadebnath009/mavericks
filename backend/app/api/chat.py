@@ -1,66 +1,121 @@
-# app/api/chat.py
-from fastapi import APIRouter, HTTPException
-from app.intent import ChatRequest, ChatResponse, ParsedIntent
 import logging
+
+from fastapi import APIRouter, HTTPException
+
+from app.agents.planner_agent import PlannerAgent
+from app.intent import ChatRequest, ChatResponse, ParsedIntent
+
 
 router = APIRouter()
 
-@router.post("/api/chat", response_model=ChatResponse)
+planner = PlannerAgent()
+
+
+@router.post("/chat", response_model=ChatResponse)
 async def process_chat_query(request: ChatRequest):
     """
-    Handles the multi-agent pipeline for a single user question.
+    Main entry point for user interactions.
+
+    Flow:
+        User input
+            ↓
+        Intent extraction
+            ↓
+        Planner Agent
+            ↓
+        Specialist agents
+            ↓
+        Human-friendly response
     """
+
     try:
-        # Step 1: Deterministic Intent Extraction
-        # In production, you would use an LLM framework like 'instructor' 
-        # to force the LLM to return the ParsedIntent Pydantic model.
+        # Step 1: Understand the user's request.
         intent = extract_intent_from_text(request.text)
-        
-        # Step 2: Pass structured data to the Planner Agent
-        # The Planner will fan out concurrent tasks to the Weather, Ocean, 
-        # and Geospatial agents based on these exact parameters.
-        pipeline_results = await planner_agent_execute(
-            location=intent.location_name,
-            time=intent.departure_time,
-            activity=intent.activity_type
+
+        # Step 2: Determine which coordinates to use.
+        lat = request.latitude
+        lon = request.longitude
+
+        if lat is None or lon is None:
+            raise ValueError(
+                "Location coordinates are required to analyze marine conditions."
+            )
+
+        # Step 3: Execute the Planner Agent.
+        pipeline_results = await planner.orchestrate_query(
+            lat=lat,
+            lon=lon
         )
-        
-        # Step 3: Explanation & Translation
-        # Synthesize a safe, grounded response in the user's original language.
-        final_spoken_text = generate_regional_explanation(
-            results=pipeline_results, 
+
+        # Step 4: Convert technical results into a user-facing response.
+        final_response = generate_regional_explanation(
+            results=pipeline_results,
             target_lang=request.language_code
         )
-        
+
         return ChatResponse(
-            spoken_text=final_spoken_text,
-            risk_score=pipeline_results["final_risk_score"],
-            risk_label=pipeline_results["risk_band"],
-            extracted_intent=intent
+            spoken_text=final_response,
+            extracted_intent=intent,
+            pipeline_result=pipeline_results
         )
 
-    except Exception as e:
-        logging.error(f"Chat pipeline failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Agent pipeline execution failed.")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        )
 
-# --- Mocked internal functions for structural clarity ---
+    except Exception as exc:
+        logging.exception(
+            "User interaction pipeline failed."
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process the marine query."
+        )
+
 
 def extract_intent_from_text(text: str) -> ParsedIntent:
-    """Mocks the LLM extraction process."""
+    """
+    Temporary intent extraction placeholder.
+
+    This will later be replaced by the actual User Interaction Agent.
+    """
+
     return ParsedIntent(
-        location_name="Puri Beach",
-        activity_type="fishing",
-        vessel_size_meters=12.0
+        activity_type="fishing"
     )
 
-async def planner_agent_execute(location, time, activity) -> dict:
-    """Mocks the concurrent execution of specialist agents."""
-    return {
-        "final_risk_score": 25,
-        "risk_band": "LOW",
-        "evidence": ["Wave height is 1.2m", "No IMD warnings active"]
-    }
 
-def generate_regional_explanation(results: dict, target_lang: str) -> str:
-    """Mocks the final translation step."""
-    return "Sailing tomorrow morning is safe. However, return before 12 PM as wave heights will increase."
+def generate_regional_explanation(
+    results: dict,
+    target_lang: str
+) -> str:
+    """
+    Temporary response generation logic.
+
+    This will later become part of the User Interaction Agent.
+    """
+
+    weather = results.get("weather_payload", {})
+    ocean = results.get("ocean_payload", {})
+
+    weather_summary = weather.get(
+        "plain_language_summary",
+        "Weather information is available."
+    )
+
+    pfz_score = ocean.get(
+        "average_pfz_score"
+    )
+
+    response = weather_summary
+
+    if pfz_score is not None:
+        response += (
+            f" The current fishing suitability score is "
+            f"{round(pfz_score, 2)}."
+        )
+
+    return response
