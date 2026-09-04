@@ -36,32 +36,23 @@ class ChatRequest(BaseModel):
 
 
 class ParsedIntent(BaseModel):
-    """
-    Structured interpretation of the user's request.
 
-    This is produced by the User Interaction Agent and used to
-    determine how the Planner Agent should be invoked.
-    """
-
-    location_name: Optional[str] = Field(
-        default=None,
-        description="Beach, port, fishing zone, or other location mentioned by the user."
+    query_type: str = Field(
+        default="marine_overview",
+        description=(
+            "Type of information requested by the user, "
+            "such as safety_assessment, weather_conditions, "
+            "fishing_conditions, or marine_overview."
+        )
     )
 
-    departure_time: Optional[datetime] = Field(
-        default=None,
-        description="Intended departure time in ISO format."
-    )
+    location_name: Optional[str] = None
 
-    activity_type: str = Field(
-        default="fishing",
-        description="Marine activity such as fishing, transit, or docked."
-    )
+    departure_time: Optional[datetime] = None
 
-    vessel_size_meters: Optional[float] = Field(
-        default=None,
-        description="Vessel size in meters, if mentioned."
-    )
+    activity_type: str = "fishing"
+
+    vessel_size_meters: Optional[float] = None
 
 
 class ChatResponse(BaseModel):
