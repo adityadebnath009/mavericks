@@ -1,27 +1,3 @@
-"""
-Geospatial Reasoning Service — ORCA Marine Portal (ISRO SIH 2026)
-
-Runs spatial queries against a PostGIS-backed database to determine:
-  - Whether a vessel position is inside India's EEZ
-  - How close a vessel is to the EEZ boundary (proxy for IMBL proximity)
-  - Whether a vessel is inside or near any Marine Protected Area (MPA)
-
-Follows the calling convention observed in the team's
-PFZEnricherService: a service class with static/class methods called
-directly (no instantiation), synchronous (no async/await), strict
-input validation raising ValueError/TypeError with "out of bounds"
--style messages.
-
-Location: backend/app/api/services/geospatial_reasoning.py
-(sibling of pfz_enricher.py, incois_client.py, etc.)
-
-This is the low-level computation layer. The Planner-facing entry
-point is the thin wrapper in agents/geospatial_agent.py.
-
-Usage:
-    GeospatialReasoningService.analyze(lat, lon)
-"""
-
 import math
 import os
 import json
