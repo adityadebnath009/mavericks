@@ -3,52 +3,24 @@ import re
 with open("backend/app/api/endpoints/safety.py", "r") as f:
     content = f.read()
 
-def_clean = """
-    def clean_nan(val, rnd=2):
-        import math
-        try:
-            f = float(val)
-            if math.isnan(f) or math.isinf(f):
-                return None
-            return round(f, rnd)
-        except:
-            return None
-"""
+# 1. get_safety_assessment:
+# Find the try block that does ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast
+# and replace it with just incois_success = False
+pattern1 = r'try:\s+ww3_res, curr_res = IncoisDatasetResolver\.resolve_latest_forecast\(.*?\s+incois_success = True\s+except Exception as e:\s+# Fallback to local / Open-Meteo in case of land grid or other parse errors\s+pass'
+content = re.sub(pattern1, "incois_success = False\n    pass", content, flags=re.DOTALL)
 
-# Insert clean_nan before _compute_grid if not there
-if "def clean_nan" not in content:
-    content = content.replace("    def _compute_grid():", def_clean + "\n    def _compute_grid():")
+# 2. get_point_forecast_timeline:
+pattern2 = r'try:\s+ww3_res, curr_res = IncoisDatasetResolver\.resolve_latest_forecast\(.*?\s+except Exception:\s+pass'
+content = re.sub(pattern2, "pass", content, flags=re.DOTALL)
 
-old_props = """                    "properties": {
-                        "bsi": val,
-                        "hs": round(hs_val, 2),
-                        "wind_speed_kmh": round(wind_val, 1),
-                        "current_speed_ms": round(curr_val, 2),
-                        "wind_dir_deg": round(wind_dir_val, 1),
-                        "current_dir_deg": round(curr_dir_val, 1),
-                        "center_lat": round(float(lat_c), 4),
-                        "center_lon": round(float(lon_c), 4),
-                        "color": color
-                    }"""
+# 3. get_safety_grid:
+# ensure we don't try to compute if force_refresh=True
+pattern3 = r'ww3_res, curr_res = IncoisDatasetResolver\.resolve_latest_forecast\(.*?_compute_grid\(\)'
+# I'll just change `force_refresh` to always False in the endpoint definition
+content = content.replace("force_refresh: bool = Query(False, description=\"Force bypass cache\")", "force_refresh: bool = Query(False, description=\"Force bypass cache (disabled)\")")
+content = content.replace("if force_refresh or not os.path.exists(cache_path):", "if not os.path.exists(cache_path):")
 
-new_props = """                    "properties": {
-                        "bsi": val,
-                        "hs": clean_nan(hs_val, 2),
-                        "wind_speed_kmh": clean_nan(wind_val, 1),
-                        "current_speed_ms": clean_nan(curr_val, 2),
-                        "wind_dir_deg": clean_nan(wind_dir_val, 1),
-                        "current_dir_deg": clean_nan(curr_dir_val, 1),
-                        "center_lat": clean_nan(lat_c, 4),
-                        "center_lon": clean_nan(lon_c, 4),
-                        "color": color
-                    }"""
-
-content = content.replace(old_props, new_props)
 
 with open("backend/app/api/endpoints/safety.py", "w") as f:
     f.write(content)
-
-import os, glob
-for f in glob.glob("cache/safety_grid_*.json"):
-    os.remove(f)
 

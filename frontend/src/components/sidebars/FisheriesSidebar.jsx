@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Fish, 
   Layers, 
@@ -96,6 +96,77 @@ export function FisheriesSidebar({
       onSelectPfz(pfzFeature);
     }
   };
+
+  const renderedPfzCards = useMemo(() => {
+    return pfzList.map((feat) => {
+      const props = feat.properties || {};
+      const isSelected = selectedPfz?.id === feat.id || selectedPfz?.properties?.id === feat.id;
+
+      const sstVal = props.sst_median != null ? `${Number(props.sst_median).toFixed(1)}°C` : 'N/A';
+      const chlVal = props.chl_median != null ? `${Number(props.chl_median).toFixed(2)} mg/m³` : 'N/A';
+      const currVal = props.current_median != null ? `${Number(props.current_median).toFixed(2)} m/s` : 'N/A';
+      const waveVal = props.wave_hs_median != null ? `${Number(props.wave_hs_median).toFixed(2)} m` : 'N/A';
+
+      return (
+        <div
+          key={feat.id || props.id}
+          onClick={() => onSelectPfz && onSelectPfz(feat)}
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
+            isSelected
+              ? 'bg-[#FFB547]/15 border-[#FFB547] shadow-[0_0_12px_rgba(255,181,71,0.2)]'
+              : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/50'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-mono font-bold text-xs text-[#EAF4F8]">
+              PFZ Advisory Zone {feat.id || props.id || 'N/A'}
+            </span>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#18C7A0]/10 text-[#18C7A0] border border-[#18C7A0]/20">
+              Score: {props.risk_score || 85}/100
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-[10px] text-[#8FA8B8]">
+            <div className="flex items-center gap-1.5">
+              <Thermometer className="w-3 h-3 text-[#FF5C5C]" />
+              <span>SST: <strong className="text-[#EAF4F8]">{sstVal}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Droplet className="w-3 h-3 text-[#18C7A0]" />
+              <span>CHL: <strong className="text-[#EAF4F8]">{chlVal}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Compass className="w-3 h-3 text-[#00D4FF]" />
+              <span>Current: <strong className="text-[#EAF4F8]">{currVal}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Waves className="w-3 h-3 text-[#FFB547]" />
+              <span>Wave Hs: <strong className="text-[#EAF4F8]">{waveVal}</strong></span>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[#20384D] flex items-center justify-between">
+            <span className="text-[9px] text-[#8FA8B8]">Front Convergence</span>
+            <span className="text-[9px] font-mono text-[#18C7A0]">Thermal-Plankton Optimal</span>
+          </div>
+
+          {isSelected && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSetPfzDestination(feat);
+              }}
+              className="w-full mt-2 py-1.5 rounded bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 transition text-[10px] font-mono uppercase font-bold flex items-center justify-center gap-1.5"
+            >
+              <Navigation className="w-3 h-3" />
+              <span>Set as Route Target</span>
+            </button>
+          )}
+        </div>
+      );
+    });
+  }, [pfzList, selectedPfz, onSelectPfz, onDestinationSelect]);
 
   return (
     <aside className="w-full h-full flex flex-col justify-between overflow-y-auto p-4 space-y-4 select-none font-sans text-xs">
@@ -265,79 +336,7 @@ export function FisheriesSidebar({
           </div>
 
           <div className="space-y-2">
-            {pfzList.map((feat) => {
-              const props = feat.properties || {};
-              const isSelected = selectedPfz?.id === feat.id || selectedPfz?.properties?.id === feat.id;
-
-              const sstVal = props.sst_median != null ? `${Number(props.sst_median).toFixed(1)}°C` : 'N/A';
-              const chlVal = props.chl_median != null ? `${Number(props.chl_median).toFixed(2)} mg/m³` : 'N/A';
-              const currVal = props.current_median != null ? `${Number(props.current_median).toFixed(2)} m/s` : 'N/A';
-              const waveVal = props.wave_hs_median != null ? `${Number(props.wave_hs_median).toFixed(2)} m` : 'N/A';
-
-              return (
-                <div
-                  key={feat.id || props.id}
-                  onClick={() => onSelectPfz && onSelectPfz(feat)}
-                  className={`p-2.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                    isSelected
-                      ? 'bg-[#FFB547]/15 border-[#FFB547] shadow-[0_0_12px_rgba(255,181,71,0.2)]'
-                      : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-[#EAF4F8]">
-                      {props.name || props.id || feat.id}
-                    </span>
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#18C7A0]/15 text-[#18C7A0] border border-[#18C7A0]/30">
-                      Score: {props.catch_score ?? 85}/100
-                    </span>
-                  </div>
-
-                  {/* 4 Real Median Oceanographic Indicators */}
-                  <div className="grid grid-cols-2 gap-1.5 text-[9px] font-mono bg-[#0D1B2A]/80 p-2 rounded-lg border border-[#20384D]/60">
-                    <div className="flex items-center gap-1 text-[#8FA8B8]">
-                      <Thermometer className="w-3 h-3 text-[#FF5C5C]" />
-                      <span>SST:</span>
-                      <span className="text-[#EAF4F8] font-bold">{sstVal}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#8FA8B8]">
-                      <Droplet className="w-3 h-3 text-[#18C7A0]" />
-                      <span>CHL:</span>
-                      <span className="text-[#18C7A0] font-bold">{chlVal}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#8FA8B8]">
-                      <Compass className="w-3 h-3 text-[#00D4FF]" />
-                      <span>Current:</span>
-                      <span className="text-[#00D4FF] font-bold">{currVal}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#8FA8B8]">
-                      <Waves className="w-3 h-3 text-[#FFB547]" />
-                      <span>Wave Hs:</span>
-                      <span className="text-[#EAF4F8] font-bold">{waveVal}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[8px] font-mono text-[#8FA8B8] px-0.5">
-                    <span>Front Convergence</span>
-                    <span className="text-[#18C7A0] font-semibold">Thermal-Plankton Optimal</span>
-                  </div>
-
-                  <div className="pt-0.5 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetPfzDestination(feat);
-                      }}
-                      className="flex-1 py-1 px-2 rounded bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 border border-[#00D4FF]/40 text-[#00D4FF] font-mono text-[9px] font-bold transition flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Navigation className="w-3 h-3" />
-                      <span>Set as Route Target</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {renderedPfzCards}
           </div>
         </SpotlightCard>
 

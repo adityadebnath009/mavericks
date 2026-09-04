@@ -40,6 +40,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   const [beamWidth, setBeamWidth] = useState(3.5);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedHour, setSelectedHour] = useState(12);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
   const [safetyData, setSafetyData] = useState(null);
   const [forecastTimeline, setForecastTimeline] = useState(null);
@@ -56,6 +57,21 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   const [layersOverride, setLayersOverride] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
+
+  // Geolocation: Auto-detect user's actual location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setSelectedLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
+        },
+        (error) => {
+          console.warn("Geolocation denied or failed. Defaulting to Mumbai.", error);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (urlMode === 'advisor') { setActiveMode('routing'); setIsChatOpen(true); }
@@ -195,9 +211,9 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
         </div>
         <main className="flex-1 flex flex-col h-full bg-[#07111F] relative overflow-hidden">
           <div className="flex-1 relative">
-            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={beamWidth} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} />
+            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={beamWidth} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} />
           </div>
-          <WeatherTimelinePanel forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} />
+          <WeatherTimelinePanel routeData={routeData} forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} activeMode={activeMode} />
         </main>
         <SafetyAdvisorChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} liveContext={liveContext} activeMode={activeMode} />
       </div>

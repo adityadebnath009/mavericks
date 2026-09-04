@@ -53,7 +53,12 @@ def get_safety_assessment(
     curr_records = []
     
     try:
-        ww3_records, curr_records = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_records = ww3_res.records if ww3_res else None
+        curr_records = curr_res.records if curr_res else None
+        
+        if not ww3_records or not curr_records:
+            raise Exception("Empty records")
         incois_success = True
     except Exception as e:
         # Fallback to local / Open-Meteo in case of remote server timeout/offline/land grid
@@ -148,7 +153,8 @@ def get_safety_assessment(
         daily_bsi_forecast = {}
         for d in [1, 2, 3]:
             try:
-                ww3_d, _ = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, d)
+                ww3_res, _ = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, d)
+                ww3_d = ww3_res.records if ww3_res else []
                 d_bsi = [BSICalculator.calculate_bsi(s["stp"], s["hs"], s["spr"], s["hsea_initial"], s["hsea_final"]) for s in ww3_d]
                 max_score = max(d_bsi)
                 daily_bsi_forecast[f"day{d}"] = {
@@ -178,20 +184,22 @@ def get_safety_assessment(
             formatted_time = pd.to_datetime(step_ww3["timestamp"]).strftime("%d %b • %H:%M UTC")
             
             # Track peak values & timestamps
-            if hs > peak_wave_height:
+            if hs is not None and hs > peak_wave_height:
                 peak_wave_height = hs
                 peak_wave_time = formatted_time
                 
-            if wind_speed > peak_wind_speed:
+            if wind_speed is not None and wind_speed > peak_wind_speed:
                 peak_wind_speed = wind_speed
                 peak_wind_time = formatted_time
                 
-            if curr_speed > peak_current_speed:
+            if curr_speed is not None and curr_speed > peak_current_speed:
                 peak_current_speed = curr_speed
                 peak_curr_time = formatted_time
                 
-            peak_wave_steepness = max(peak_wave_steepness, stp)
-            peak_directional_spread = max(peak_directional_spread, spr)
+            if stp is not None:
+                peak_wave_steepness = max(peak_wave_steepness, stp)
+            if spr is not None:
+                peak_directional_spread = max(peak_directional_spread, spr)
             
             # BSI calculation (strictly wave indices, currents/wind separate)
             bsi = BSICalculator.calculate_bsi(
@@ -477,23 +485,23 @@ def get_safety_assessment(
             "directional_spread": round(peak_directional_spread, 2)
         },
         "raw_metrics": {
-            "wave_height_m": round(peak_wave_height, 2),
-            "wind_speed_kmh": round(peak_wind_speed, 2),
-            "current_speed_ms": round(peak_current_speed, 2),
+            "wave_height_m": round(peak_wave_height, 2) if peak_wave_height is not None else None,
+            "wind_speed_kmh": round(peak_wind_speed, 2) if peak_wind_speed is not None else None,
+            "current_speed_ms": round(peak_current_speed, 2) if peak_current_speed is not None else None,
             "distance_to_border_km": distance_eez_km,
             "is_inside_eez": is_inside_eez,
             "is_inside_mpa": is_inside_mpa,
             "mpa_name": mpa_name,
             
             # Inspect metrics (12:00 UTC)
-            "inspect_hs": round(inspect_hs, 2),
-            "inspect_stp": round(inspect_stp, 4),
-            "inspect_spr": round(inspect_spr, 2),
-            "inspect_hsea": round(inspect_hsea, 2),
-            "inspect_t02": round(inspect_t02, 1),
-            "inspect_mwd": round(inspect_mwd, 0),
-            "inspect_wind": round(inspect_wind, 1),
-            "inspect_curr": round(inspect_curr, 2),
+            "inspect_hs": round(inspect_hs, 2) if inspect_hs is not None else None,
+            "inspect_stp": round(inspect_stp, 4) if inspect_stp is not None else None,
+            "inspect_spr": round(inspect_spr, 2) if inspect_spr is not None else None,
+            "inspect_hsea": round(inspect_hsea, 2) if inspect_hsea is not None else None,
+            "inspect_t02": round(inspect_t02, 1) if inspect_t02 is not None else None,
+            "inspect_mwd": round(inspect_mwd, 0) if inspect_mwd is not None else None,
+            "inspect_wind": round(inspect_wind, 1) if inspect_wind is not None else None,
+            "inspect_curr": round(inspect_curr, 2) if inspect_curr is not None else None,
             
             # Peak timestamps
             "peak_wind_time": peak_wind_time,
@@ -592,6 +600,10 @@ def generate_fallback_grid(day: int = 1, hour: int = 12):
                 "properties": {
                     "bsi": val,
                     "hs": round(float(base_hs), 2),
+                    "stp": 0.015,
+                    "spr": 0.25,
+                    "hsea_initial": round(float(base_hs) * 0.9, 2),
+                    "hsea_final": round(float(base_hs), 2),
                     "wind_speed_kmh": round(float(base_wind), 1),
                     "current_speed_ms": round(float(base_curr), 2),
                     "wind_dir_deg": round(float(base_wind_dir), 1),
@@ -706,6 +718,11 @@ def get_safety_grid(
             for j in range(n_lons):
                 val = int(bsi[i, j])
                 hs_val = float(hs[i, j])
+                stp_val = float(stp[i, j])
+                spr_val = float(spr_raw[i, j])
+                hsea_i_val = float(hsea_initial[i, j])
+                hsea_f_val = float(hsea_final[i, j])
+                
                 wind_val = float(wind_speed_kmh[i, j])
                 if np.isnan(val) or np.isnan(hs_val) or hs_val <= 0.0 or np.isnan(wind_val):
                     continue  # Skip land cells
@@ -733,7 +750,6 @@ def get_safety_grid(
                 else:
                     color = "green"
 
-                wind_val = float(wind_speed_kmh[i, j])
                 curr_val = 0.1 + hs_val * 0.18
                 wind_dir_val = float(wind_dir_deg[i, j])
                 curr_dir_val = float(mwd_grid[i, j]) if not np.isnan(mwd_grid[i, j]) else 112.0
@@ -747,6 +763,10 @@ def get_safety_grid(
                     "properties": {
                         "bsi": val,
                         "hs": clean_nan(hs_val, 2),
+                        "stp": clean_nan(stp_val, 4),
+                        "spr": clean_nan(spr_val, 4),
+                        "hsea_initial": clean_nan(hsea_i_val, 2),
+                        "hsea_final": clean_nan(hsea_f_val, 2),
                         "wind_speed_kmh": clean_nan(wind_val, 1),
                         "current_speed_ms": clean_nan(curr_val, 2),
                         "wind_dir_deg": clean_nan(wind_dir_val, 1),
@@ -775,7 +795,9 @@ def get_safety_grid(
                     logger.error(f"Error writing grid cache: {cache_write_err}")
                 return res
             return generate_fallback_grid(day, hour)
-        except Exception:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             return generate_fallback_grid(day, hour)
 
 
@@ -791,7 +813,9 @@ def get_point_forecast_timeline(
     for the selected point coordinate to drive Recharts charts.
     """
     try:
-        ww3_records, curr_records = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(lat, lon, day)
+        ww3_records = ww3_res.records if ww3_res else []
+        curr_records = curr_res.records if curr_res else []
 
         timeline_data = []
         for k in range(8):
@@ -966,76 +990,39 @@ def get_advisory_animation():
 def get_data_status():
     """
     Checks the connectivity to various external databases and services,
-    returning actual 'ONLINE', 'OFFLINE', or 'FORECAST' statuses.
+    returning actual 'CONNECTED', 'OFFLINE', or 'FRESH' statuses.
     """
-    from app.api.services.incois_geoserver import INCOISGeoServerClient
+    import os
+    import time
+    from app.api.services.open_meteo_client import OpenMeteoClient
 
-    # 1. INCOIS PFZ (GeoServer WMS/WFS capabilities)
-    incois_pfz = "OFFLINE"
+    open_meteo_status = "OFFLINE"
     try:
-        caps = INCOISGeoServerClient.get_capabilities()
-        if caps.get("status") in ["online", "stale"]:
-            incois_pfz = "ONLINE"
-    except Exception:
-        pass
-
-    # 2. INCOIS SVAS (Coastal Advisories)
-    incois_svas = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/oceanservices/SVAS/SVAS_Advisory.geojson", timeout=3)
+        # Check Open-Meteo health
+        test_client = OpenMeteoClient()
+        r = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
         if r.status_code == 200:
-            incois_svas = "ONLINE"
+            open_meteo_status = "CONNECTED"
     except Exception:
         pass
 
-    # 3. WW3 Forecast (Waves)
-    ww3_forecast = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/thredds/dodsC/osf/ww3/rsmc_combined_ww3_20260825.nc.dds", timeout=3)
-        if r.status_code == 200:
-            ww3_forecast = "FORECAST"
-        else:
-            # Check backup Open-Meteo
-            r_backup = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
-            if r_backup.status_code == 200:
-                ww3_forecast = "FORECAST (FALLBACK)"
-    except Exception:
-        pass
-
-    # 4. Ocean Currents
-    ocean_currents = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/thredds/dodsC/osf/currents/CURRENTS_NIO_20260824.nc.dds", timeout=3)
-        if r.status_code == 200:
-            ocean_currents = "FORECAST"
-        else:
-            r_backup = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
-            if r_backup.status_code == 200:
-                ocean_currents = "FORECAST (FALLBACK)"
-    except Exception:
-        pass
-
-    # 5. IMD Warnings
-    imd_warnings = "UNAVAILABLE"
-
-    # Try to grab the last updated timestamp from INCOIS capabilities or safetyGrid cache
-    last_updated = datetime.datetime.utcnow().strftime("%d %b %Y • %H:%M UTC")
+    cache_status = "STALE"
     try:
         cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
         if os.path.exists(cache_dir):
-            files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.startswith("safety_grid_")]
+            files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith(".json") or f.endswith(".db")]
             if files:
                 mtime = max(os.path.getmtime(f) for f in files)
-                last_updated = datetime.datetime.utcfromtimestamp(mtime).strftime("%d %b %Y • %H:%M UTC")
+                if time.time() - mtime < 86400:
+                    cache_status = "FRESH"
     except Exception:
         pass
 
+    last_updated = datetime.datetime.utcnow().strftime("%d %b %Y • %H:%M UTC")
+
     return {
-        "incois_pfz": incois_pfz,
-        "incois_svas": incois_svas,
-        "ww3_forecast": ww3_forecast,
-        "ocean_currents": ocean_currents,
-        "imd_warnings": imd_warnings,
+        "OPEN-METEO": open_meteo_status,
+        "CACHE": cache_status,
         "last_updated": last_updated
     }
 

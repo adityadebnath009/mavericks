@@ -68,8 +68,10 @@ class PFZIntelligenceService:
 
         try:
             # Query INCOIS OPeNDAP forecast for Day 1 at the closest PFZ coordinate
-            ww3_d, curr_d = IncoisDatasetResolver.resolve_latest_forecast(nearest_lat, nearest_lon, day=1)
-            if ww3_d and curr_d:
+            ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(nearest_lat, nearest_lon, day=1)
+            if ww3_res and curr_res:
+                ww3_d = ww3_res.records
+                curr_d = curr_res.records
                 # Target the middle index (12:00 UTC representation)
                 step = ww3_d[4]
                 hs = step["hs"]

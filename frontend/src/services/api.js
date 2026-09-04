@@ -155,3 +155,10 @@ export async function getVectorGrid(day = 1, hour = 12) {
     timestamp: data.timestamp || null
   };
 }
+
+/** 13. Get Nearby Landing Centers */
+export async function getNearbyLandingCenters(lat, lon, limit = 50) {
+  const data = await fetchJson(getApiUrl(`/api/landing-centers/nearby?lat=${lat}&lon=${lon}&limit=${limit}`));
+  if (data && Array.isArray(data.landing_centers)) return data.landing_centers;
+  throw new Error('Invalid Landing Centers payload');
+}

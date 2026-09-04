@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 import numpy as np
 
 # Import all existing sub-routers
-from app.api.endpoints import geofence, safety, vessels, weather, incois_proxy, pfz_router, trip
+from app.api.endpoints import geofence, safety, vessels, weather, incois_proxy, pfz_router, trip, landing_centers, routing
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
 from app.agents.marine_data_agent import MarineDataDiscoveryAgent
@@ -12,6 +12,7 @@ from app.agents.ocean_agent import OceanAnalyticsAgent
 api_router = APIRouter()
 
 # Register all specialized endpoints
+api_router.include_router(routing.router, prefix="/routing", tags=["routing"])
 api_router.include_router(weather.router, prefix="/weather", tags=["weather"])
 api_router.include_router(geofence.router, prefix="/geofence", tags=["geofence"])
 api_router.include_router(safety.router, prefix="/safety", tags=["safety"])
@@ -19,6 +20,7 @@ api_router.include_router(vessels.router, prefix="/vessels", tags=["vessels"])
 api_router.include_router(incois_proxy.router, prefix="/incois", tags=["incois"])
 api_router.include_router(pfz_router.router, prefix="/pfz", tags=["pfz"])
 api_router.include_router(trip.router, prefix="/trip", tags=["trip"])
+api_router.include_router(landing_centers.router, prefix="/landing-centers", tags=["landing-centers"])
 
 # Initialize the router and the upgraded agent crew
 planner = PlannerAgent()

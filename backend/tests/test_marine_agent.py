@@ -1,6 +1,8 @@
+import pytest
 import asyncio
 from app.agents.marine_data_agent import MarineDataDiscoveryAgent
 
+@pytest.mark.asyncio
 async def test_agent():
     print("--- Initializing Marine Data Discovery Agent ---")
     agent = MarineDataDiscoveryAgent()

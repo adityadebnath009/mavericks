@@ -27,4 +27,8 @@ def get_db() -> Generator:
     try:
         yield db
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            # Silently swallow socket drops during connection cleanup
+            pass

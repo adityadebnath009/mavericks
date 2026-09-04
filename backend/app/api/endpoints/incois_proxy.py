@@ -2,6 +2,8 @@ from fastapi import APIRouter, Query, HTTPException
 from app.api.services.incois_geoserver import INCOISGeoServerClient
 from app.api.services.pfz_enricher import PFZEnricherService
 
+
+
 router = APIRouter()
 
 @router.get("/capabilities")
@@ -40,18 +42,14 @@ _pfz_cache_time = 0
 @router.get("/pfz-lines")
 @router.get("/pfz-lines/")
 def get_pfz_advisory_lines():
-    global _pfz_cache, _pfz_cache_time
-    import time
-    now = time.time()
-    if _pfz_cache and (now - _pfz_cache_time) < 3600:
-        return _pfz_cache
+    cached_collection = PFZEnricherService.get_cached_pfz_collection()
+    if cached_collection:
+        return cached_collection
     try:
         raw_geojson = INCOISGeoServerClient.get_pfz_lines_wfs()
-        _pfz_cache = PFZEnricherService.enrich_feature_collection(raw_geojson)
-        _pfz_cache_time = now
-        return _pfz_cache
+        return PFZEnricherService.enrich_feature_collection(raw_geojson)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to enrich PFZ lines: {str(e)}")
+        return PFZEnricherService.get_raw_pfz_with_fallback()
 
 @router.get("/vector-grid")
 @router.get("/vector-grid/")
@@ -97,7 +95,7 @@ def wms_tile_proxy(
     incois_url = "https://www.incois.gov.in/geoserver/PFZ-TUNA-SST-CHL/wms"
     params = {"service": service, "request": request, "layers": layers, "styles": styles, "format": format, "transparent": transparent, "version": version, "width": width, "height": height, "srs": srs, "bbox": bbox}
     try:
-        res = requests.get(incois_url, params=params, timeout=10)
+        res = requests.get(incois_url, params=params, timeout=30)
         res.raise_for_status()
         return Response(content=res.content, media_type="image/png")
     except Exception as e:

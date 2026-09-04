@@ -223,7 +223,9 @@ class PFZEnricherService:
 
         # Attempt WW3 Waves & NIO Currents NetCDF resolution
         try:
-            ww3_recs, curr_recs = IncoisDatasetResolver.resolve_latest_forecast(grid_lat, grid_lon, day=1)
+            ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(grid_lat, grid_lon, day=1)
+            ww3_recs = ww3_res.records if ww3_res else None
+            curr_recs = curr_res.records if curr_res else None
             if ww3_recs and curr_recs:
                 step_ww3 = ww3_recs[4] if len(ww3_recs) > 4 else ww3_recs[0]
                 step_curr = curr_recs[4] if len(curr_recs) > 4 else curr_recs[0]
@@ -535,9 +537,25 @@ class PFZEnricherService:
         })
 
         return enriched_props
+    @classmethod
+    def get_cached_pfz_collection(cls):
+        import os, json
+        # CACHE_DIR is at the top of pfz_enricher.py
+        cache_file = os.path.join(CACHE_DIR, "pfz_enrichment_cache.json")
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, "r") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return None
+    @classmethod
+    def get_raw_pfz_with_fallback(cls):
+        from app.core.exceptions import DataUnavailableError
+        return {"type": "FeatureCollection", "enrichment_status": "PARTIAL_RAW_FALLBACK", "features": []}
 
     @classmethod
-    def enrich_feature_collection(cls, geojson_data: dict) -> dict:
+    def enrich_feature_collection(cls, geojson_data: dict, cycle=None) -> dict:
         """
         Enriches all features in a WFS GeoJSON FeatureCollection.
         Removes all static species inference and populates median telemetry.
@@ -570,11 +588,14 @@ class PFZEnricherService:
             }
             enriched_features.append(enriched_feat)
 
-        return {
+        res = {
             "type": "FeatureCollection",
             "features": enriched_features,
-            "enriched_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            "enriched_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "enrichment_status": "READY"
         }
+        if cycle: res["pfz_cycle"] = cycle
+        return res
 
     @classmethod
     def _atomic_write_json(cls, target_path: str, payload: Dict[str, Any]):
