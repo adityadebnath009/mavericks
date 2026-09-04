@@ -24,7 +24,7 @@ class RouteSegment(BaseModel):
 class RecommendedTrip(BaseModel):
     id: str
     travel_time_hours: float
-    route_coords: List[List[float]]
+    path: List[dict] = []
     snapshots: List[RouteSnapshot]
     segments: List[RouteSegment]
 

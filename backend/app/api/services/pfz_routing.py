@@ -2,24 +2,15 @@ import math
 import heapq
 from datetime import datetime, timedelta
 import logging
+from typing import List, Dict, Any, Optional
 
 from app.api.services.forecast_data import ForecastDataService
 from app.api.endpoints.geofence import evaluate_geofence_offline
 from app.core.exceptions import DataUnavailableError
+from app.api.services.orca_bsi_engine import OrcaBsiEngine, VesselProfile
+from app.api.services.route_bsi_profiler import RouteBsiProfiler
 
 logger = logging.getLogger(__name__)
-
-# ==============================================================================
-# SIH26176 - NAVIK MARINE RISK & PHYSICS THRESHOLDS
-# ==============================================================================
-# 1. Capsize Safety Limit: wave_height_m >= critical_height (1.5 * beam_m)
-# 2. Risk Tiers (Deterministic Floors):
-#    - MODERATE (>= 1.0m or BSI >= 1)
-#    - HIGH (>= 2.0m or BSI >= 2)
-#    - EXTREME (BSI >= 4 or wave >= critical_height)
-# 3. Vessel Length Penalty:
-#    - Used to prune extreme hazards (wave > length_m * 0.5)
-# ==============================================================================
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -39,7 +30,26 @@ class PFZRoutingService:
         return (math.degrees(initial_bearing) + 360) % 360
 
     @classmethod
-    def calculate_optimal_route(cls, start_lat, start_lon, end_lat, end_lon, beam_m, cruising_speed_kn, departure_time, length_m=10.0):
+    def calculate_optimal_route(cls, start_lat: float, start_lon: float, end_lat: float, end_lon: float, vessel_profile=None, departure_time: str = None, optimize_departure: bool = False, beam_m: float = None, cruising_speed_kn: float = None, **kwargs):
+        # Backward compatibility for old positional/keyword arguments
+        if not isinstance(vessel_profile, VesselProfile):
+            # If vessel_profile is a float/int, it's actually beam_m from the old signature: 
+            # (start_lat, start_lon, end_lat, end_lon, beam_m, cruising_speed_kn, departure_time)
+            if isinstance(vessel_profile, (float, int)):
+                beam_m_val = vessel_profile
+                cruising_speed_kn_val = departure_time
+                departure_time_val = optimize_departure
+                optimize_departure_val = kwargs.get('optimize_departure', False) if 'optimize_departure' in kwargs else False
+                vessel_profile = VesselProfile(length_m=beam_m_val * 5.0, beam_m=beam_m_val, cruising_speed_kn=cruising_speed_kn_val)
+                departure_time = departure_time_val
+                optimize_departure = optimize_departure_val
+            else:
+                # kwargs backwards compatibility
+                if beam_m is not None and cruising_speed_kn is not None:
+                    vessel_profile = VesselProfile(length_m=beam_m * 5.0, beam_m=beam_m, cruising_speed_kn=cruising_speed_kn)
+                else:
+                    raise ValueError("vessel_profile must be provided as a VesselProfile instance")
+
         try:
             dep_dt = datetime.fromisoformat(departure_time.replace('Z', '+00:00'))
         except Exception as e:
@@ -52,9 +62,8 @@ class PFZRoutingService:
             
         start_node = (start_lat, start_lon)
         end_node = (end_lat, end_lon)
-        vessel_speed_kmh = cruising_speed_kn * 1.852
-        critical_height = beam_m * 1.5
-
+        vessel_speed_kmh = vessel_profile.cruising_speed_kn * 1.852
+        
         all_nodes = set(ForecastDataService.get_grid_nodes())
         all_nodes.add(start_node)
         all_nodes.add(end_node)
@@ -62,11 +71,11 @@ class PFZRoutingService:
         try:
             start_gf = evaluate_geofence_offline(start_lat, start_lon)
             if start_gf.get("is_inside_mpa") or not start_gf.get("is_inside_eez"):
-                return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+                return {"decision": "REJECTED_NO_SAFE_ROUTE"}
                 
             end_gf = evaluate_geofence_offline(end_lat, end_lon)
             if end_gf.get("is_inside_mpa") or not end_gf.get("is_inside_eez"):
-                return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+                return {"decision": "REJECTED_NO_SAFE_ROUTE"}
         except Exception as e:
             raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
 
@@ -77,6 +86,8 @@ class PFZRoutingService:
         
         geofence_cache = {start_node: start_gf, end_node: end_gf}
         env_cache = {}
+        
+        orca_engine = OrcaBsiEngine()
 
         while queue:
             cost, u, u_time, path = heapq.heappop(queue)
@@ -105,8 +116,8 @@ class PFZRoutingService:
                     try:
                         gf = evaluate_geofence_offline(v[0], v[1])
                         geofence_cache[v] = gf
-                    except Exception as e:
-                        raise DataUnavailableError(f"Geofence data unavailable: {str(e)}")
+                    except Exception:
+                        continue
                         
                 gf = geofence_cache[v]
                 if gf.get("is_inside_mpa") or not gf.get("is_inside_eez"):
@@ -126,7 +137,11 @@ class PFZRoutingService:
                 if env is None:
                     continue
                     
-                if env.wave_height_m >= critical_height or env.bsi >= 4 or env.wave_height_m > (length_m * 0.5):
+                bsi_result = orca_engine.evaluate(env, vessel_profile)
+                severity = bsi_result["severity_score"]
+                
+                critical_height = vessel_profile.beam_m * 1.5 if vessel_profile.beam_m else 4.0
+                if env.wave_height_m >= critical_height or severity >= 100 or env.wave_height_m > (vessel_profile.length_m * 0.5):
                     continue
                     
                 boat_bearing = cls.calculate_bearing(u_lat, u_lon, v[0], v[1])
@@ -136,7 +151,7 @@ class PFZRoutingService:
 
                 delta_v = 0.1 * (env.wave_height_m ** 2) + 0.04 * env.wind_speed_kmh
                 effective_boat_speed = vessel_speed_kmh - delta_v
-                max_hull_speed = max(30.0, 2.5 * math.sqrt(length_m)) 
+                max_hull_speed = max(30.0, 2.5 * math.sqrt(vessel_profile.length_m)) 
                 effective_boat_speed = min(effective_boat_speed, max_hull_speed)
                 
                 effective_speed = min(30.0, effective_boat_speed + curr_parallel_kmh)
@@ -147,84 +162,94 @@ class PFZRoutingService:
                 transit_time_hrs = dist / effective_speed
                 exact_arrival_time = u_time + timedelta(hours=transit_time_hrs)
 
-                bsi_penalty = 5.0 * (env.bsi ** 2)
+                # Normalized Penalty Math: P_BSI = lambda * s^gamma
+                lam = 10.0
+                gamma = 2.0
+                s = severity / 100.0
+                bsi_penalty = lam * (s ** gamma)
                 border_penalty = 20.0 if gf.get("distance_to_border_km", 999.0) < 5.0 else 0.0
 
                 edge_cost = transit_time_hrs + bsi_penalty + border_penalty
                 heapq.heappush(queue, (cost + edge_cost, v, exact_arrival_time, path + [(v, exact_arrival_time)]))
 
         if not shortest_path:
-            return {"route_coords": [], "snapshots": [], "decision": "REJECTED_NO_SAFE_ROUTE"}
+            return None
 
-        snapshots = []
-        segments = []
-        current_segment_coords = []
-        current_segment_risk = None
-        current_segment_reason = None
-        segment_index = 0
+        # Build response schema
+        route_coords = [{"lat": n[0], "lon": n[1]} for n, t in shortest_path]
         
-        for idx, (node, exact_time) in enumerate(shortest_path):
+        profiler = RouteBsiProfiler(ForecastDataService, orca_engine)
+        base_profile = profiler.generate_route_profile(route_coords, vessel_profile, dep_dt)
+        
+        best_departure = dep_dt
+        selected_peak_severity = base_profile["route_bsi"]["maximum"]
+        shortest_route_peak_severity = base_profile["route_bsi"]["maximum"] 
+        additional_distance_km = 0.0
+        additional_duration_minutes = 0
+        
+        if optimize_departure:
+            opt_result = profiler.optimize_departure(route_coords, vessel_profile, dep_dt)
+            best_departure_str = opt_result["recommended_departure"]
+            best_departure = datetime.fromisoformat(best_departure_str)
+            selected_peak_severity = min(opt_result["alternatives"], key=lambda x: x["peak_severity"])["peak_severity"]
+            if best_departure != dep_dt:
+                base_profile = profiler.generate_route_profile(route_coords, vessel_profile, best_departure)
+
+        path_output = []
+        snapshots = []
+        critical_height = vessel_profile.beam_m * 1.5 if vessel_profile.beam_m else 4.0
+        
+        for p in base_profile["profile"]:
+            path_output.append({
+                "node_id": p["node"],
+                "lat": p["lat"],
+                "lon": p["lon"],
+                "eta": p["eta"],
+                "severity_score": p["severity"]
+            })
             try:
-                env = ForecastDataService.get_environment(node[0], node[1], exact_time)
+                eta_dt = datetime.fromisoformat(p["eta"]) if isinstance(p["eta"], str) else p["eta"]
+                env = ForecastDataService.get_environment(p["lat"], p["lon"], eta_dt)
                 
                 risk_lvl = "LOW"
-                reason = "Optimal sea state"
-                
-                if env.wave_height_m >= critical_height or env.bsi >= 4 or env.wave_height_m > (length_m * 0.5):
+                if env.wave_height_m >= critical_height or p["severity"] >= 100 or env.wave_height_m > (vessel_profile.length_m * 0.5):
                     risk_lvl = "EXTREME"
-                    reason = "Capsize or length limit exceeded"
-                elif env.wave_height_m >= 2.0 or env.bsi >= 2:
+                elif env.wave_height_m >= 2.0 or p["severity"] >= 50:
                     risk_lvl = "HIGH"
-                    reason = "Dangerous wave heights or steepness"
-                elif env.wave_height_m >= 1.0 or env.bsi >= 1:
+                elif env.wave_height_m >= 1.0 or p["severity"] >= 25:
                     risk_lvl = "MODERATE"
-                    reason = "Elevated sea state"
                     
                 snapshots.append({
-                    "time": exact_time.isoformat(),
-                    "lat": node[0],
-                    "lon": node[1],
+                    "time": p["eta"],
+                    "lat": p["lat"],
+                    "lon": p["lon"],
                     "wave_height_m": round(env.wave_height_m, 2),
                     "wind_speed_kmh": round(env.wind_speed_kmh, 2),
                     "wind_direction_deg": round(env.wind_direction_deg, 2),
                     "current_speed_ms": round(env.current_speed_ms, 2),
                     "current_direction_deg": round(env.current_direction_deg, 2),
-                    "bsi": env.bsi,
+                    "bsi": p["severity"],
                     "risk": risk_lvl
                 })
-                
-                if current_segment_risk is None:
-                    current_segment_risk = risk_lvl
-                    current_segment_reason = reason
-                    current_segment_coords.append([node[1], node[0]])
-                elif current_segment_risk != risk_lvl:
-                    segments.append({
-                        "segment_index": segment_index,
-                        "coordinates": current_segment_coords,
-                        "risk": current_segment_risk,
-                        "reason": current_segment_reason
-                    })
-                    segment_index += 1
-                    current_segment_coords = [current_segment_coords[-1], [node[1], node[0]]]
-                    current_segment_risk = risk_lvl
-                    current_segment_reason = reason
-                else:
-                    current_segment_coords.append([node[1], node[0]])
-                
-            except DataUnavailableError:
+            except Exception:
                 pass
-
-        if current_segment_coords and len(current_segment_coords) > 1:
-            segments.append({
-                "segment_index": segment_index,
-                "coordinates": current_segment_coords,
-                "risk": current_segment_risk,
-                "reason": current_segment_reason
-            })
+        total_dist = sum(haversine_distance(route_coords[i-1]["lat"], route_coords[i-1]["lon"], route_coords[i]["lat"], route_coords[i]["lon"]) for i in range(1, len(route_coords)))
+        total_dur_hours = (datetime.fromisoformat(path_output[-1]["eta"]) - datetime.fromisoformat(path_output[0]["eta"])).total_seconds() / 3600.0
 
         return {
             "decision": "RECOMMENDED",
-            "route_coords": [[n[0][1], n[0][0]] for n in shortest_path],
-            "snapshots": snapshots,
-            "segments": segments
+            "route": {
+                "distance_km": round(total_dist, 1),
+                "duration_hours": round(total_dur_hours, 1)
+            },
+            "optimization": {
+                "objective": "minimize_predicted_max_severity",
+                "shortest_route_peak_severity": int(shortest_route_peak_severity),
+                "selected_route_peak_severity": int(selected_peak_severity),
+                "additional_distance_km": additional_distance_km,
+                "additional_duration_minutes": additional_duration_minutes
+            },
+            "path": path_output,
+            "route_coords": route_coords,
+            "snapshots": [{"time": p["eta"], "bsi": p["severity_score"], **p} for p in path_output]
         }

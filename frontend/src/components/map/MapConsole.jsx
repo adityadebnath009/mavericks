@@ -46,6 +46,8 @@ export function MapConsole({
   beamWidth = 3.5,
   layersOverride = {},
   onPfzInspect,
+  selectedNodeId,
+  onNodeSelect,
   className = ''
 }) {
   const mapContainerRef = useRef(null);
@@ -437,6 +439,36 @@ export function MapConsole({
           }
         });
 
+        // --- Route Nodes for Interaction ---
+        map.addSource('route-nodes', {
+          type: 'geojson',
+          data: EMPTY_FEATURE_COLLECTION
+        });
+        
+        map.addLayer({
+          id: 'route-nodes-layer',
+          type: 'circle',
+          source: 'route-nodes',
+          paint: {
+            'circle-radius': [
+              'case',
+              ['boolean', ['feature-state', 'selected'], false],
+              8,
+              5
+            ],
+            'circle-color': ['get', 'color'],
+            'circle-stroke-width': [
+              'case',
+              ['boolean', ['feature-state', 'selected'], false],
+              2,
+              1
+            ],
+            'circle-stroke-color': '#EAF4F8'
+          },
+          layout: { visibility: 'none' }
+        });
+
+
         // --- 8. Source: incois-pfz-lines (WFS PFZ Advisory Vectors) ---
         map.addSource('incois-pfz-lines', {
           type: 'geojson',
@@ -769,11 +801,22 @@ export function MapConsole({
         map.on('mouseenter', 'pfz-lines-stroke', () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', 'pfz-lines-stroke', () => { map.getCanvas().style.cursor = ''; });
 
+        // 4.5. Route Node Interaction
+        map.on('click', 'route-nodes-layer', (e) => {
+          if (!e.features.length) return;
+          const node = e.features[0];
+          if (onNodeSelectRef.current) {
+            onNodeSelectRef.current(node.id);
+          }
+        });
+        map.on('mouseenter', 'route-nodes-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'route-nodes-layer', () => { map.getCanvas().style.cursor = ''; });
+
         // 5. Universal Ocean Canvas Left-Click (Requirement R4)
         map.on('click', (e) => {
           // If clicked feature on interactive boundary/line layers, let feature-specific handlers handle it
           const features = map.queryRenderedFeatures(e.point, {
-            layers: ['advisory-fill', 'mpa-fill', 'pfz-lines-stroke'].filter(l => map.getLayer(l))
+            layers: ['advisory-fill', 'mpa-fill', 'pfz-lines-stroke', 'route-nodes-layer'].filter(l => map.getLayer(l))
           });
           if (features.length > 0) return;
 
@@ -805,6 +848,19 @@ export function MapConsole({
       }
     };
   }, []);
+
+  const onNodeSelectRef = useRef(onNodeSelect);
+  useEffect(() => { onNodeSelectRef.current = onNodeSelect; }, [onNodeSelect]);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !routeData?.path) return;
+    routeData.path.forEach(n => {
+      mapRef.current.setFeatureState(
+        { source: 'route-nodes', id: n.node_id },
+        { selected: n.node_id === selectedNodeId }
+      );
+    });
+  }, [selectedNodeId, mapLoaded, routeData]);
 
   // 2. React to GeoJSON Prop Updates
   useEffect(() => {
@@ -868,8 +924,24 @@ export function MapConsole({
       geometry: { type: 'LineString', coordinates: routeData.straight_coords }
     } : EMPTY_FEATURE_COLLECTION;
 
+    const nodesGeo = routeData?.path?.length ? {
+      type: 'FeatureCollection',
+      features: routeData.path.map(n => ({
+        type: 'Feature',
+        id: n.node_id,
+        geometry: { type: 'Point', coordinates: [n.lon, n.lat] },
+        properties: {
+          node_id: n.node_id,
+          eta: n.eta,
+          severity_score: n.severity_score,
+          color: n.severity_score >= 76 ? '#FF5C5C' : n.severity_score >= 51 ? '#FF5C5C' : n.severity_score >= 21 ? '#FFB547' : '#18C7A0'
+        }
+      }))
+    } : EMPTY_FEATURE_COLLECTION;
+
     setSourceDataSafe('optimized-route', routeGeo);
     setSourceDataSafe('straight-route', straightGeo);
+    setSourceDataSafe('route-nodes', nodesGeo);
   }, [routeData, mapLoaded, setSourceDataSafe]);
 
   // 4. Dynamic Mode-Based Layer Visibility Engine (via setLayoutProperty without canvas reload)
@@ -882,6 +954,7 @@ export function MapConsole({
       routing: {
         'route-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
+        'route-nodes-layer': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
         'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
         'mpa-fill': layersOverride.restricted !== false ? 'visible' : 'none',
         'mpa-stroke': layersOverride.restricted !== false ? 'visible' : 'none',

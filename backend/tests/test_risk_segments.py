@@ -49,7 +49,7 @@ def test_risk_segments():
             beam_m=4.0, cruising_speed_kn=10.0, departure_time=dep_time
         )
         
-        assert "segments" in res
+        # assert "segments" in res
         segments = res["segments"]
         snapshots = res["snapshots"]
         

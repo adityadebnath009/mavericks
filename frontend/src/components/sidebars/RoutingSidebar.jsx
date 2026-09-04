@@ -19,18 +19,21 @@ import {
 import SpotlightCard from '../common/SpotlightCard';
 import RiskBadge from '../common/RiskBadge';
 import { getNearbyLandingCenters } from '../../services/api';
+import { getSeverityBand } from '../../utils/severityBands';
 
 export function RoutingSidebar({
   selectedLocation = { lat: 18.9220, lon: 72.8347 },
   onLocationSelect,
   destinationLocation = null,
   onDestinationSelect,
-  beamWidth = 3.5,
-  setBeamWidth,
+  vesselProfile = { length_m: 10.0, beam_m: 3.5, cruising_speed_kn: 10.0 },
+  setVesselProfile,
+  departureTime = new Date().toISOString(),
+  setDepartureTime,
   onCalculateRoute,
   onClearRoute,
   routeData = null,
-  safetyData = null,
+  error = null,
   isLoading = false
 }) {
   const [selectedOriginPort, setSelectedOriginPort] = useState('');
@@ -70,9 +73,6 @@ export function RoutingSidebar({
     setSelectedOriginPort(selectedDestPort);
     setSelectedDestPort(tempPort);
   };
-
-  const overallRisk = routeData?.summary?.overall_risk || safetyData?.rating || 'LOW';
-  const isVulnerable = beamWidth < 4.0 && safetyData?.vessel_suitability?.vulnerable;
 
   return (
     <aside className="w-full h-full flex flex-col justify-between overflow-y-auto p-4 space-y-4 select-none font-sans text-xs">
@@ -156,82 +156,77 @@ export function RoutingSidebar({
           </div>
         </SpotlightCard>
 
-        {/* 3. Vessel Stability & Beam Width Card */}
+        {/* 3. Vessel Hydrodynamics & Constraints */}
         <SpotlightCard className="p-3.5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono font-bold text-[#8FA8B8] uppercase">
-              Vessel Hydrodynamics
+              Vessel Profile & Time
             </span>
-            {isVulnerable ? (
-              <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#FF5C5C]/20 text-[#FF5C5C] border border-[#FF5C5C]/40 animate-pulse">
-                SVAS VULNERABLE
-              </span>
-            ) : (
-              <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#18C7A0]/20 text-[#18C7A0] border border-[#18C7A0]/40">
-                STABLE HULL
-              </span>
-            )}
           </div>
-
-          {/* Suffix Buttons */}
-          <div className="flex gap-2">
-            {[
-              { label: '< 4m Small Craft', val: 3.5 },
-              { label: '< 6m Trawler', val: 5.0 },
-              { label: '< 7m Deep-Sea', val: 6.5 }
-            ].map(item => (
-              <button
-                key={item.val}
-                type="button"
-                onClick={() => setBeamWidth && setBeamWidth(item.val)}
-                className={`flex-1 py-1.5 rounded-lg border font-mono text-[9px] font-bold transition cursor-pointer text-center ${
-                  (item.val === 3.5 && beamWidth < 4.0) ||
-                  (item.val === 5.0 && beamWidth >= 4.0 && beamWidth < 6.0) ||
-                  (item.val === 6.5 && beamWidth >= 6.0)
-                    ? 'bg-[#00D4FF]/20 border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.2)]'
-                    : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:text-[#EAF4F8]'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Precision Slider */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-[9px] font-mono text-[#8FA8B8]">
-              <span>Beam Width: <strong className="text-[#00D4FF]">{beamWidth.toFixed(1)}m</strong></span>
-              <span>Range: 1.0m — 8.0m</span>
+          
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="space-y-1">
+              <label className="text-[#8FA8B8]">Length (m)</label>
+              <input
+                type="number" step="0.1"
+                value={vesselProfile?.length_m || 10.0}
+                onChange={e => setVesselProfile && setVesselProfile({...vesselProfile, length_m: parseFloat(e.target.value)})}
+                className="w-full bg-[#07111F] border border-[#20384D] rounded px-2 py-1 text-[#EAF4F8]"
+              />
             </div>
-            <input
-              type="range"
-              min="1.0"
-              max="8.0"
-              step="0.1"
-              value={beamWidth}
-              onChange={(e) => setBeamWidth && setBeamWidth(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-[#07111F] rounded-lg appearance-none cursor-pointer accent-[#00D4FF]"
-            />
+            <div className="space-y-1">
+              <label className="text-[#8FA8B8]">Beam (m)</label>
+              <input
+                type="number" step="0.1"
+                value={vesselProfile?.beam_m || 3.5}
+                onChange={e => setVesselProfile && setVesselProfile({...vesselProfile, beam_m: parseFloat(e.target.value)})}
+                className="w-full bg-[#07111F] border border-[#20384D] rounded px-2 py-1 text-[#EAF4F8]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[#8FA8B8]">Speed (knots)</label>
+              <input
+                type="number" step="0.5"
+                value={vesselProfile?.cruising_speed_kn || 10.0}
+                onChange={e => setVesselProfile && setVesselProfile({...vesselProfile, cruising_speed_kn: parseFloat(e.target.value)})}
+                className="w-full bg-[#07111F] border border-[#20384D] rounded px-2 py-1 text-[#EAF4F8]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[#8FA8B8]">Departure</label>
+              <input
+                type="datetime-local"
+                value={departureTime ? new Date(departureTime).toISOString().slice(0, 16) : ''}
+                onChange={e => setDepartureTime && setDepartureTime(new Date(e.target.value).toISOString())}
+                className="w-full bg-[#07111F] border border-[#20384D] rounded px-2 py-1 text-[#EAF4F8]"
+              />
+            </div>
           </div>
         </SpotlightCard>
 
         {/* 4. Action CTA: Calculate Safe Route */}
         <div className="space-y-2">
+          {error && (
+            <div className="p-2.5 rounded bg-[#FF5C5C]/10 border border-[#FF5C5C]/30 text-[#FF5C5C] text-[10px] font-mono text-center">
+              Marine forecast unavailable — route could not be evaluated
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onCalculateRoute}
             disabled={isLoading || !destinationLocation}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0099CC] hover:from-[#33DDFF] hover:to-[#00B4D8] text-[#07111F] font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(0,212,255,0.35)] transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0099CC] hover:from-[#33DDFF] hover:to-[#00B4D8] text-[#07111F] font-mono font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(0,212,255,0.35)] transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>
                 <RotateCcw className="w-4 h-4 animate-spin text-[#07111F]" />
-                <span>Running A* Pathfinding...</span>
+                <span>CALCULATING RECOMMENDED ROUTE...</span>
               </>
             ) : (
               <>
                 <Zap className="w-4 h-4 fill-current" />
-                <span>Calculate Safe Route (A*)</span>
+                <span>Calculate Recommended Route</span>
               </>
             )}
           </button>
@@ -249,72 +244,41 @@ export function RoutingSidebar({
         </div>
 
         {/* 5. Planned Route KPI Summary Card */}
-        {routeData && routeData.summary && (
+        {routeData && !isLoading && (
           <SpotlightCard className="p-3.5 space-y-3 border-[#00D4FF]/40">
             <div className="flex items-center justify-between border-b border-[#20384D] pb-1.5">
               <span className="text-[10px] font-mono font-bold text-[#00D4FF] uppercase flex items-center gap-1.5">
                 <Route className="w-3.5 h-3.5" />
                 Route Execution Plan
               </span>
-              <RiskBadge level={routeData.summary.overall_risk || overallRisk} size="xs" />
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="text-[10px] font-mono text-center p-2 rounded bg-[#18C7A0]/10 border border-[#18C7A0]/30 text-[#18C7A0]">
+              ORCA recommends this route — predicted peak severity {routeData?.optimization?.selected_route_peak_severity || 0}/100
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-center">
               <div className="bg-[#07111F] p-2 rounded-lg border border-[#20384D]">
                 <span className="text-[8px] text-[#8FA8B8] uppercase block">Total Distance</span>
                 <span className="text-xs font-mono font-bold text-[#EAF4F8] mt-0.5 block">
-                  {routeData.summary.distance_km} km
-                </span>
-                <span className="text-[7.5px] text-[#8FA8B8] font-mono">
-                  ({routeData.summary.distance_nmi ?? (routeData.summary.distance_km / 1.852).toFixed(1)} nmi)
+                  {routeData?.route?.distance_km} km
                 </span>
               </div>
-
               <div className="bg-[#07111F] p-2 rounded-lg border border-[#20384D]">
                 <span className="text-[8px] text-[#8FA8B8] uppercase block">Est. Duration</span>
                 <span className="text-xs font-mono font-bold text-[#00D4FF] mt-0.5 block">
-                  {routeData.summary.travel_time_hours} hrs
+                  {routeData?.route?.duration_hours} hrs
                 </span>
-                <span className="text-[7.5px] text-[#8FA8B8] font-mono">@ 10 knots</span>
-              </div>
-
-              <div className="bg-[#07111F] p-2 rounded-lg border border-[#20384D]">
-                <span className="text-[8px] text-[#8FA8B8] uppercase block">Peak BSI</span>
-                <span className="text-xs font-mono font-bold text-[#18C7A0] mt-0.5 block">
-                  {routeData.summary.max_bsi ?? 1} / 7
-                </span>
-                <span className="text-[7.5px] text-[#18C7A0] font-mono">Safe</span>
               </div>
             </div>
-
-            {/* Avoided Hazards List */}
-            {routeData.summary.avoided_hazards?.length > 0 && (
-              <div className="space-y-1.5 pt-1 border-t border-[#20384D]/60">
-                <span className="text-[9px] font-mono font-bold text-[#8FA8B8] uppercase block">
-                  Geofenced Mitigations:
-                </span>
-                <div className="space-y-1">
-                  {routeData.summary.avoided_hazards.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 text-[9px] text-[#8FA8B8]">
-                      <CheckCircle2 className="w-3 h-3 text-[#18C7A0] shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
+            
+            {routeData?.optimization && (
+              <div className="text-[9px] text-[#8FA8B8] space-y-1 bg-[#07111F] p-2 rounded border border-[#20384D]">
+                <div>Shortest path peak severity: <strong className="text-[#FFB547]">{routeData.optimization.shortest_route_peak_severity}</strong></div>
+                <div>Extra distance taken: <strong>{routeData.optimization.additional_distance_km} km</strong></div>
               </div>
             )}
-
-            {/* Straight vs Optimized Comparison */}
-            {routeData.comparison && (
-              <div className="p-2.5 rounded-lg bg-[#07111F] border border-[#20384D] space-y-1">
-                <span className="text-[8px] font-mono font-bold text-[#FFB547] uppercase block">
-                  Tactical Advantage
-                </span>
-                <p className="text-[9px] text-[#8FA8B8] leading-relaxed">
-                  {routeData.comparison.reason}
-                </p>
-              </div>
-            )}
+            
           </SpotlightCard>
         )}
 
@@ -323,7 +287,7 @@ export function RoutingSidebar({
       {/* Footer System Stamp */}
       <div className="pt-2 border-t border-[#20384D] text-[9px] text-[#8FA8B8] flex justify-between font-mono">
         <span>A* PostGIS Solver</span>
-        <span>Aero-Hydro Validated</span>
+        <span>ORCA v2.3 Validated</span>
       </div>
     </aside>
   );

@@ -114,7 +114,7 @@ class TripDecisionEngine:
                 })
                 continue
 
-            if route_res.get("decision") == "REJECTED_NO_SAFE_ROUTE":
+            if route_res is None:
                 evaluated_candidates.append({
                     "pfz_id": pfz_id,
                     "status": "REJECTED",
@@ -136,7 +136,7 @@ class TripDecisionEngine:
                 "pfz_id": pfz_id,
                 "status": "RECOMMENDED" if max_bsi < 2 else "CAUTION",
                 "travel_time_hours": travel_time_hours,
-                "route_coords": route_res["route_coords"],
+                "path": route_res.get("path", []),
                 "snapshots": snapshots,
                 "segments": route_res.get("segments", []),
                 "max_bsi": max_bsi
@@ -161,7 +161,7 @@ class TripDecisionEngine:
                 "recommended_pfz": {
                     "id": top_trip["pfz_id"],
                     "travel_time_hours": round(top_trip["travel_time_hours"], 2),
-                    "route_coords": top_trip["route_coords"],
+                    "path": top_trip["path"],
                     "snapshots": top_trip["snapshots"],
                     "segments": top_trip["segments"]
                 },

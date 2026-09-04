@@ -990,76 +990,39 @@ def get_advisory_animation():
 def get_data_status():
     """
     Checks the connectivity to various external databases and services,
-    returning actual 'ONLINE', 'OFFLINE', or 'FORECAST' statuses.
+    returning actual 'CONNECTED', 'OFFLINE', or 'FRESH' statuses.
     """
-    from app.api.services.incois_geoserver import INCOISGeoServerClient
+    import os
+    import time
+    from app.api.services.open_meteo_client import OpenMeteoClient
 
-    # 1. INCOIS PFZ (GeoServer WMS/WFS capabilities)
-    incois_pfz = "OFFLINE"
+    open_meteo_status = "OFFLINE"
     try:
-        caps = INCOISGeoServerClient.get_capabilities()
-        if caps.get("status") in ["online", "stale"]:
-            incois_pfz = "ONLINE"
-    except Exception:
-        pass
-
-    # 2. INCOIS SVAS (Coastal Advisories)
-    incois_svas = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/oceanservices/SVAS/SVAS_Advisory.geojson", timeout=3)
+        # Check Open-Meteo health
+        test_client = OpenMeteoClient()
+        r = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
         if r.status_code == 200:
-            incois_svas = "ONLINE"
+            open_meteo_status = "CONNECTED"
     except Exception:
         pass
 
-    # 3. WW3 Forecast (Waves)
-    ww3_forecast = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/thredds/dodsC/osf/ww3/rsmc_combined_ww3_20260825.nc.dds", timeout=3)
-        if r.status_code == 200:
-            ww3_forecast = "FORECAST"
-        else:
-            # Check backup Open-Meteo
-            r_backup = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
-            if r_backup.status_code == 200:
-                ww3_forecast = "FORECAST (FALLBACK)"
-    except Exception:
-        pass
-
-    # 4. Ocean Currents
-    ocean_currents = "OFFLINE"
-    try:
-        r = requests.head("https://www.incois.gov.in/thredds/dodsC/osf/currents/CURRENTS_NIO_20260824.nc.dds", timeout=3)
-        if r.status_code == 200:
-            ocean_currents = "FORECAST"
-        else:
-            r_backup = requests.head("https://marine-api.open-meteo.com/v1/marine", timeout=3)
-            if r_backup.status_code == 200:
-                ocean_currents = "FORECAST (FALLBACK)"
-    except Exception:
-        pass
-
-    # 5. IMD Warnings
-    imd_warnings = "UNAVAILABLE"
-
-    # Try to grab the last updated timestamp from INCOIS capabilities or safetyGrid cache
-    last_updated = datetime.datetime.utcnow().strftime("%d %b %Y • %H:%M UTC")
+    cache_status = "STALE"
     try:
         cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
         if os.path.exists(cache_dir):
-            files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.startswith("safety_grid_")]
+            files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith(".json") or f.endswith(".db")]
             if files:
                 mtime = max(os.path.getmtime(f) for f in files)
-                last_updated = datetime.datetime.utcfromtimestamp(mtime).strftime("%d %b %Y • %H:%M UTC")
+                if time.time() - mtime < 86400:
+                    cache_status = "FRESH"
     except Exception:
         pass
 
+    last_updated = datetime.datetime.utcnow().strftime("%d %b %Y • %H:%M UTC")
+
     return {
-        "incois_pfz": incois_pfz,
-        "incois_svas": incois_svas,
-        "ww3_forecast": ww3_forecast,
-        "ocean_currents": ocean_currents,
-        "imd_warnings": imd_warnings,
+        "OPEN-METEO": open_meteo_status,
+        "CACHE": cache_status,
         "last_updated": last_updated
     }
 

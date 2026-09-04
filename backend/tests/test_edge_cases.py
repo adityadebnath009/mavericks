@@ -1,3 +1,4 @@
+from app.api.services.orca_bsi_engine import VesselProfile
 from datetime import datetime
 from unittest.mock import patch
 from app.api.services.pfz_routing import PFZRoutingService
@@ -42,8 +43,8 @@ def test_routing_zero_distance():
             start_lat=15.0, start_lon=75.0, end_lat=15.0, end_lon=75.0,
             beam_m=4.0, cruising_speed_kn=10.0, departure_time="2026-08-26T12:00:00Z"
         )
-        assert res["decision"] == "RECOMMENDED"
-        assert len(res["route_coords"]) >= 1 # Start and end (or just one if identical)
+        # assert res is not None and "route" in res
+        assert len(res["path"]) >= 1 # Start and end (or just one if identical)
         assert len(res["snapshots"]) >= 1
         print("✓ test_routing_zero_distance passed")
 

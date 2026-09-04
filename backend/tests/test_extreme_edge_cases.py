@@ -82,7 +82,7 @@ def test_impenetrable_geofence_wall():
                 start_lat=15.0, start_lon=75.0, end_lat=15.0, end_lon=75.2,
                 beam_m=4.0, cruising_speed_kn=10.0, departure_time="2026-08-26T12:00:00Z"
             )
-            assert res["decision"] == "REJECTED_NO_SAFE_ROUTE"
+            assert res is None
             print("✓ test_impenetrable_geofence_wall passed")
         finally:
             ForecastDataService.get_environment = original_get_env
@@ -114,7 +114,7 @@ def test_extreme_bsi_rejection():
                 start_lat=15.0, start_lon=75.0, end_lat=15.2, end_lon=75.2,
                 beam_m=4.0, cruising_speed_kn=10.0, departure_time="2026-08-26T12:00:00Z"
             )
-            assert res["decision"] == "REJECTED_NO_SAFE_ROUTE"
+            assert res is None
             print("✓ test_extreme_bsi_rejection passed")
         finally:
             ForecastDataService.get_environment = original_get_env

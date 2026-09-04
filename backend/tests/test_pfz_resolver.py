@@ -28,8 +28,11 @@ class TestIncoisResolverCache(unittest.TestCase):
         IncoisDatasetResolver._memory_cache_time.clear()
         IncoisDatasetResolver._url_cache.clear()
         IncoisDatasetResolver._url_cache_time.clear()
-        if os.path.exists(self.test_cache_dir):
-            shutil.rmtree(self.test_cache_dir)
+        
+        # Use scratch directory to avoid sandbox PermissionError
+        self.test_cache_dir = "/Users/adityadebnath/.gemini/antigravity/brain/6d6f5b61-bb07-4491-b2b8-fcef21c564f0/scratch/test_cache_" + uuid.uuid4().hex
+        IncoisDatasetResolver.CACHE_DIR = self.test_cache_dir
+        
         os.makedirs(self.test_cache_dir, exist_ok=True)
         os.makedirs(os.path.join(self.test_cache_dir, "ww3"), exist_ok=True)
         os.makedirs(os.path.join(self.test_cache_dir, "currents"), exist_ok=True)
@@ -43,6 +46,8 @@ class TestIncoisResolverCache(unittest.TestCase):
     def tearDown(self):
         self.patcher_ww3.stop()
         self.patcher_curr.stop()
+        if hasattr(self, 'test_cache_dir') and os.path.exists(self.test_cache_dir):
+            shutil.rmtree(self.test_cache_dir, ignore_errors=True)
 
     @patch.object(IncoisDatasetResolver, '_fetch_remote')
     def test_02_memory_hit(self, mock_fetch):

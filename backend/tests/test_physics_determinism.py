@@ -1,3 +1,4 @@
+from app.api.services.orca_bsi_engine import VesselProfile
 from app.api.services.pfz_routing import PFZRoutingService
 from app.api.services.forecast_data import ForecastDataService
 from app.core.domain import EnvironmentSnapshot

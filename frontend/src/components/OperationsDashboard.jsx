@@ -40,6 +40,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   const [beamWidth, setBeamWidth] = useState(3.5);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedHour, setSelectedHour] = useState(12);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
   const [safetyData, setSafetyData] = useState(null);
   const [forecastTimeline, setForecastTimeline] = useState(null);
@@ -210,9 +211,9 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
         </div>
         <main className="flex-1 flex flex-col h-full bg-[#07111F] relative overflow-hidden">
           <div className="flex-1 relative">
-            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={beamWidth} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} />
+            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={beamWidth} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} />
           </div>
-          <WeatherTimelinePanel forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} />
+          <WeatherTimelinePanel routeData={routeData} forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} activeMode={activeMode} />
         </main>
         <SafetyAdvisorChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} liveContext={liveContext} activeMode={activeMode} />
       </div>

@@ -1,3 +1,4 @@
+from app.api.services.orca_bsi_engine import VesselProfile
 import math
 from datetime import datetime, timedelta
 from app.api.services.pfz_routing import PFZRoutingService

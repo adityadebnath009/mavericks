@@ -9,6 +9,10 @@ class EnvironmentalConditions(BaseModel):
     wave_direction_deg: Optional[float] = None
     wind_wave_height_m: Optional[float] = None
     wind_wave_period_s: Optional[float] = None
+    wind_wave_direction_deg: Optional[float] = None
+    swell_wave_height_m: Optional[float] = None
+    swell_wave_period_s: Optional[float] = None
+    swell_wave_direction_deg: Optional[float] = None
     wind_speed_ms: Optional[float] = None
     wind_direction_deg: Optional[float] = None
     current_speed_ms: Optional[float] = None

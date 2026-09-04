@@ -5,7 +5,7 @@ import RiskBadge from '../common/RiskBadge';
 const MODE_TITLES = {
   routing: { tag: 'TACTICAL ROUTING', desc: 'A* Safe Pathfinding & Boundary Geofencing' },
   fisheries: { tag: 'OCEAN ANALYTICS', desc: 'Potential Fishing Zones & Thermal Fronts' },
-  weather: { tag: 'METEOROLOGICAL HAZARDS', desc: 'SVAS Capsizing BSI & Severe Weather' }
+  weather: { tag: 'METEOROLOGICAL HAZARDS', desc: 'ORCA BSI & Severe Weather' }
 };
 
 const STATUS_META = {
