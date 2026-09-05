@@ -168,19 +168,7 @@ class ForecastDataService:
         hsea_i = interp("hsea_initial")
         hsea_f = interp("hsea_final")
         
-        # Convert directional spread from degrees to ratio for BSI calculation
-        import numpy as np
-        spr_rad = np.radians(spr_deg)
-        ss = float(np.sqrt(2.0 * (1.0 - np.cos(spr_rad))))
-        
-        from app.api.services.bsi_calculator import BSICalculator
-        bsi = BSICalculator.calculate_bsi(
-            Ss=stp,
-            Hs=hs,
-            ss=ss,
-            Hsea_initial=hsea_i,
-            Hsea_final=hsea_f
-        )
+        bsi = 0
 
         from app.core.domain import EnvironmentalConditions, TimelineSeries, ProvenanceRecord
         return EnvironmentSnapshot(
