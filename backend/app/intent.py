@@ -36,10 +36,15 @@ class ChatRequest(BaseModel):
 
 
 class ParsedIntent(BaseModel):
-    query_type: str
-    activity_type: str
+    query_type: str = "marine_overview"
+
+    activity_type: str = "fishing"
 
     location_name: Optional[str] = None
+
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
     departure_time: Optional[datetime] = None
 
     days_ahead: int = 0
