@@ -187,8 +187,8 @@ class UserInteractionAgent:
     def resolve_location(
         self,
         intent: ParsedIntent,
-        user_latitude: Optional[float],
-        user_longitude: Optional[float]
+        user_latitude: float | None = None,
+        user_longitude: float | None = None
     ) -> ParsedIntent:
         """
         Resolve the location using the strongest available source.
@@ -213,3 +213,32 @@ class UserInteractionAgent:
             intent.longitude = user_longitude
 
         return intent
+
+    def prepare_planner_request(
+        self,
+        intent: ParsedIntent,
+        user_latitude: float | None = None,
+        user_longitude: float | None = None,
+    ) -> dict:
+        """
+        Convert a parsed user intent into parameters expected by the Planner Agent.
+        """
+
+        intent = self.resolve_location(
+            intent,
+            user_latitude=user_latitude,
+            user_longitude=user_longitude,
+        )
+
+        if intent.latitude is not None and intent.longitude is not None:
+            latitude = intent.latitude
+            longitude = intent.longitude
+        else:
+            raise ValueError("No location available for planner request.")
+
+        return {
+            "latitude": latitude,
+            "longitude": longitude,
+            "days": intent.days_ahead,
+            "time_factor": intent.time_factor,
+        }
