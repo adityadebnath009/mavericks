@@ -36,21 +36,14 @@ class ChatRequest(BaseModel):
 
 
 class ParsedIntent(BaseModel):
-
-    query_type: str = Field(
-        default="marine_overview",
-        description=(
-            "Type of information requested by the user, "
-            "such as safety_assessment, weather_conditions, "
-            "fishing_conditions, or marine_overview."
-        )
-    )
+    query_type: str
+    activity_type: str
 
     location_name: Optional[str] = None
-
     departure_time: Optional[datetime] = None
 
-    activity_type: str = "fishing"
+    days_ahead: int = 0
+    time_factor: float = 0.5
 
     vessel_size_meters: Optional[float] = None
 
