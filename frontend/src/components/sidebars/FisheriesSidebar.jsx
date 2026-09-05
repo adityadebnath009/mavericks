@@ -241,7 +241,7 @@ export function FisheriesSidebar({
               <Layers className="w-3.5 h-3.5 text-[#00D4FF]" />
               WMS Satellite Rasters
             </span>
-            <span className="text-[9px] text-[#18C7A0] font-mono font-bold">INCOIS OGC</span>
+            <span className="text-[9px] text-[#18C7A0] font-mono font-bold">DYNAMIC PROVENANCE</span>
           </div>
 
           {/* SST Opacity Slider */}

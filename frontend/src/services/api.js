@@ -96,19 +96,23 @@ export async function evaluatePfz(vessel, pfzId, beam = 3.5) {
 
 /** 8. Calculate Weather-Optimized A* Safe Route */
 export async function calculateRoute(start, end, beam = 3.5, day = 1, hour = 12) {
-  const data = await fetchJson(getApiUrl('/api/pfz/route'), {
+  const dt = new Date();
+  dt.setDate(dt.getDate() + (day - 1));
+  dt.setUTCHours(hour, 0, 0, 0);
+  
+  const data = await fetchJson(getApiUrl('/api/routing/safe-route'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      start: { lat: start.lat, lon: start.lon },
-      end: { lat: end.lat, lon: end.lon },
-      beam_m: beam,
-      day,
-      hour
+      origin: { lat: start.lat, lon: start.lon },
+      destination: { lat: end.lat, lon: end.lon },
+      vessel_profile: { length_m: beam * 5.0, beam_m: beam, cruising_speed_kn: 10.0 },
+      departure_time: dt.toISOString(),
+      optimize_departure: false
     })
   });
-  if (data && data.route_coords) return data;
-  throw new Error('Malformed route data');
+  if (data && data.path) return data;
+  throw new Error('Malformed route data or no safe route found.');
 }
 
 /** 9. AI Safety Advisor Grounded RAG Query */
@@ -129,11 +133,16 @@ export async function getDataStatus() {
   return fetchJson(getApiUrl('/api/safety/data-status'));
 }
 
-/** 11. Get INCOIS Point Analytics Telemetry */
+/** 11. Get Telemetry (Phase F1) */
+export async function getTelemetry(lat, lon) {
+  const data = await fetchJson(getApiUrl(`/api/telemetry/location?lat=${lat}&lon=${lon}`));
+  if (data) return data;
+  throw new Error('Malformed telemetry payload');
+}
+
+/** 11b. Legacy stub */
 export async function getPointAnalytics(lat, lon) {
-  const data = await fetchJson(getApiUrl(`/api/incois/point-analytics?lat=${lat}&lon=${lon}`));
-  if (data && data.metrics) return data;
-  throw new Error('Malformed point-analytics payload');
+  return getTelemetry(lat, lon);
 }
 
 /** 12. Get MapLibre Vector Grid for an exact forecast day/hour. */

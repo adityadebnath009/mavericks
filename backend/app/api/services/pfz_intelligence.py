@@ -3,8 +3,10 @@ import logging
 from shapely.geometry import Point, shape
 from shapely.ops import nearest_points
 from app.api.services.incois_geoserver import INCOISGeoServerClient
-from app.api.services.incois_resolver import IncoisDatasetResolver
-from app.api.services.bsi_calculator import BSICalculator
+from app.api.services.marine_forecast import MarineForecastService
+from app.api.services.orca_bsi_engine import OrcaBsiEngine, VesselProfile
+import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,37 @@ class PFZIntelligenceService:
     Service for calculating proximity and localized meteorological/oceanographic risks
     for official INCOIS Potential Fishing Zones (PFZs) retrieved via WFS.
     """
+
+    @classmethod
+    def calculate_fishing_opportunity(cls, env) -> float:
+        """
+        Calculates a defensible Fishing Opportunity Score (0-100).
+        Scoring logic:
+        - SST (Sea Surface Temperature): Optimal gradient is 26-29 °C (yields max 50 points).
+        - CHL (Chlorophyll-a): Optimal concentration > 0.2 mg/m^3 (yields max 50 points).
+        Missing inputs return None to preserve missing-vs-zero semantics.
+        """
+        sst = getattr(env, 'sst_c', None)
+        chl = getattr(env, 'chl_mg_m3', None)
+
+        if sst is None or chl is None:
+            return None
+            
+        sst_score = 0.0
+        if 26.0 <= sst <= 29.0:
+            sst_score = 50.0
+        elif 24.0 <= sst < 26.0:
+            sst_score = 25.0 + 25.0 * ((sst - 24.0) / 2.0)
+        elif 29.0 < sst <= 31.0:
+            sst_score = 50.0 - 25.0 * ((sst - 29.0) / 2.0)
+            
+        chl_score = 0.0
+        if chl >= 0.2:
+            chl_score = 50.0
+        elif chl > 0.0:
+            chl_score = 50.0 * (chl / 0.2)
+            
+        return round(sst_score + chl_score, 1)
 
     @classmethod
     def evaluate_pfz_zone(cls, vessel_lat: float, vessel_lon: float, pfz_id: str, beam_m: float = 3.5) -> dict:
@@ -66,36 +99,21 @@ class PFZIntelligenceService:
         bsi = 0
         source = "Open-Meteo (Fallback)"
 
+        target_date = datetime.datetime.utcnow().replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
         try:
-            # Query INCOIS OPeNDAP forecast for Day 1 at the closest PFZ coordinate
-            ww3_res, curr_res = IncoisDatasetResolver.resolve_latest_forecast(nearest_lat, nearest_lon, day=1)
-            if ww3_res and curr_res:
-                ww3_d = ww3_res.records
-                curr_d = curr_res.records
-                # Target the middle index (12:00 UTC representation)
-                step = ww3_d[4]
-                hs = step["hs"]
-                wind_speed = step["wind_speed_kmh"]
-                stp = step["stp"]
-                spr = step["spr"]
-                hsea_initial = step["hsea_initial"]
-                hsea_final = step["hsea_final"]
-                current_speed = curr_d[4]["speed_m_s"]
-                bsi = BSICalculator.calculate_bsi(stp, hs, spr, hsea_initial, hsea_final)
-                source = "INCOIS OPENDAP"
+            snapshot = MarineForecastService.get_environment(nearest_lat, nearest_lon, target_date)
+            vessel = VesselProfile(length_m=15.0, beam_m=beam_m, cruising_speed_kn=10.0)
+            orca_result = OrcaBsiEngine().evaluate(snapshot, vessel)
+            bsi = orca_result["severity_score"]
+            
+            hs = snapshot.current.wave_height_m or 1.2
+            wind_speed = (snapshot.current.wind_speed_ms * 3.6) if snapshot.current.wind_speed_ms else 15.0
+            current_speed = snapshot.current.current_speed_ms or 0.25
+            stp = snapshot.current.directional_spread or 0.015
+            spr = snapshot.current.directional_spread or 0.25
+            source = "MarineForecastService (B2)"
         except Exception as e:
-            logger.warning(f"Resolver failed for PFZ coordinate {nearest_lat},{nearest_lon}, using Open-Meteo fallback: {e}")
-            # Try to fetch from Open-Meteo as tertiary fallback
-            try:
-                from app.api.endpoints.weather import get_marine_weather
-                weather = get_marine_weather(nearest_lat, nearest_lon)
-                forecast = weather.get("forecast_hourly", {})
-                hs = sum(forecast.get("wave_height_m", [1.2])[:24]) / 24.0
-                wind_speed = sum(forecast.get("wind_speed_kmh", [15.0])[:24]) / 24.0
-                current_speed = 0.1 + hs * 0.18
-                bsi = 1 if hs > 1.25 else 0
-            except:
-                pass
+            logger.warning(f"MarineForecastService failed for {nearest_lat},{nearest_lon}: {e}")
 
         # 4. Classify Marine Risk independently from the PFZ presence
         reasons = []
@@ -122,12 +140,12 @@ class PFZIntelligenceService:
             curr_risk = "LOW"
 
         # BSI Risk
-        if bsi >= 4:
+        if bsi >= 76:
             bsi_risk = "HIGH"
-            reasons.append("High capsizing risk (BSI score >= 4)")
-        elif bsi >= 2:
+            reasons.append(f"High capsizing risk (BSI score {bsi})")
+        elif bsi >= 21:
             bsi_risk = "MODERATE"
-            reasons.append("Moderate capsizing/crossing sea risk (BSI score >= 2)")
+            reasons.append(f"Moderate capsizing/crossing sea risk (BSI score {bsi})")
         else:
             bsi_risk = "LOW"
 

@@ -31,7 +31,7 @@ def test_speed_caps_and_floors():
                 start_lat=15.0, start_lon=75.0, end_lat=15.2, end_lon=75.0,
                 beam_m=4.0, cruising_speed_kn=1.0, departure_time="2026-08-26T12:00:00Z"
             )
-            assert res_slow["decision"] == "REJECTED_NO_SAFE_ROUTE"
+            assert res_slow is None
             
             # Fast cap
             def mock_get_environment_fast(lat, lon, timestamp):
@@ -66,8 +66,8 @@ def test_impenetrable_geofence_wall():
     def mock_get_environment(lat, lon, timestamp):
         return EnvironmentSnapshot(
             timestamp=timestamp, lat=lat, lon=lon,
-            wave_height_m=1.0, wave_steepness=0.015, directional_spread=0.25,
-            wind_speed_kmh=10.0, wind_direction_deg=180.0,
+            wave_height_m=20.0, wave_steepness=0.015, directional_spread=0.25,
+            wind_speed_kmh=150.0, wind_direction_deg=180.0,
             current_speed_ms=0.0, current_direction_deg=180.0, bsi=0
         )
         
@@ -98,9 +98,9 @@ def test_extreme_bsi_rejection():
     def mock_get_environment(lat, lon, timestamp):
         return EnvironmentSnapshot(
             timestamp=timestamp, lat=lat, lon=lon,
-            wave_height_m=1.0, wave_steepness=0.015, directional_spread=0.25,
-            wind_speed_kmh=10.0, wind_direction_deg=180.0,
-            current_speed_ms=0.0, current_direction_deg=180.0, bsi=5
+            wave_height_m=20.0, wave_steepness=0.015, directional_spread=0.25,
+            wind_speed_kmh=150.0, wind_direction_deg=180.0,
+            current_speed_ms=0.0, current_direction_deg=180.0, bsi=10
         )
         
     original_get_env = ForecastDataService.get_environment

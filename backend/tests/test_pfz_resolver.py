@@ -30,7 +30,7 @@ class TestIncoisResolverCache(unittest.TestCase):
         IncoisDatasetResolver._url_cache_time.clear()
         
         # Use scratch directory to avoid sandbox PermissionError
-        self.test_cache_dir = "/Users/adityadebnath/.gemini/antigravity/brain/6d6f5b61-bb07-4491-b2b8-fcef21c564f0/scratch/test_cache_" + uuid.uuid4().hex
+        self.test_cache_dir = "/tmp/test_cache_" + uuid.uuid4().hex
         IncoisDatasetResolver.CACHE_DIR = self.test_cache_dir
         
         os.makedirs(self.test_cache_dir, exist_ok=True)

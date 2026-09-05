@@ -66,30 +66,43 @@ class MarineForecastService:
         # Slicing the single 72h OM response locally
         current_data, timeline_data = OpenMeteoProvider.extract_forecast(om_marine, om_weather, timestamp)
         
-        # INCOIS SST Primary
+        # INCOIS SST & CHL Primary
         sst_value = None
         sst_fallback = False
         sst_source = "open-meteo"
+        
+        chl_value = None
+        chl_fallback = False
+        chl_source = "incois"
         
         sst_grid_key = cls._get_grid_key(lat, lon)
         current_time = time.time()
         
         if sst_grid_key in cls._sst_cache and current_time - cls._sst_cache[sst_grid_key][0] < 3600:
-            sst_value = cls._sst_cache[sst_grid_key][1]
+            sst_value, chl_value = cls._sst_cache[sst_grid_key][1], cls._sst_cache[sst_grid_key][2]
             sst_source = "incois"
         else:
             try:
-                res = INCOISGeoServerClient.get_feature_info(lat, lon, "PFZ-TUNA-SST-CHL:sst")
-                if res.get("status") == "success" and res.get("value") is not None:
-                    sst_value = float(res["value"])
-                    sst_source = "incois"
-                    cls._sst_cache[sst_grid_key] = (current_time, sst_value)
+                res_chl = INCOISGeoServerClient.get_feature_info(lat, lon, "PFZ-TUNA-SST-CHL:chl")
+                
+                # Force Open-Meteo for SST
+                sst_value = current_data.get("sst_c")
+                sst_source = "open-meteo"
+                
+                if res_chl.get("status") == "success" and res_chl.get("value") is not None:
+                    chl_value = float(res_chl["value"])
+                    
+                if chl_value is not None:
+                    cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)
             except Exception as e:
-                logger.warning(f"INCOIS SST failed for {lat},{lon}, falling back to Open-Meteo: {e}")
+                logger.warning(f"INCOIS fetch failed for {lat},{lon}, falling back: {e}")
 
         if sst_value is None:
             sst_value = current_data.get("sst_c")
             sst_fallback = True
+            
+        if chl_value is None:
+            chl_fallback = True
 
         current = EnvironmentalConditions(
             timestamp=timestamp,
@@ -107,6 +120,7 @@ class MarineForecastService:
             current_speed_ms=current_data.get("current_speed_ms"),
             current_direction_deg=current_data.get("current_direction_deg"),
             sst_c=sst_value,
+            chl_mg_m3=chl_value,
             directional_spread=None
         )
 
@@ -141,8 +155,15 @@ class MarineForecastService:
                 fallback=sst_fallback,
                 observed_at=observed_time,
                 cached=is_cached if sst_source == "open-meteo" else False,
-                age_minutes=int(age_minutes) if sst_source == "open-meteo" else 0
-            )
+                age_minutes=int(age_minutes) 
+            ),
+            "chl_mg_m3": ProvenanceRecord(
+                source=chl_source,
+                fallback=chl_fallback,
+                observed_at=observed_time,
+                cached=False,
+                age_minutes=0
+            ) 
         }
 
         return EnvironmentSnapshot(

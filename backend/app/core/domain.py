@@ -18,6 +18,7 @@ class EnvironmentalConditions(BaseModel):
     current_speed_ms: Optional[float] = None
     current_direction_deg: Optional[float] = None
     sst_c: Optional[float] = None
+    chl_mg_m3: Optional[float] = None
     directional_spread: Optional[float] = None
 
 class TimelineSeries(BaseModel):

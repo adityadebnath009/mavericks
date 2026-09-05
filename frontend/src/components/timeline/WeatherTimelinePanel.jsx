@@ -159,19 +159,19 @@ export function WeatherTimelinePanel({
           
           <div className="bg-[#13263A] border border-[#20384D] rounded-xl p-2.5 flex flex-col justify-between overflow-hidden shadow-md">
             <div className="flex justify-between items-center text-[9px] font-mono">
-              <span className="text-[#8FA8B8] font-bold uppercase">SVAS BSI Capsizing Score</span>
-              <span className="text-[#18C7A0] font-bold">0 — 7 Index</span>
+              <span className="text-[#8FA8B8] font-bold uppercase">ORCA MARINE SEVERITY SCORE</span>
+              <span className="text-[#18C7A0] font-bold">0-100 Index</span>
             </div>
             <div className="w-full h-24 mt-1">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={forecastTimeline || []} margin={{ top: 4, right: 6, left: -20, bottom: 2 }}>
                   <XAxis dataKey="time" tick={{ fill: '#8FA8B8', fontSize: 8 }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 7]} tick={{ fill: '#8FA8B8', fontSize: 8 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: '#8FA8B8', fontSize: 8 }} axisLine={false} tickLine={false} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#07111F', borderColor: '#20384D', borderRadius: '8px', fontSize: '10px' }} 
                     labelStyle={{ color: '#8FA8B8', fontWeight: 'bold' }}
                     itemStyle={{ color: '#EAF4F8' }}
-                    formatter={(value) => [`${value} / 7`, 'BSI Score']}
+                    formatter={(value) => [`${value} / 100`, 'BSI Score']}
                   />
                   <Bar dataKey="bsi" radius={[3, 3, 0, 0]}>
                     {(forecastTimeline || []).map((entry, index) => (

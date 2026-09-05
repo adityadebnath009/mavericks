@@ -170,7 +170,7 @@ export function WeatherSidebar({
           <div className="flex items-center justify-between border-b border-[#20384D] pb-1.5">
             <span className="text-[10px] font-mono font-bold text-[#8FA8B8] uppercase flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#00D4FF]" />
-              3-Day SVAS Forecast Horizon
+              3-Day ORCA BSI Horizon
             </span>
             <span className="text-[9px] font-mono text-[#8FA8B8]">0.4° Grid</span>
           </div>
@@ -195,7 +195,7 @@ export function WeatherSidebar({
                 >
                   <span className="text-[8px] font-mono font-bold text-[#8FA8B8] block">{dateLabel}</span>
                   <span className="text-sm font-black font-mono text-[#EAF4F8] my-0.5 block">
-                    {data.score}/7
+                    {data.score}/100
                   </span>
                   <RiskBadge level={data.rating} size="xs" showIcon={false} />
                 </button>

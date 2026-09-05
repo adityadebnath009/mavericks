@@ -29,4 +29,4 @@ def test_missing_data_discipline():
     heading_res = engine.calculate_wave_heading(None, 45.0)
     assert heading_res["available"] is False
     assert heading_res["modifier"] == 1.0  # Fallback neutral
-    assert heading_res["relative_angle_deg"] is None
+    assert heading_res["relative_angle"] is None

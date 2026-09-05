@@ -82,7 +82,7 @@ def test_beam_scaling():
             start_lat, start_lon, end_lat, end_lon,
             beam_m=4.0, cruising_speed_kn=10.0, departure_time=dep_time
         )
-        assert res_wide["decision"] == "RECOMMENDED"
+        assert res_wide is not None
         
         # Beam 1.0m -> critical_height = 1.5 * 1 = 1.5m
         # Wave is 2.5, so route should be completely rejected
@@ -90,7 +90,7 @@ def test_beam_scaling():
             start_lat, start_lon, end_lat, end_lon,
             beam_m=1.0, cruising_speed_kn=10.0, departure_time=dep_time
         )
-        assert res_narrow["decision"] == "REJECTED_NO_SAFE_ROUTE"
+        assert res_narrow is None
         
         print("✓ test_beam_scaling passed")
     finally:

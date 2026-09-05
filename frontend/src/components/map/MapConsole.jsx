@@ -388,12 +388,15 @@ export function MapConsole({
         });
 
 
+        const routeCoords = routeData?.path?.map(n => [n.lon, n.lat]) || [];
+        const straightCoords = routeCoords.length > 0 ? [routeCoords[0], routeCoords[routeCoords.length - 1]] : [];
+
         // --- 6. Source: optimized-route (A* Path Vector) ---
         map.addSource('optimized-route', {
           type: 'geojson',
-          data: routeData?.route_coords?.length ? {
+          data: routeCoords.length ? {
             type: 'Feature',
-            geometry: { type: 'LineString', coordinates: routeData.route_coords }
+            geometry: { type: 'LineString', coordinates: routeCoords }
           } : EMPTY_FEATURE_COLLECTION
         });
 
@@ -416,9 +419,9 @@ export function MapConsole({
         // --- 7. Source: straight-route (Direct Baseline Comparison) ---
         map.addSource('straight-route', {
           type: 'geojson',
-          data: routeData?.straight_coords?.length ? {
+          data: straightCoords.length ? {
             type: 'Feature',
-            geometry: { type: 'LineString', coordinates: routeData.straight_coords }
+            geometry: { type: 'LineString', coordinates: straightCoords }
           } : EMPTY_FEATURE_COLLECTION
         });
 
@@ -537,6 +540,58 @@ export function MapConsole({
                 return null;
               };
               
+              // Fisheries Phase F1 Payload adapter
+              const prov = res?.provenance || {};
+              // using existing source variable
+              
+              
+              const safetyScore = res?.marine_severity_score;
+              const fishingScore = res?.fishing_opportunity_score;
+              const dataStatus = res?.data_status;
+              
+              // Only override HTML if we have real telemetry payload
+              if (res && typeof res.marine_severity_score !== 'undefined') {
+                  const safetyText = safetyScore !== null ? `<span class="text-[#FF5C5C] font-bold">Severity: ${safetyScore.toFixed(0)}/100</span>` : `<span class="text-[#8FA8B8]">BSI Data Unavailable</span>`;
+                  const fishText = fishingScore !== null ? `<span class="text-[#18C7A0] font-bold">Opportunity: ${fishingScore.toFixed(0)}/100</span>` : `<span class="text-[#8FA8B8]">SST/CHL Unavailable</span>`;
+                  
+                  popup.setHTML(`
+                    <div class="bg-[#0D1B2A] border border-[#20384D] rounded-xl p-3 shadow-2xl min-w-[200px] text-left">
+                      <div class="flex items-center space-x-2 mb-2 border-b border-[#20384D] pb-2">
+                        <div class="h-2 w-2 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#00D4FF]"></div>
+                        <div class="text-[10px] text-[#00D4FF] font-bold uppercase tracking-wider">Ocean Analytics Point</div>
+                      </div>
+                      <div class="mb-3 text-[12px] space-y-1">
+                        <div>Coordinates: <span class="text-[#EAF4F8] font-bold">${clickLat.toFixed(4)}°N, ${clickLon.toFixed(4)}°E</span></div>
+                        <div class="text-[10px] text-[#8FA8B8] truncate">Source: ${source}</div>
+                        <div class="text-[10px] text-[#8FA8B8] truncate">Status: ${dataStatus}</div>
+                      </div>
+                      <div class="flex justify-between items-center bg-[#13263A] rounded-lg p-2 mb-3">
+                        <div class="flex flex-col text-[10px]">
+                           ${fishText}
+                           ${safetyText}
+                        </div>
+                      </div>
+                      <div class="flex space-x-2">
+                        <button id="set-departure-${clickLat}-${clickLon}" class="flex-1 bg-[#20384D] hover:bg-[#18C7A0] hover:text-[#0D1B2A] text-[#EAF4F8] text-[10px] font-bold py-1.5 px-2 rounded-md transition-all duration-300 uppercase tracking-wider">
+                          Dep
+                        </button>
+                        <button id="set-destination-${clickLat}-${clickLon}" class="flex-1 bg-[#00D4FF] hover:bg-[#EAF4F8] text-[#0D1B2A] text-[10px] font-bold py-1.5 px-2 rounded-md transition-all duration-300 shadow-[0_0_10px_rgba(0,212,255,0.3)] uppercase tracking-wider">
+                          Dest
+                        </button>
+                      </div>
+                    </div>
+                  `);
+                  
+                  // Re-attach listeners
+                  setTimeout(() => {
+                    const depBtn = document.getElementById(`set-departure-${clickLat}-${clickLon}`);
+                    const destBtn = document.getElementById(`set-destination-${clickLat}-${clickLon}`);
+                    if (depBtn) depBtn.addEventListener('click', () => onLocationSelectRef.current({ lat: clickLat, lon: clickLon }));
+                    if (destBtn) destBtn.addEventListener('click', () => onDestinationSelectRef.current({ lat: clickLat, lon: clickLon }));
+                  }, 100);
+                  
+                  return;
+              }
               const vSst = getVal(metrics, 'sst', 'sst_c');
               const vChl = getVal(metrics, 'chlorophyll', 'chl_mg_m3');
               const vWind = getVal(metrics, 'wind_speed', 'wind_speed_kmh');
@@ -914,14 +969,17 @@ export function MapConsole({
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
 
-    const routeGeo = routeData?.route_coords?.length ? {
+    const routeCoords = routeData?.path?.map(n => [n.lon, n.lat]) || [];
+    const straightCoords = routeCoords.length > 0 ? [routeCoords[0], routeCoords[routeCoords.length - 1]] : [];
+    
+    const routeGeo = routeCoords.length ? {
       type: 'Feature',
-      geometry: { type: 'LineString', coordinates: routeData.route_coords }
+      geometry: { type: 'LineString', coordinates: routeCoords }
     } : EMPTY_FEATURE_COLLECTION;
 
-    const straightGeo = routeData?.straight_coords?.length ? {
+    const straightGeo = straightCoords.length ? {
       type: 'Feature',
-      geometry: { type: 'LineString', coordinates: routeData.straight_coords }
+      geometry: { type: 'LineString', coordinates: straightCoords }
     } : EMPTY_FEATURE_COLLECTION;
 
     const nodesGeo = routeData?.path?.length ? {
@@ -948,7 +1006,7 @@ export function MapConsole({
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
-    const hasRoute = Boolean(routeData?.route_coords?.length);
+    const hasRoute = Boolean(routeData?.path?.length);
 
     const modeVisibilityMap = {
       routing: {
@@ -1103,8 +1161,8 @@ export function MapConsole({
     if (!mapRef.current || !mapLoaded) return;
 
     const dest = destinationLocation || (
-      routeData?.route_coords?.length
-        ? { lon: routeData.route_coords[routeData.route_coords.length - 1][0], lat: routeData.route_coords[routeData.route_coords.length - 1][1] }
+      routeData?.path?.length
+        ? { lon: routeData.path[routeData.path.length - 1].lon, lat: routeData.path[routeData.path.length - 1].lat }
         : null
     );
 
