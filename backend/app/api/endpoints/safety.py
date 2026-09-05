@@ -40,9 +40,36 @@ def get_safety_assessment(
     length_m = 15.0
     beam_m = beam if beam else 4.0
     vessel = VesselProfile(length_m=length_m, beam_m=beam_m, cruising_speed_kn=10.0)
+
     engine = OrcaBsiEngine()
     
     orca_result = engine.evaluate(snapshot, vessel)
+    
+    # Generate 3-day peaks
+    daily_peaks = {}
+    for d in [1, 2, 3]:
+        d_date = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+        if d > 1:
+            d_date += datetime.timedelta(days=d-1)
+        
+        peak_score = 0
+        peak_rating = "SAFE"
+        for h in range(0, 24, 3):
+            h_date = d_date.replace(hour=h)
+            h_snap = MarineForecastService.get_environment(lat, lon, h_date)
+            h_res = engine.evaluate(h_snap, vessel)
+            if h_res["severity_score"] > peak_score:
+                peak_score = h_res["severity_score"]
+                
+        if peak_score >= 76:
+            peak_rating = "EXTREME"
+        elif peak_score >= 51:
+            peak_rating = "HIGH"
+        elif peak_score >= 21:
+            peak_rating = "MODERATE"
+            
+        daily_peaks[f"day{d}"] = {"score": peak_score, "rating": peak_rating}
+
     
     inspect_hs = snapshot.current.wave_height_m or 0.0
     inspect_wind = (snapshot.current.wind_speed_ms * 3.6) if snapshot.current.wind_speed_ms else 0.0
@@ -58,6 +85,7 @@ def get_safety_assessment(
         "available_hazards": orca_result["available_hazards"],
         "unavailable_hazards": orca_result["unavailable_hazards"],
         "orca_risk": orca_result,
+        "daily_peaks": daily_peaks,
         "raw_metrics": {
             "wave_height_m": inspect_hs,
             "wind_speed_kmh": inspect_wind,

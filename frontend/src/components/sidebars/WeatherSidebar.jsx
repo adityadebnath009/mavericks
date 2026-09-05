@@ -28,9 +28,13 @@ export function WeatherSidebar({
 }) {
   const hoursList = [0, 3, 6, 9, 12, 15, 18, 21];
 
-  const overallRisk = safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
+  const bsiScore = safetyData?.severity_score || 0;
+  const overallRisk = safetyData?.orca_risk?.rating || 'SAFE';
   const raw = safetyData?.raw_metrics || {};
-  const dailyBsi = safetyData?.provenance?.daily_bsi_forecast || {
+  const availableHazards = safetyData?.available_hazards || [];
+  const unavailableHazards = safetyData?.unavailable_hazards || [];
+  const hazards = safetyData?.hazards || {};
+  const dailyBsi = safetyData?.daily_peaks || {
     day1: { score: 1, rating: 'SAFE' },
     day2: { score: 1, rating: 'SAFE' },
     day3: { score: 2, rating: 'SAFE' }
@@ -93,6 +97,43 @@ export function WeatherSidebar({
             MODE C
           </span>
         </div>
+
+                {/* ORCA Hazards Explainability */}
+        <SpotlightCard className="p-3.5 space-y-3">
+          <div className="flex items-center justify-between border-b border-[#20384D] pb-1.5">
+            <span className="text-[10px] font-mono font-bold text-[#8FA8B8] uppercase flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-[#FFB547]" />
+              Hazard Diagnostics
+            </span>
+            <span className="text-[9px] font-mono text-[#FFB547] font-bold">ORCA AI</span>
+          </div>
+          
+          <div className="flex flex-col gap-2 text-[9px] font-mono">
+            {['wave_steepness', 'crossing_sea', 'bimodal_crossing', 'susceptibility'].map(hazardKey => {
+              const isAvailable = (safetyData?.available_hazards || []).includes(hazardKey);
+              const isUnavailable = (safetyData?.unavailable_hazards || []).includes(hazardKey);
+              const isTriggered = safetyData?.hazards?.[hazardKey]?.triggered;
+              
+              let statusText = 'SAFE';
+              let statusColor = 'text-[#18C7A0]';
+              
+              if (isUnavailable) {
+                statusText = 'UNAVAILABLE / MISSING DATA';
+                statusColor = 'text-[#8FA8B8]';
+              } else if (isTriggered) {
+                statusText = 'TRIGGERED';
+                statusColor = 'text-[#FF5C5C]';
+              }
+              
+              return (
+                <div key={hazardKey} className="flex justify-between items-center bg-[#07111F] p-2 rounded-lg border border-[#20384D]">
+                  <span className="text-[#EAF4F8] uppercase">{hazardKey.replace('_', ' ')}</span>
+                  <span className={`font-bold ${statusColor}`}>{statusText}</span>
+                </div>
+              );
+            })}
+          </div>
+        </SpotlightCard>
 
         {/* 2. Simulation Heatmap & Overlay Toggles Card */}
         <SpotlightCard className="p-3.5 space-y-3">
