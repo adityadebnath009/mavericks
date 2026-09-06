@@ -16,21 +16,10 @@ DB_CONFIG = {
     "password": os.getenv("PGPASSWORD", ""),
 }
 
-EMBEDDING_MODEL_NAME = os.getenv("REPORTING_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+# No need for the buggy google-generativeai SDK import here
+# We will use direct REST API to bypass Python 3.14 protobuf metaclass issues.
+
 DEFAULT_TOP_K = int(os.getenv("REPORTING_TOP_K", "3"))
-
-# Lazily-loaded singleton so importing this module doesn't pay the
-# sentence-transformers load cost until it's actually needed.
-_embedding_model = None
-
-
-def _get_embedding_model():
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
-        _embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-    return _embedding_model
-
 
 class ReportingService:
     """
@@ -44,14 +33,33 @@ class ReportingService:
     # -----------------------------------------------------------------
 
     @staticmethod
-    def embed_text(text: str) -> List[float]:
+    def embed_text(text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> List[float]:
         if not isinstance(text, str):
             raise TypeError(f"text must be a string, got {type(text).__name__}")
         if not text.strip():
             raise ValueError("text must not be empty")
-        model = _get_embedding_model()
-        vector = model.encode(text, normalize_embeddings=True)
-        return vector.tolist()
+        
+        from app.config import settings
+        import requests
+        
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set in environment.")
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={api_key}"
+        payload = {
+            "model": "models/gemini-embedding-2",
+            "content": {
+                "parts": [{"text": text}]
+            },
+            "taskType": task_type.upper()
+        }
+        
+        response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=10.0)
+        response.raise_for_status()
+        data = response.json()
+        
+        return data["embedding"]["values"]
 
     # -----------------------------------------------------------------
     # DB
@@ -59,7 +67,8 @@ class ReportingService:
 
     @staticmethod
     def _connect():
-        conn = psycopg2.connect(**DB_CONFIG)
+        from app.config import settings
+        conn = psycopg2.connect(settings.DATABASE_URL)
         from pgvector.psycopg2 import register_vector
         register_vector(conn)
         return conn
@@ -116,16 +125,16 @@ class ReportingService:
         if not isinstance(top_k, int) or top_k < 1:
             raise ValueError(f"top_k must be a positive integer, got {top_k}")
 
-        query_embedding = cls.embed_text(query_text)
+        query_embedding = cls.embed_text(query_text, task_type="retrieval_query")
 
         with cls._connect() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
                     SELECT source, clause_id, text,
-                           1 - (embedding <=> %s) AS similarity
+                           1 - (embedding <=> %s::vector) AS similarity
                     FROM marine_safety_corpus
-                    ORDER BY embedding <=> %s
+                    ORDER BY embedding <=> %s::vector
                     LIMIT %s;
                     """,
                     (query_embedding, query_embedding, top_k),

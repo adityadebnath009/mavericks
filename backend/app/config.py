@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Gemini API Credentials
     GEMINI_API_KEY: Optional[str] = None
 
+    # OpenAlex Academic Research API (Optional)
+    OPENALEX_API_KEY: Optional[str] = None
+
     # Bhashini Translation Credentials (if using custom endpoint keys)
     BHASHINI_API_KEY: Optional[str] = None
     BHASHINI_USER_ID: Optional[str] = None

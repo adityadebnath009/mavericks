@@ -1,21 +1,28 @@
-import re
-
 with open("backend/app/api/services/marine_forecast.py", "r") as f:
     content = f.read()
 
-old_block = """            wind_wave_height_m=current_data.get("wind_wave_height_m"),
-            wind_wave_period_s=current_data.get("wind_wave_period_s"),
-            wind_speed_ms=current_data.get("wind_speed_ms"),"""
+old_catch = """            except concurrent.futures.TimeoutError:
+                logger.warning(f"INCOIS fetch timed out (2s strict limit) for {lat},{lon}")
+            except Exception as e:
+                logger.warning(f"INCOIS fetch failed for {lat},{lon}, falling back: {e}")"""
 
-new_block = """            wind_wave_height_m=current_data.get("wind_wave_height_m"),
-            wind_wave_period_s=current_data.get("wind_wave_period_s"),
-            wind_wave_direction_deg=current_data.get("wind_wave_direction"),
-            swell_wave_height_m=current_data.get("swell_wave_height"),
-            swell_wave_period_s=current_data.get("swell_wave_period"),
-            swell_wave_direction_deg=current_data.get("swell_wave_direction"),
-            wind_speed_ms=current_data.get("wind_speed_ms"),"""
+new_catch = """            except concurrent.futures.TimeoutError:
+                logger.warning(f"INCOIS fetch timed out (2s strict limit) for {lat},{lon}")
+                cls._sst_cache[sst_grid_key] = (current_time, sst_value, None)
+            except Exception as e:
+                logger.warning(f"INCOIS fetch failed for {lat},{lon}, falling back: {e}")
+                cls._sst_cache[sst_grid_key] = (current_time, sst_value, None)"""
 
-content = content.replace(old_block, new_block)
+content = content.replace(old_catch, new_catch)
+
+# Also fix the line where it caches on success to ensure it caches even if chl_value is None, to prevent repeated misses.
+old_cache_set = """                if chl_value is not None:
+                    cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)"""
+
+new_cache_set = """                cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)"""
+
+content = content.replace(old_cache_set, new_cache_set)
 
 with open("backend/app/api/services/marine_forecast.py", "w") as f:
     f.write(content)
+print("patched marine forecast")

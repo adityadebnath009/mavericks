@@ -1,149 +1,153 @@
-import asyncio
-import json
-import os
 import time
-from datetime import datetime, timezone
-from typing import Dict, Any, Callable, Tuple, Optional
+import asyncio
+from typing import Dict, Any, List
+
+from app.agents.base import AbstractAgent
+from app.agents.context import AgentContext
+from app.agents.result import AgentResult
+from app.agents.resilience import ResilienceLayer
+
+from app.agents.weather_agent import WeatherIntelligenceAgent
+from app.agents.ocean_agent import OceanAnalyticsAgent
+from app.agents.geospatial_agent import GeospatialReasoningAgent
+from app.agents.risk_agent import RiskAnalysisAgent
+from app.agents.reporting_agent import ReportingAgent
+from app.agents.research_agent import AcademicResearchAgent
+
+# Lightweight registry
+AGENT_REGISTRY: Dict[str, AbstractAgent] = {
+    "weather": WeatherIntelligenceAgent(),
+    "ocean": OceanAnalyticsAgent(),
+    "geospatial": GeospatialReasoningAgent(),
+    "risk": RiskAnalysisAgent(),
+    "reporting": ReportingAgent(),
+    "research": AcademicResearchAgent(),
+}
 
 class PlannerAgent:
     """
     DAG Intent Decomposer & Central Orchestrator.
-    Manages asynchronous parallel execution with LIVE/DEMO toggles and
-    validates cache age against a 6-hour staleness threshold.
+    Topologically sorts requested agents based on dependencies and executes them
+    concurrently layer by layer.
     """
     def __init__(self):
-        self.mode = os.getenv("ORCA_MODE", "LIVE")
-        self.cache_file = "data/offline_cache.json"
-        self.max_cache_age_hours = 6.0
+        self.resilience = ResilienceLayer()
 
-    def _get_cache_age(self, cached_block: Dict[str, Any]) -> Tuple[float, Optional[str]]:
+    def _build_execution_layers(self, requested_agent_names: List[str]) -> List[List[str]]:
         """
-        Calculates cache age in hours from 'last_cached_at' or the file's modification time.
+        Kahn-style topological sort. Returns a list of layers, where each layer
+        is a list of agent names that can be executed concurrently.
         """
-        now = datetime.now(timezone.utc)
+        # Determine effective subgraph
+        in_degree = {name: 0 for name in requested_agent_names}
+        adj = {name: [] for name in requested_agent_names}
         
-        # 1. Prefer ISO timestamp stored in JSON
-        timestamp_str = cached_block.get("last_cached_at")
-        if timestamp_str:
-            try:
-                cached_time = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                age_hours = (now - cached_time).total_seconds() / 3600.0
-                return round(age_hours, 2), timestamp_str
-            except Exception:
-                pass
-
-        # 2. Fallback to file modification time if timestamp_str is missing
-        if os.path.exists(self.cache_file):
-            mtime = os.path.getmtime(self.cache_file)
-            file_time = datetime.fromtimestamp(mtime, tz=timezone.utc)
-            age_hours = (now - file_time).total_seconds() / 3600.0
-            return round(age_hours, 2), file_time.isoformat()
-
-        return 999.0, None
-
-    def _read_from_cache(self, agent_name: str) -> Dict[str, Any]:
-        """
-        Retrieves cached JSON payload and inspects data age.
-        Injects staleness warnings if data is older than 6 hours.
-        """
-        try:
-            with open(self.cache_file, "r") as f:
-                cache = json.load(f)
-
-            agent_payload = {}
-            parent_metadata = {}
-
-            # Search in flat or scenario-keyed caches
-            if agent_name in cache:
-                agent_payload = cache[agent_name]
-                parent_metadata = cache
-            else:
-                for scenario_key, scenario in cache.items():
-                    if isinstance(scenario, dict) and agent_name in scenario:
-                        agent_payload = scenario[agent_name]
-                        parent_metadata = scenario
-                        break
-
-            if not agent_payload:
-                return {
-                    "status": "cached_fallback",
-                    "plain_language_summary": "Offline data unavailable.",
-                    "is_stale": True
-                }
-
-            # Check cache age
-            age_hours, cached_timestamp = self._get_cache_age(parent_metadata)
-            is_stale = age_hours > self.max_cache_age_hours
-
-            agent_payload["cache_age_hours"] = age_hours
-            agent_payload["cached_at"] = cached_timestamp
-            agent_payload["is_stale"] = is_stale
-
-            if is_stale:
-                warning_msg = (
-                    f"⚠️ STALE DATA WARNING: Offline forecast is {age_hours:.1f} hours old "
-                    f"(older than {self.max_cache_age_hours:.0f}h limit). Marine conditions may have changed."
-                )
-                agent_payload["cache_warning"] = warning_msg
-
-                # Prepend warning to plain language summary for the user interface
-                if "plain_language_summary" in agent_payload:
-                    agent_payload["plain_language_summary"] = f"{warning_msg} {agent_payload['plain_language_summary']}"
-
-            return agent_payload
-
-        except Exception as e:
-            return {
-                "status": "hardcoded_fallback",
-                "plain_language_summary": "System offline. Please consult local coastal radar.",
-                "is_stale": True,
-                "error_context": str(e)
-            }
-
-    async def _execute_node(self, agent_name: str, task_func: Callable) -> Dict[str, Any]:
-        start_time = time.perf_counter()
+        for name in requested_agent_names:
+            agent = AGENT_REGISTRY[name]
+            for dep in agent.spec.dependencies:
+                if dep in requested_agent_names:
+                    adj[dep].append(name)
+                    in_degree[name] += 1
+                
+        layers = []
+        # Find nodes with 0 in-degree for the first layer
+        current_layer = [name for name in requested_agent_names if in_degree[name] == 0]
         
-        if self.mode == "DEMO":
-            cached = self._read_from_cache(agent_name)
-            cached["latency_ms"] = round((time.perf_counter() - start_time) * 1000, 2)
-            cached["execution_mode"] = "DEMO_CACHE"
-            return cached
+        while current_layer:
+            layers.append(current_layer)
+            next_layer = []
+            for node in current_layer:
+                for neighbor in adj[node]:
+                    in_degree[neighbor] -= 1
+                    if in_degree[neighbor] == 0:
+                        next_layer.append(neighbor)
+            current_layer = next_layer
+            
+        # Check for cycles
+        if sum(len(layer) for layer in layers) != len(requested_agent_names):
+            raise ValueError("Cycle detected in agent dependencies")
+            
+        return layers
 
-        try:
-            result = await asyncio.wait_for(task_func(), timeout=8.0)
-            if isinstance(result, dict):
-                result["latency_ms"] = round((time.perf_counter() - start_time) * 1000, 2)
-                result["execution_mode"] = "LIVE"
-                result["is_stale"] = False
-            return result
-        except Exception as e:
-            print(f"[Failsafe Triggered] {agent_name} failed: {e}. Switching to cache.")
-            cached = self._read_from_cache(agent_name)
-            cached["latency_ms"] = round((time.perf_counter() - start_time) * 1000, 2)
-            cached["execution_mode"] = "FALLBACK_CACHE"
-            cached["error_context"] = str(e)
-            return cached
-
-    async def orchestrate_query(self, weather_func: Callable, ocean_func: Callable) -> Dict[str, Any]:
+    async def orchestrate(self, context: AgentContext, agents: List[str] = None) -> Dict[str, Any]:
         start_total = time.perf_counter()
         
-        weather_res, ocean_res = await asyncio.gather(
-            self._execute_node("weather_agent", weather_func),
-            self._execute_node("ocean_agent", ocean_func)
-        )
+        # Determine required agents based on mode if not explicitly provided
+        if not agents:
+            agents = [
+                name for name, agent in AGENT_REGISTRY.items() 
+                if context.mode in agent.spec.mode_support
+            ]
+            
+        try:
+            execution_layers = self._build_execution_layers(agents)
+        except ValueError as e:
+            return {"orchestration_status": "error", "error": str(e)}
+
+        results_dict: Dict[str, AgentResult] = {}
+        failed_agents = set()
+
+        # Execute layer by layer
+        for layer in execution_layers:
+            tasks = []
+            valid_agents_in_layer = []
+            
+            for agent_name in layer:
+                agent = AGENT_REGISTRY[agent_name]
+                
+                # Check if any dependencies failed or were skipped
+                deps_failed = any(dep in failed_agents for dep in agent.spec.dependencies)
+                if deps_failed:
+                    results_dict[agent_name] = AgentResult(
+                        agent_name=agent_name,
+                        status="skipped",
+                        data={},
+                        errors=[f"Skipped due to upstream failure in dependencies: {agent.spec.dependencies}"]
+                    )
+                    failed_agents.add(agent_name)
+                    continue
+                
+                valid_agents_in_layer.append(agent)
+                # Ensure prior results are injected into context
+                import dataclasses
+                context.prior_results = {k: dataclasses.asdict(v) if isinstance(v, AgentResult) else v for k, v in results_dict.items()}
+                tasks.append(self.resilience.execute_agent(agent, context))
+
+            if tasks:
+                layer_results = await asyncio.gather(*tasks, return_exceptions=True)
+                for agent, result in zip(valid_agents_in_layer, layer_results):
+                    if isinstance(result, Exception):
+                        results_dict[agent.spec.name] = AgentResult(
+                            agent_name=agent.spec.name,
+                            status="failed",
+                            data={},
+                            errors=[str(result)]
+                        )
+                        failed_agents.add(agent.spec.name)
+                    else:
+                        results_dict[agent.spec.name] = result
+                        if result.status in ("failed", "unavailable"):
+                            failed_agents.add(agent.spec.name)
 
         total_latency = round((time.perf_counter() - start_total) * 1000, 2)
         
         # Check if any component fell back to stale cache
-        is_any_stale = bool(weather_res.get("is_stale") or ocean_res.get("is_stale"))
-        global_warning = weather_res.get("cache_warning") or ocean_res.get("cache_warning")
+        is_any_stale = any(r.status == "cached_stale" for r in results_dict.values())
+        global_warnings = [w for r in results_dict.values() for w in r.warnings]
 
+        # Ensure compatibility with frontend (Phase 5 compatibility)
+        weather_payload = results_dict.get("weather").data if "weather" in results_dict else {}
+        ocean_payload = results_dict.get("ocean").data if "ocean" in results_dict else {}
+
+        import dataclasses
         return {
             "orchestration_status": "success",
-            "active_mode": self.mode,
+            "active_mode": self.resilience.mode,
             "total_latency_ms": total_latency,
             "is_stale_fallback": is_any_stale,
-            "system_advisory_warning": global_warning,
-            "weather_payload": weather_res,
-            "ocean_payload": ocean_res
+            "system_advisory_warning": " | ".join(global_warnings) if global_warnings else None,
+            "agent_results": {k: dataclasses.asdict(v) for k, v in results_dict.items()},
+            # Legacy payloads for router/frontend compatibility
+            "weather_payload": weather_payload,
+            "ocean_payload": ocean_payload
         }

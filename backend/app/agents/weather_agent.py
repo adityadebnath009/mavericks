@@ -1,8 +1,13 @@
+import time
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Any
 from pydantic import BaseModel, Field
-from app.agents.marine_data_agent import MeteorologicalData
+
+from app.agents.base import AbstractAgent, AgentSpec
+from app.agents.context import AgentContext
+from app.agents.result import AgentResult
+from app.agents.marine_data_agent import MarineDataDiscoveryAgent, MeteorologicalData
 
 class AlertSeverity(str, Enum):
     INFO = "INFO"
@@ -39,11 +44,53 @@ class WeatherIntelligenceReport(BaseModel):
     hourly_risk_curve: List[int]
     plain_language_summary: str
 
-class WeatherIntelligenceAgent:
+class WeatherIntelligenceAgent(AbstractAgent):
     WMO_THUNDERSTORM_CODES = {95, 96, 99}
     WMO_HEAVY_RAIN_CODES = {65, 81, 82}
 
-    def analyze(self, met_data: MeteorologicalData) -> WeatherIntelligenceReport:
+    @property
+    def spec(self) -> AgentSpec:
+        return AgentSpec(
+            name="weather",
+            dependencies=[],
+            mode_support=["fisheries", "weather", "routing"]
+        )
+
+    async def analyze(self, context: AgentContext) -> AgentResult:
+        start_time = time.perf_counter()
+        lat = context.latitude
+        lon = context.longitude
+        
+        if lat is None or lon is None:
+            return AgentResult(
+                agent_name=self.spec.name,
+                status="failed",
+                data={},
+                errors=["Latitude and longitude are required in context."]
+            )
+            
+        try:
+            discovery = MarineDataDiscoveryAgent()
+            met_data = await discovery.fetch_meteorological_data(lat, lon, days=1)
+            report = self._analyze_logic(met_data)
+            latency = (time.perf_counter() - start_time) * 1000
+            
+            return AgentResult(
+                agent_name=self.spec.name,
+                status="success",
+                data=report.model_dump(),
+                latency_ms=round(latency, 2),
+                sources=["open-meteo"],
+            )
+        except Exception as e:
+            return AgentResult(
+                agent_name=self.spec.name,
+                status="failed",
+                data={},
+                errors=[str(e)]
+            )
+
+    def _analyze_logic(self, met_data: MeteorologicalData) -> WeatherIntelligenceReport:
         alerts: List[WeatherAlert] = []
         hazards_detected = set()
         hourly_risk_curve: List[int] = []

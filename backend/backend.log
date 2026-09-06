@@ -1,0 +1,1461 @@
+INFO:     Will watch for changes in these directories: ['/Users/adityadebnath/Projects/mavericks/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [43307] using WatchFiles
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/server.py", line 65, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/server.py", line 69, in serve
+    await self._serve(sockets)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/server.py", line 76, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/config.py", line 434, in load
+    self.loaded_app = import_from_string(self.app)
+                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/main.py", line 9, in <module>
+    from app.api.router import api_router
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/router.py", line 5, in <module>
+    from app.api.endpoints import geofence, safety, vessels, weather, incois_proxy, pfz_router, trip, landing_centers, routing, telemetry
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/telemetry.py", line 7, in <module>
+    from app.api.services.marine_forecast import MarineForecastService
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/services/marine_forecast.py", line 167
+    )
+    ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '{' on line 131
+WARNING:  WatchFiles detected changes in 'app/api/services/marine_forecast.py'. Reloading...
+INFO:     Started server process [43605]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260903_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+[Cache Worker] Starting rolling cache update (interval: 5h)...
+Advisories cache pre-warming completed!
+[Cache Updater] Refreshed puri_optimal (Puri Harbour) successfully.
+[Cache Updater] Refreshed goa_safe (Panaji, Goa) successfully.
+[Cache Updater] Refreshed paradip_cyclone (Paradip Port) successfully.
+[Cache Updater] Refreshed visakhapatnam (Visakhapatnam) successfully.
+[Cache Updater] Refreshed kochi (Kochi Harbour) successfully.
+[Cache Updater] offline_cache.json updated atomically at 13:46:35 UTC.
+INFO:     127.0.0.1:61825 - "GET /api/safety/forecast?lat=14.7043&lon=71.3808&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61831 - "GET /api/telemetry/location?lat=14.7043&lon=71.3808 HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/endpoints/incois_proxy.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [43605]
+INFO:     Started server process [46504]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260903_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+[Cache Worker] Starting rolling cache update (interval: 5h)...
+Advisories cache pre-warming completed!
+[Cache Updater] Refreshed puri_optimal (Puri Harbour) successfully.
+[Cache Updater] Refreshed goa_safe (Panaji, Goa) successfully.
+[Cache Updater] Refreshed paradip_cyclone (Paradip Port) successfully.
+[Cache Updater] Refreshed visakhapatnam (Visakhapatnam) successfully.
+[Cache Updater] Refreshed kochi (Kochi Harbour) successfully.
+[Cache Updater] offline_cache.json updated atomically at 14:02:08 UTC.
+INFO:     127.0.0.1:61922 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 404 Not Found
+WARNING:  WatchFiles detected changes in 'app/api/endpoints/incois_proxy.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [46504]
+INFO:     Started server process [47208]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260903_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+WARNING:  WatchFiles detected changes in 'app/api/endpoints/incois_proxy.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [47208]
+INFO:     Started server process [47380]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260903_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+[Cache Worker] Starting rolling cache update (interval: 5h)...
+Advisories cache pre-warming completed!
+[Cache Updater] Refreshed puri_optimal (Puri Harbour) successfully.
+[Cache Updater] Refreshed goa_safe (Panaji, Goa) successfully.
+[Cache Updater] Refreshed paradip_cyclone (Paradip Port) successfully.
+[Cache Updater] Refreshed visakhapatnam (Visakhapatnam) successfully.
+INFO:     127.0.0.1:61960 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+[Cache Updater] Refreshed kochi (Kochi Harbour) successfully.
+[Cache Updater] offline_cache.json updated atomically at 14:09:09 UTC.
+INFO:     127.0.0.1:62153 - "POST /api/routing/safe-route HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:62180 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:62187 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:62227 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260903_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+INFO:     127.0.0.1:62248 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:62327 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62328 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62329 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/incois/pfz-lines HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62325 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:62328 - "GET /api/safety?lat=22.842280621048054&lon=88.65866559348234&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:62330 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/incois/pfz-lines HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62329 - "GET /api/safety/forecast?lat=22.842280621048054&lon=88.65866559348234&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62330 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62341 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:62330 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:62326 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62327 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+[Cache Worker] Starting rolling cache update (interval: 5h)...
+[Cache Updater] Refreshed puri_optimal (Puri Harbour) successfully.
+[Cache Updater] Refreshed goa_safe (Panaji, Goa) successfully.
+[Cache Updater] Refreshed paradip_cyclone (Paradip Port) successfully.
+[Cache Updater] Refreshed visakhapatnam (Visakhapatnam) successfully.
+[Cache Updater] Refreshed kochi (Kochi Harbour) successfully.
+[Cache Updater] offline_cache.json updated atomically at 19:20:12 UTC.
+[Cache Worker] Starting rolling cache update (interval: 5h)...
+[Cache Updater] Refreshed puri_optimal (Puri Harbour) successfully.
+[Cache Updater] Refreshed goa_safe (Panaji, Goa) successfully.
+[Cache Updater] Refreshed paradip_cyclone (Paradip Port) successfully.
+[Cache Updater] Refreshed visakhapatnam (Visakhapatnam) successfully.
+[Cache Updater] Refreshed kochi (Kochi Harbour) successfully.
+[Cache Updater] offline_cache.json updated atomically at 00:30:55 UTC.
+INFO:     127.0.0.1:63412 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8766409.899970293,1878516.4071364924,9392582.035682458,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63414 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8140237.764258131,1878516.4071364924,8766409.899970293,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63413 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8140237.764258131,1252344.271424327,8766409.899970293,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63411 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8766409.899970293,1252344.271424327,9392582.035682458,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63416 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8766409.899970293,626172.1357121654,9392582.035682458,1252344.271424327 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63415 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=9392582.035682458,1252344.271424327,10018754.17139462,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63413 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8766409.899970293,2504688.542848654,9392582.035682458,3130860.6785608195 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63414 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=9392582.035682458,1878516.4071364924,10018754.17139462,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63416 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8140237.764258131,2504688.542848654,8766409.899970293,3130860.6785608195 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63412 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=8140237.764258131,626172.1357121654,8766409.899970293,1252344.271424327 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63411 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=7514065.628545966,1252344.271424327,8140237.764258131,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63415 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=7514065.628545966,1878516.4071364924,8140237.764258131,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63414 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=9392582.035682458,2504688.542848654,10018754.17139462,3130860.6785608195 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63412 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=7514065.628545966,2504688.542848654,8140237.764258131,3130860.6785608195 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63416 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=7514065.628545966,626172.1357121654,8140237.764258131,1252344.271424327 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63413 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=9392582.035682458,626172.1357121654,10018754.17139462,1252344.271424327 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63411 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=10018754.17139462,1252344.271424327,10644926.307106785,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63415 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=10018754.17139462,1878516.4071364924,10644926.307106785,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63412 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=6887893.492833804,1878516.4071364924,7514065.628545966,2504688.542848654 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63414 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=6887893.492833804,1252344.271424327,7514065.628545966,1878516.4071364924 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63413 - "GET /api/incois/wms/proxy?layers=PFZ-TUNA-SST-CHL:sst&bbox=10018754.17139462,2504688.542848654,10644926.307106785,3130860.6785608195 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63479 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63478 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63479 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63478 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63482 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63482 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63482 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/safety/forecast?lat=22.842298481051255&lon=88.6588516079148&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/landing-centers/nearby?lat=22.842298481051255&lon=88.6588516079148&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/landing-centers/nearby?lat=22.842298481051255&lon=88.6588516079148&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/landing-centers/nearby?lat=22.17000008&lon=88.19999695&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63483 - "GET /api/safety?lat=22.17000008&lon=88.19999695&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:63508 - "GET /api/safety/forecast?lat=22.17000008&lon=88.19999695&day=1 HTTP/1.1" 200 OK
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:63553 - "OPTIONS /api/routing/safe-route HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63553 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:63562 - "POST /api/routing/safe-route HTTP/1.1" 400 Bad Request
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 19.7,72.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 19.7,72.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 19.3,72.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 19.3,72.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.7,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.7,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.7,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.7,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.4,73.1: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.4,73.1: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.4,73.1: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.4,73.1: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 16.2,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 16.2,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 16.2,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 16.2,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.5,78.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.5,78.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.5,78.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.5,78.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 9.0,78.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 9.0,78.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 9.0,78.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 9.0,78.9: INCOIS Server Error (503)
+INFO:     127.0.0.1:52242 - "GET /api/landing-centers/nearby?lat=18.922&lon=72.8347&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52246 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /api/landing-centers/nearby?lat=18.922&lon=72.8347&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/landing-centers/nearby?lat=22.842161629167943&lon=88.65859672379233&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/safety/grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/incois/vector-grid?day=1&hour=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /api/safety/advisories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52242 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:52249 - "GET /api/geofence/geojson HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /api/safety?lat=22.842161629167943&lon=88.65859672379233&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:52248 - "GET /api/safety/forecast?lat=22.842161629167943&lon=88.65859672379233&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+INFO:     127.0.0.1:52265 - "GET /api/safety/forecast?lat=18.922&lon=72.8347&day=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /api/safety?lat=18.922&lon=72.8347&beam=3.5&day=1&hour=12 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 148, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 278, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        dependant=dependant, values=values, is_coroutine=is_coroutine
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/adityadebnath/Projects/mavericks/backend/.venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/adityadebnath/Projects/mavericks/backend/app/api/endpoints/safety.py", line 83, in get_safety_assessment
+    provenance["source"] = "Open-Meteo (Fallback)"
+    ^^^^^^^^^^
+NameError: name 'provenance' is not defined
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.4,80.0: INCOIS Server Error (503)
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 10.8,79.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.8,79.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 10.8,79.9: INCOIS Server Error (503)
+INFO:     Shutting down
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.5,79.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.4,80.4: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.4,80.4: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.9,80.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.9,80.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.6,93.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 13.6,93.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 13.2,93.1: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.9,93.1: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.5,93.2: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.5,93.2: INCOIS Server Error (503)
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.8,93.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.8,93.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.3,94.0: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 7.3,94.0: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.9,93.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.9,93.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.9,93.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.8,93.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 7.8,93.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.8,93.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 7.8,93.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.9,72.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.8,72.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.8,72.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.5,72.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.2,72.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.5,72.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.1,72.0: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.1,72.0: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.4,72.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.4,72.9: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.4,72.9: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.6,72.9: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.6,72.9: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.4,72.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 10.4,72.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.4,72.7: INCOIS Timeout
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 10.0,72.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.3,73.2: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.3,73.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.3,73.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.8,81.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.9,81.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 16.8,82.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 16.9,82.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.0,82.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.0,82.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.1,82.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.1,82.8: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.2,82.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.2,82.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.2,82.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.2,82.9: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.2,83.2: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.3,83.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.4,83.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.6,83.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.7,83.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 17.7,83.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 17.7,83.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.2,84.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.3,84.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.4,84.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.4,84.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 18.4,84.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 18.4,84.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.5,84.5: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.7,84.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.7,84.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.7,84.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.8,84.7: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 18.8,84.7: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.8,84.7: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 18.8,84.7: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.8,84.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 18.8,84.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.4,80.4: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.4,80.4: INCOIS Timeout
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,80.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,80.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.6,80.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.6,80.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.6,80.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.6,80.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.6,73.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,73.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,73.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,73.3: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.5,73.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 15.5,73.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.3,73.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.3,73.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 15.1,73.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.9,73.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.9,73.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.9,73.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.9,73.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.8,73.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.5,74.0: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.5,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.5,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.4,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.4,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.4,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.3,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 14.4,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.3,74.0: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 14.1,74.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.9,74.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 13.9,74.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.8,74.1: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.4,74.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.4,74.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.3,74.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.3,74.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 13.3,74.4: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 13.1,74.5: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.7,74.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.7,74.6: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.7,74.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.7,74.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.6,74.7: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.6,74.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.5,74.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.5,74.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.5,74.8: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.5,74.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.5,74.8: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 12.4,74.9: INCOIS Timeout
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 12.4,74.9: INCOIS Timeout
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 11.3,75.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 11.3,75.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.6,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.6,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.6,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.6,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.2,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.2,76.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 8.2,76.4: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 8.1,76.3: INCOIS Request Exception: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 21.5,87.6: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 21.5,87.6: INCOIS Server Error (503)
+Warming PFZ set failed: PFZEnricherService.enrich_feature_collection() got an unexpected keyword argument 'shutdown_event'
+
+Cache warmer started
+Cycle: 20260904_20260903
+
+PFZ coordinates:      PARTIAL
+Safety grids:         PARTIAL
+Vector grid:          PARTIAL
+
+Cache entries written: N/A
+Upstream failures:     1
+State:                 PARTIAL
+
+Will retry on next tick.
+
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 21.3,87.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 21.3,87.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 21.3,87.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 21.3,87.3: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 19.3,85.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 19.3,85.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:sst at 19.3,85.5: INCOIS Server Error (503)
+GetFeatureInfo request failed for PFZ-TUNA-SST-CHL:chl at 19.3,85.5: INCOIS Server Error (503)
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [47380]

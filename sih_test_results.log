@@ -1,0 +1,108 @@
+Temporal extraction failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Intent routing failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429. Falling back to default DAG.
+Synthesis failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Follow-up generation failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Temporal extraction failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Intent routing failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429. Falling back to default DAG.
+Synthesis failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Follow-up generation failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Temporal extraction failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Intent routing failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429. Falling back to default DAG.
+Synthesis failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Follow-up generation failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Temporal extraction failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Intent routing failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429. Falling back to default DAG.
+Synthesis failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Follow-up generation failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Temporal extraction failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Intent routing failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429. Falling back to default DAG.
+Synthesis failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+Follow-up generation failed: Client error '429 Too Many Requests' for url 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6I3GBTXzuhjiOoiVjHkqF65SquOT_0aTYBC3KGzLikZ_A'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+=======================================
+TEST 1: What is the current wind speed, wave height, and IMD risk alert near Mumbai?
+=======================================
+
+[SYNTHESIS]
+
+ERROR: No answer provided
+
+[SUGGESTED QUERIES]
+
+[]
+
+Waiting 20 seconds to prevent rate limits (429)...
+
+=======================================
+TEST 2: How has the wave height changed in the Arabian Sea over the past 5 years?
+=======================================
+
+[SYNTHESIS]
+
+ERROR: No answer provided
+
+[SUGGESTED QUERIES]
+
+[]
+
+Waiting 20 seconds to prevent rate limits (429)...
+
+=======================================
+TEST 3: What are the official regulatory guidelines and safety precautions for fishing vessels operating during high swell warnings?
+=======================================
+
+[SYNTHESIS]
+
+ERROR: No answer provided
+
+[SUGGESTED QUERIES]
+
+[]
+
+Waiting 20 seconds to prevent rate limits (429)...
+
+=======================================
+TEST 4: What is the recipe for baking a chocolate cake?
+=======================================
+
+[SYNTHESIS]
+
+ERROR: No answer provided
+
+[SUGGESTED QUERIES]
+
+[]
+
+Waiting 20 seconds to prevent rate limits (429)...
+
+=======================================
+TEST 5: Can you summarize recent academic research regarding the impact of ocean warming on phytoplankton?
+=======================================
+
+[SYNTHESIS]
+
+ERROR: No answer provided
+
+[SUGGESTED QUERIES]
+
+[]

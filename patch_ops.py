@@ -1,60 +1,44 @@
 import re
+
 with open("frontend/src/components/OperationsDashboard.jsx", "r") as f:
     content = f.read()
 
-# Add getVectorGrid to imports
-content = content.replace("  getPfzLines,", "  getPfzLines,\n  getVectorGrid,")
+# Replace beamWidth state with vesselProfile and departureTime
+content = content.replace(
+    "  const [beamWidth, setBeamWidth] = useState(3.5);",
+    "  const [vesselProfile, setVesselProfile] = useState({ length_m: 10.0, beam_m: 3.5, cruising_speed_kn: 10.0 });\n  const [departureTime, setDepartureTime] = useState(new Date().toISOString());"
+)
 
-# Add state variables
-state_vars = """  const [pfzGeojson, setPfzGeojson] = useState(null);"""
-new_state_vars = """  const [pfzGeojson, setPfzGeojson] = useState(null);
-  const [vectorGrid, setVectorGrid] = useState({ windGeojson: null, currentGeojson: null });"""
-content = content.replace(state_vars, new_state_vars)
+# Replace beamWidth in useCallbacks
+content = content.replace(
+    "[selectedLocation, destinationLocation, beamWidth, selectedDay, selectedHour]",
+    "[selectedLocation, destinationLocation, vesselProfile, departureTime, selectedDay, selectedHour]"
+)
 
-# Fetch it
-old_fetch = """        const [grid, adv, geo, pfz] = await Promise.all([
-          getGrid(selectedDay, selectedHour),
-          getAdvisories(),
-          getGeofence(),
-          getPfzLines()
-        ]);
+# Replace calculateRoute call
+content = content.replace(
+    "setRouteData(await calculateRoute(selectedLocation, destinationLocation, beamWidth, selectedDay, selectedHour));",
+    "setRouteData(await calculateRoute(selectedLocation, destinationLocation, vesselProfile, departureTime));"
+)
 
-        if (isMounted) {
-          if (grid) setGridGeojson(grid);
-          if (adv) setAdvisoriesGeojson(adv);
-          if (geo) setGeofenceGeojson(geo);
-          if (pfz) setPfzGeojson(pfz);
-        }"""
-new_fetch = """        const [grid, adv, geo, pfz, vectors] = await Promise.all([
-          getGrid(selectedDay, selectedHour),
-          getAdvisories(),
-          getGeofence(),
-          getPfzLines(),
-          getVectorGrid(selectedDay)
-        ]);
+# Replace getSafety call (it needs beam, so we pass vesselProfile.beam_m)
+content = content.replace(
+    "resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour))",
+    "resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, vesselProfile.beam_m, selectedDay, selectedHour))"
+)
 
-        if (isMounted) {
-          if (grid) setGridGeojson(grid);
-          if (adv) setAdvisoriesGeojson(adv);
-          if (geo) setGeofenceGeojson(geo);
-          if (pfz) setPfzGeojson(pfz);
-          if (vectors) setVectorGrid(vectors);
-        }"""
-content = content.replace(old_fetch, new_fetch)
+# Replace RoutingSidebar props
+content = content.replace(
+    "beamWidth={beamWidth} setBeamWidth={setBeamWidth}",
+    "vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime}"
+)
 
-# Pass it to MapConsole
-old_map = """                pfzGeojson={pfzGeojson}
-                advisoriesGeojson={advisoriesGeojson}
-                geofenceGeojson={geofenceGeojson}
-                gridGeojson={gridGeojson}
-                sstOpacity={sstOpacity}"""
-new_map = """                pfzGeojson={pfzGeojson}
-                advisoriesGeojson={advisoriesGeojson}
-                geofenceGeojson={geofenceGeojson}
-                gridGeojson={gridGeojson}
-                vectorGrid={vectorGrid}
-                sstOpacity={sstOpacity}"""
-content = content.replace(old_map, new_map)
+# Replace MapConsole props
+content = content.replace(
+    "beamWidth={beamWidth}",
+    "beamWidth={vesselProfile.beam_m}"
+)
 
 with open("frontend/src/components/OperationsDashboard.jsx", "w") as f:
     f.write(content)
+print("ops dashboard patched")
