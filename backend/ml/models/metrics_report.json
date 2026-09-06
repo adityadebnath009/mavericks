@@ -1,0 +1,39 @@
+{
+    "model": {
+        "selected_model": "refine_leaf_10",
+        "dangerous_threshold": 0.5,
+        "dangerous_definition": "HIGH + EXTREME",
+        "n8_severity_method": "base_relative_extreme",
+        "n8_severity_threshold": 0.05,
+        "n8_severity_alpha": 0.0,
+        "n8_severity_specialist": "none"
+    },
+    "temporal_2025": {
+        "accuracy": 0.9354378745216951,
+        "macro_f1": 0.6231948633915644,
+        "macro_precision": 0.5838344393594754,
+        "macro_recall": 0.7270069522188644,
+        "balanced_accuracy": 0.7270069522188644,
+        "high_recall": 0.8760162601626016,
+        "extreme_recall": 0.16666666666666666,
+        "standard_dangerous_recall": 0.8797979797979798,
+        "standard_dangerous_precision": 0.34318360914105595,
+        "threshold_dangerous_recall": 0.8808080808080808,
+        "threshold_dangerous_precision": 0.34323951977957096,
+        "threshold_false_alarm_rate": 0.020318817282868138
+    },
+    "spatial_digha": {
+        "accuracy": 0.9390454995054401,
+        "macro_f1": 0.7365344428009171,
+        "macro_precision": 0.7309766775656394,
+        "macro_recall": 0.7601675521897457,
+        "balanced_accuracy": 0.7601675521897457,
+        "high_recall": 0.96030136192408,
+        "extreme_recall": 0.2328767123287671,
+        "standard_dangerous_recall": 0.9676503972758229,
+        "standard_dangerous_precision": 0.7032377809857703,
+        "threshold_dangerous_recall": 0.9679341657207718,
+        "threshold_dangerous_precision": 0.7043155069172001,
+        "threshold_false_alarm_rate": 0.014091714229482386
+    }
+}

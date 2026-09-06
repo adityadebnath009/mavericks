@@ -1,0 +1,44 @@
+{
+    "model_version": "v5-extreme-severity-recovery",
+    "prediction_horizon_hours": 6,
+    "feature_count": 41,
+    "classes": [
+        "LOW",
+        "MODERATE",
+        "HIGH",
+        "EXTREME"
+    ],
+    "development_training_period": "2020-2023",
+    "validation_period": "2024",
+    "temporal_test_period": "2025",
+    "spatial_holdout": "Digha",
+    "random_state": 42,
+    "algorithm": "Histogram Gradient Boosting Decision Tree",
+    "selected_model": "refine_leaf_10",
+    "hyperparameters": {
+        "name": "refine_leaf_10",
+        "learning_rate": 0.03,
+        "max_iter": 400,
+        "max_depth": 10,
+        "min_samples_leaf": 10,
+        "l2_regularization": 1
+    },
+    "class_weighting": "safety_oriented",
+    "HIGH_weight_multiplier": 2.0,
+    "EXTREME_weight_multiplier": 3.0,
+    "n8_extreme_severity_refinement": true,
+    "n8_severity_method": "base_relative_extreme",
+    "n8_severity_threshold": 0.05,
+    "n8_severity_alpha": 0.0,
+    "n8_severity_base_model": "refine_leaf_10",
+    "n8_severity_specialist": "none",
+    "n8_selection_constraints": {
+        "dangerous_recall_minimum": 0.9,
+        "high_recall_minimum": 0.7,
+        "macro_f1_minimum": 0.55
+    },
+    "dangerous_definition": "HIGH + EXTREME",
+    "dangerous_threshold": 0.5,
+    "threshold_selection": "2024 validation only",
+    "training_timestamp": "2026-09-06T12:20:55.061990+00:00"
+}

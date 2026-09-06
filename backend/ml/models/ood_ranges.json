@@ -1,0 +1,166 @@
+{
+    "wind_speed_kts": {
+        "min": 0.0,
+        "max": 69.19999694824219
+    },
+    "wind_gust_kts": {
+        "min": 0.6000000238418579,
+        "max": 110.80000305175781
+    },
+    "wave_height_m": {
+        "min": 0.0,
+        "max": 27.12930679321289
+    },
+    "wave_period_s": {
+        "min": 0.0,
+        "max": 26.221220016479492
+    },
+    "mean_wave_period_s": {
+        "min": 0.0,
+        "max": 22.28803825378418
+    },
+    "swell_height_m": {
+        "min": 0.0,
+        "max": 17.634048461914062
+    },
+    "swell_period_s": {
+        "min": 0.0,
+        "max": 32.776527404785156
+    },
+    "air_pressure_hpa": {
+        "min": 933.7999877929688,
+        "max": 1022.0
+    },
+    "air_temp_c": {
+        "min": 13.0,
+        "max": 43.20000076293945
+    },
+    "sst_c": {
+        "min": 13.5,
+        "max": 42.5
+    },
+    "precipitation_mm": {
+        "min": 0.0,
+        "max": 113.5999984741211
+    },
+    "latitude": {
+        "min": 9.899999618530273,
+        "max": 21.0
+    },
+    "longitude": {
+        "min": 68.0,
+        "max": 90.0
+    },
+    "wave_steepness": {
+        "min": 0.0,
+        "max": 0.1672479808330536
+    },
+    "gust_excess_kts": {
+        "min": 0.0,
+        "max": 68.9000015258789
+    },
+    "gust_to_wind_ratio": {
+        "min": 0.2957746386528015,
+        "max": 130.0
+    },
+    "gust_above_gale": {
+        "min": 0.0,
+        "max": 76.80000305175781
+    },
+    "wind_dir_sin": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "wind_dir_cos": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "wave_dir_sin": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "wave_dir_cos": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "swell_dir_sin": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "swell_dir_cos": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "cross_sea_angle": {
+        "min": 0.0,
+        "max": 179.0
+    },
+    "month_sin": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "month_cos": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "hour_sin": {
+        "min": -1.0,
+        "max": 1.0
+    },
+    "risk_class_lag_1": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_lag_2": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_lag_3": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_lag_6": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_lag_12": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_lag_24": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_max_3": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_max_6": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_max_12": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_max_24": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_mean_3": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_mean_6": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_mean_12": {
+        "min": 0.0,
+        "max": 3.0
+    },
+    "risk_class_roll_mean_24": {
+        "min": 0.0,
+        "max": 3.0
+    }
+}
