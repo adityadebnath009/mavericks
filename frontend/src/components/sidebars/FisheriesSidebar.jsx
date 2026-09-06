@@ -88,7 +88,13 @@ export function FisheriesSidebar({
 
   const handleSetPfzDestination = (pfzFeature) => {
     if (!pfzFeature?.geometry?.coordinates?.length) return;
-    const coords = pfzFeature.geometry.coordinates[0];
+    let coords = pfzFeature.geometry.coordinates[0];
+    
+    // Handle MultiLineString where coordinates[0] is an array of points
+    while (Array.isArray(coords[0])) {
+        coords = coords[0];
+    }
+    
     if (onDestinationSelect) {
       onDestinationSelect({ lat: coords[1], lon: coords[0] });
     }
