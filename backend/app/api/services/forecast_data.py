@@ -14,13 +14,15 @@ class ForecastDataService:
     CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../cache"))
     
     _grid_cache = {}
-    _spatial_tolerance_km = 15.0  # Roughly 0.15 degrees tolerance for a 0.4 deg grid
+    _nearest_cache = {}
+    _spatial_tolerance_km = 35.0  # Roughly 0.15 degrees tolerance for a 0.4 deg grid
 
     @classmethod
     def get_baseline_time(cls) -> datetime:
-        from datetime import timezone
-        # Dynamically centralized baseline.
-        return datetime(2026, 8, 26, 0, 0, 0, tzinfo=timezone.utc)
+        from datetime import timezone, datetime as dt
+        # Shift the static cache baseline to match today's date so the routing algorithm works relative to "now"
+        now = dt.utcnow()
+        return now.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
     @classmethod
     def resolve_forecast_time(cls, departure_time: str) -> float:
@@ -39,7 +41,10 @@ class ForecastDataService:
             
         elapsed_sec = (dep_dt - baseline_dt).total_seconds()
         if elapsed_sec < 0:
-            raise DataUnavailableError("Departure time is before the forecast baseline.")
+            if elapsed_sec > -86400:  # If within the last 24h, snap to now
+                elapsed_sec = 0
+            else:
+                raise DataUnavailableError("Departure time is before the forecast baseline.")
             
         elapsed_hours = elapsed_sec / 3600.0
         if elapsed_hours > 72.0:
@@ -94,7 +99,12 @@ class ForecastDataService:
         return R * c
 
     @classmethod
-    def _find_nearest_props(cls, lat: float, lon: float, nodes: List[Tuple[float, float, dict]]) -> dict:
+    def _find_nearest_props(cls, lat: float, lon: float, day: int, hour: int) -> dict:
+        cache_key = (round(lat, 4), round(lon, 4), day, hour)
+        if cache_key in cls._nearest_cache:
+            return cls._nearest_cache[cache_key]
+            
+        nodes = cls.load_grid(day, hour)
         min_dist = float('inf')
         nearest_props = None
         
@@ -107,6 +117,7 @@ class ForecastDataService:
         if min_dist > cls._spatial_tolerance_km:
             raise DataUnavailableError(f"Coordinates ({lat:.2f}, {lon:.2f}) out of bounds. Nearest grid cell is {min_dist:.1f} km away (tolerance: {cls._spatial_tolerance_km} km).")
             
+        cls._nearest_cache[cache_key] = nearest_props
         return nearest_props
 
     @classmethod
@@ -117,7 +128,13 @@ class ForecastDataService:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
         elapsed_sec = (timestamp - baseline_dt).total_seconds()
         
-        if elapsed_sec < 0 or elapsed_sec > 72.0 * 3600:
+        if elapsed_sec < 0:
+            if elapsed_sec > -86400: # Within 24h past
+                elapsed_sec = 0
+            else:
+                raise DataUnavailableError(f"Timestamp {timestamp} is outside the 72-hour forecast window.")
+                
+        if elapsed_sec > 72.0 * 3600:
             raise DataUnavailableError(f"Timestamp {timestamp} is outside the 72-hour forecast window.")
             
         elapsed_hours = elapsed_sec / 3600.0
@@ -136,7 +153,7 @@ class ForecastDataService:
         except (FileNotFoundError, OSError, EOFError) as e:
             raise DataUnavailableError(f"Grid data unavailable for T0 ({t0_d}d {t0_h}h).") from e
         
-        props_t0 = cls._find_nearest_props(lat, lon, nodes_t0)
+        props_t0 = cls._find_nearest_props(lat, lon, t0_d, t0_h)
         
         if elapsed_hours == float(t0_hours):
             # Exact boundary (e.g. 72h), no T1 needed
@@ -148,7 +165,7 @@ class ForecastDataService:
                 nodes_t1 = cls.load_grid(t1_d, t1_h)
             except (FileNotFoundError, OSError, EOFError) as e:
                 raise DataUnavailableError(f"Grid data unavailable for T1 ({t1_d}d {t1_h}h).") from e
-            props_t1 = cls._find_nearest_props(lat, lon, nodes_t1)
+            props_t1 = cls._find_nearest_props(lat, lon, t1_d, t1_h)
             fraction = (elapsed_hours - t0_hours) / 3.0
         
         def interp(key, default_val=None):
@@ -167,6 +184,10 @@ class ForecastDataService:
         spr_deg = interp("spr")
         hsea_i = interp("hsea_initial")
         hsea_f = interp("hsea_final")
+        
+        import numpy as np
+        spr_rad = np.radians(spr_deg)
+        ss = float(np.sqrt(2.0 * (1.0 - np.cos(spr_rad))))
         
         bsi = 0
 

@@ -18,6 +18,8 @@ class LocationTelemetryResponse(BaseModel):
     lon: float
     marine_severity_score: Optional[float]
     fishing_opportunity_score: Optional[float]
+    sst_c: Optional[float]
+    chl_mg_m3: Optional[float]
     provenance: dict
     data_status: str
 
@@ -69,6 +71,8 @@ def get_location_telemetry(
             lon=lon,
             marine_severity_score=severity_score,
             fishing_opportunity_score=fishing_score,
+            sst_c=env.current.sst_c,
+            chl_mg_m3=env.current.chl_mg_m3,
             provenance=provenance,
             data_status="complete" if severity_score is not None and fishing_score is not None else "partial"
         )

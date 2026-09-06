@@ -115,8 +115,8 @@ class RouteBsiProfiler:
             
             # Aggregation logic
             sum_severity += node_severity
-            if node_bsi > max_bsi or (node_bsi == max_bsi and node_severity > (evaluated_profile[peak_node]["severity"] if evaluated_profile else 0)):
-                max_bsi = node_bsi
+            if node_severity > max_bsi:
+                max_bsi = node_severity
                 peak_node = node["node_idx"]
                 peak_eta = node["eta"]
                 

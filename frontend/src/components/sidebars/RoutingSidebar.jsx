@@ -30,6 +30,8 @@ export function RoutingSidebar({
   setVesselProfile,
   departureTime = new Date().toISOString(),
   setDepartureTime,
+  isDepartureManual = false,
+  setIsDepartureManual,
   onCalculateRoute,
   onClearRoute,
   routeData = null,
@@ -193,11 +195,40 @@ export function RoutingSidebar({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[#8FA8B8]">Departure</label>
+              <div className="flex justify-between items-center">
+                <label className="text-[#8FA8B8]">Departure</label>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (setIsDepartureManual) setIsDepartureManual(false);
+                    if (setDepartureTime) setDepartureTime(new Date().toISOString());
+                  }} 
+                  className="text-[#00D4FF] hover:text-[#EAF4F8] text-[9px] uppercase font-bold cursor-pointer"
+                >
+                  [ Now ]
+                </button>
+              </div>
               <input
                 type="datetime-local"
-                value={departureTime ? new Date(departureTime).toISOString().slice(0, 16) : ''}
-                onChange={e => setDepartureTime && setDepartureTime(new Date(e.target.value).toISOString())}
+                value={departureTime ? (() => {
+                  const d = new Date(departureTime);
+                  if (isNaN(d.getTime())) return '';
+                  const pad = n => n.toString().padStart(2, '0');
+                  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                })() : ''}
+                onChange={e => {
+                  if (setIsDepartureManual) setIsDepartureManual(true);
+                  if (setDepartureTime) {
+                    if (!e.target.value) {
+                      setDepartureTime(null);
+                    } else {
+                      const d = new Date(e.target.value);
+                      if (!isNaN(d.getTime())) {
+                        setDepartureTime(d.toISOString());
+                      }
+                    }
+                  }
+                }}
                 className="w-full bg-[#07111F] border border-[#20384D] rounded px-2 py-1 text-[#EAF4F8]"
               />
             </div>
@@ -208,7 +239,7 @@ export function RoutingSidebar({
         <div className="space-y-2">
           {error && (
             <div className="p-2.5 rounded bg-[#FF5C5C]/10 border border-[#FF5C5C]/30 text-[#FF5C5C] text-[10px] font-mono text-center">
-              Marine forecast unavailable — route could not be evaluated
+              {typeof error === 'string' ? error : "Marine forecast unavailable — route could not be evaluated"}
             </div>
           )}
 

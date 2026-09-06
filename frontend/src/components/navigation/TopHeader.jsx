@@ -35,7 +35,8 @@ export function TopHeader({
   onRefresh,
   onBackToLanding,
   onToggleChat,
-  isChatOpen = false
+  isChatOpen = false,
+  currentTime = new Date().toISOString()
 }) {
   const modeInfo = MODE_TITLES[activeMode] || MODE_TITLES.routing;
   const overallRisk = safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
@@ -86,8 +87,8 @@ export function TopHeader({
         </div>
 
         <div className="text-right hidden sm:block">
-          <span className="text-[8px] text-[#8FA8B8] block uppercase font-mono">Forecast Epoch</span>
-          <span className="font-mono text-[#EAF4F8] font-bold text-[10px]">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} • {new Date().toISOString().substring(11, 16)} UTC</span>
+          <span className="text-[8px] text-[#8FA8B8] block uppercase font-mono">System Epoch</span>
+          <span className="font-mono text-[#EAF4F8] font-bold text-[10px]">{new Date(currentTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} • {new Date(currentTime).toISOString().substring(11, 16)} UTC</span>
         </div>
 
         <div className="flex items-center gap-2 border-l border-[#20384D] pl-3 sm:pl-4">

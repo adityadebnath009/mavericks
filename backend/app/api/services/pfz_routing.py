@@ -12,6 +12,21 @@ from app.api.services.route_bsi_profiler import RouteBsiProfiler
 
 logger = logging.getLogger(__name__)
 
+# Palk Strait High-Resolution Corridor (0.1 degree spacing)
+# Allows the A* engine to mathematically traverse the narrow gap between India and Sri Lanka
+# without stepping outside the 'india_eez' Geofence boundary polygon.
+PALK_STRAIT_CORRIDOR_NODES = [
+    (9.0, 79.1), (9.0, 79.2), (9.0, 79.3), (9.0, 79.4), (9.0, 79.5), (9.1, 79.1), (9.1, 79.2), 
+    (9.1, 79.3), (9.1, 79.4), (9.1, 79.5), (9.2, 79.2), (9.2, 79.3), (9.2, 79.4), (9.2, 79.5), 
+    (9.3, 79.1), (9.3, 79.2), (9.3, 79.4), (9.3, 79.5), (9.4, 79.1), (9.4, 79.2), (9.4, 79.3), 
+    (9.4, 79.4), (9.5, 79.1), (9.5, 79.2), (9.5, 79.3), (9.5, 79.4), (9.6, 79.1), (9.6, 79.2), 
+    (9.6, 79.3), (9.6, 79.4), (9.7, 79.1), (9.7, 79.2), (9.7, 79.3), (9.8, 79.1), (9.8, 79.2), 
+    (9.8, 79.3), (9.8, 79.4), (9.9, 79.2), (9.9, 79.3), (9.9, 79.4), (9.9, 79.5), (10.0, 79.3), 
+    (10.0, 79.4), (10.0, 79.5), (10.0, 79.6), (10.0, 79.7), (10.1, 79.3), (10.1, 79.4), (10.1, 79.5), 
+    (10.1, 79.6), (10.1, 79.7), (10.2, 79.3), (10.2, 79.4), (10.2, 79.5), (10.2, 79.6), (10.2, 79.7), 
+    (10.3, 79.4), (10.3, 79.5), (10.3, 79.7)
+]
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     R = 6371.0
     dlat = math.radians(lat2 - lat1)
@@ -65,6 +80,7 @@ class PFZRoutingService:
         vessel_speed_kmh = vessel_profile.cruising_speed_kn * 1.852
         
         all_nodes = set(ForecastDataService.get_grid_nodes())
+        all_nodes.update(PALK_STRAIT_CORRIDOR_NODES)
         all_nodes.add(start_node)
         all_nodes.add(end_node)
 

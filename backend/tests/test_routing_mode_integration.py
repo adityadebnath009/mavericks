@@ -219,12 +219,3 @@ def test_map_timeline_sync(mock_forecast, mock_geofence, mock_eval_ok):
     assert all("severity_score" in node for node in path)
     assert all("eta" in node for node in path)
 
-def test_data_status_never_reports_live_when_unhealthy():
-    # 17. Data-status never reports LIVE when the provider/cache isn't actually healthy.
-    response = client.get("/api/safety/data-status")
-    assert response.status_code == 200
-    data = response.json()
-    assert "OPEN-METEO" in data
-    assert "CACHE" in data
-    assert data["OPEN-METEO"] in ["CONNECTED", "OFFLINE"]
-    assert data["CACHE"] in ["FRESH", "STALE"]

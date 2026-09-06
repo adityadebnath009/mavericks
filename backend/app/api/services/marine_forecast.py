@@ -82,20 +82,27 @@ class MarineForecastService:
             sst_value, chl_value = cls._sst_cache[sst_grid_key][1], cls._sst_cache[sst_grid_key][2]
             sst_source = "incois"
         else:
+            import concurrent.futures
+            # Force Open-Meteo for SST immediately so we never block on it
+            sst_value = current_data.get("sst_c")
+            sst_source = "open-meteo"
+            
             try:
-                res_chl = INCOISGeoServerClient.get_feature_info(lat, lon, "PFZ-TUNA-SST-CHL:chl")
-                
-                # Force Open-Meteo for SST
-                sst_value = current_data.get("sst_c")
-                sst_source = "open-meteo"
-                
+                # Use a strict 2-second thread timeout so INCOIS retries don't hang the entire Telemetry API
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(INCOISGeoServerClient.get_feature_info, lat, lon, "PFZ-TUNA-SST-CHL:chl")
+                    res_chl = future.result(timeout=2.0)
+                    
                 if res_chl.get("status") == "success" and res_chl.get("value") is not None:
                     chl_value = float(res_chl["value"])
                     
-                if chl_value is not None:
-                    cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)
+                cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)
+            except concurrent.futures.TimeoutError:
+                logger.warning(f"INCOIS fetch timed out (2s strict limit) for {lat},{lon}")
+                cls._sst_cache[sst_grid_key] = (current_time, sst_value, None)
             except Exception as e:
                 logger.warning(f"INCOIS fetch failed for {lat},{lon}, falling back: {e}")
+                cls._sst_cache[sst_grid_key] = (current_time, sst_value, None)
 
         if sst_value is None:
             sst_value = current_data.get("sst_c")

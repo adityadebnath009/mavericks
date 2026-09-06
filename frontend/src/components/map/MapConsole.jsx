@@ -552,8 +552,11 @@ export function MapConsole({
               // Only override HTML if we have real telemetry payload
               if (res && typeof res.marine_severity_score !== 'undefined') {
                   const safetyText = safetyScore !== null ? `<span class="text-[#FF5C5C] font-bold">Severity: ${safetyScore.toFixed(0)}/100</span>` : `<span class="text-[#8FA8B8]">BSI Data Unavailable</span>`;
-                  const fishText = fishingScore !== null ? `<span class="text-[#18C7A0] font-bold">Opportunity: ${fishingScore.toFixed(0)}/100</span>` : `<span class="text-[#8FA8B8]">SST/CHL Unavailable</span>`;
+                  const fishText = fishingScore !== null ? `<span class="text-[#18C7A0] font-bold">Opportunity: ${fishingScore.toFixed(0)}/100</span>` : `<span class="text-[#8FA8B8]">No PFZ Match</span>`;
                   
+                  const sstVal = res.sst_c !== undefined && res.sst_c !== null ? `${res.sst_c.toFixed(1)}°C` : 'N/A';
+                  const chlVal = res.chl_mg_m3 !== undefined && res.chl_mg_m3 !== null ? `${res.chl_mg_m3.toFixed(2)} mg/m³` : 'N/A';
+
                   popup.setHTML(`
                     <div class="bg-[#0D1B2A] border border-[#20384D] rounded-xl p-3 shadow-2xl min-w-[200px] text-left">
                       <div class="flex items-center space-x-2 mb-2 border-b border-[#20384D] pb-2">
@@ -566,9 +569,15 @@ export function MapConsole({
                         <div class="text-[10px] text-[#8FA8B8] truncate">Status: ${dataStatus}</div>
                       </div>
                       <div class="flex justify-between items-center bg-[#13263A] rounded-lg p-2 mb-3">
-                        <div class="flex flex-col text-[10px]">
-                           ${fishText}
-                           ${safetyText}
+                        <div class="flex flex-col text-[10px] space-y-1">
+                           <div class="flex gap-4">
+                             <span>SST: <span class="text-[#00D4FF] font-bold">${sstVal}</span></span>
+                             <span>CHL: <span class="text-[#18C7A0] font-bold">${chlVal}</span></span>
+                           </div>
+                           <div class="border-t border-[#20384D] my-1 pt-1">
+                             ${fishText}<br/>
+                             ${safetyText}
+                           </div>
                         </div>
                       </div>
                       <div class="flex space-x-2">
@@ -909,12 +918,17 @@ export function MapConsole({
 
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !routeData?.path) return;
-    routeData.path.forEach(n => {
-      mapRef.current.setFeatureState(
-        { source: 'route-nodes', id: n.node_id },
-        { selected: n.node_id === selectedNodeId }
-      );
-    });
+    if (!mapRef.current.isStyleLoaded()) return;
+    try {
+      routeData.path.forEach(n => {
+        mapRef.current.setFeatureState(
+          { source: 'route-nodes', id: n.node_id },
+          { selected: n.node_id === selectedNodeId }
+        );
+      });
+    } catch (e) {
+      console.warn('Map style not ready for setFeatureState', e);
+    }
   }, [selectedNodeId, mapLoaded, routeData]);
 
   // 2. React to GeoJSON Prop Updates

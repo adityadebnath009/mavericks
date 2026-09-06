@@ -4,7 +4,7 @@
  * distinguish live data from unavailable data.
  */
 
-const API_TIMEOUT_MS = 15000;
+const API_TIMEOUT_MS = 60000; // Extended from 15s to 60s for heavy A* routing queries
 
 export const getApiUrl = (path) => {
   if (typeof window !== 'undefined') {
@@ -34,14 +34,24 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
 
 async function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const res = await fetchWithTimeout(url, options, timeoutMs);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    let errDetail = `HTTP ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) {
+        errDetail = errJson.detail;
+      }
+    } catch (e) {}
+    throw new Error(errDetail);
+  }
   return res.json();
 }
 
 /** 1. Get Point Safety Assessment */
 export async function getSafety(lat, lon, beam = 3.5, day = 1, hour = 12) {
   const data = await fetchJson(getApiUrl(`/api/safety?lat=${lat}&lon=${lon}&beam=${beam}&day=${day}&hour=${hour}`));
-  if (data && data.rating) return data;
+  // ORCA BSI Engine uses severity_score instead of rating
+  if (data && (data.rating || data.severity_score !== undefined)) return data;
   throw new Error('Malformed safety payload');
 }
 
@@ -95,19 +105,15 @@ export async function evaluatePfz(vessel, pfzId, beam = 3.5) {
 }
 
 /** 8. Calculate Weather-Optimized A* Safe Route */
-export async function calculateRoute(start, end, beam = 3.5, day = 1, hour = 12) {
-  const dt = new Date();
-  dt.setDate(dt.getDate() + (day - 1));
-  dt.setUTCHours(hour, 0, 0, 0);
-  
+export async function calculateRoute(start, end, vesselProfile, departureTimeStr) {
   const data = await fetchJson(getApiUrl('/api/routing/safe-route'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       origin: { lat: start.lat, lon: start.lon },
       destination: { lat: end.lat, lon: end.lon },
-      vessel_profile: { length_m: beam * 5.0, beam_m: beam, cruising_speed_kn: 10.0 },
-      departure_time: dt.toISOString(),
+      vessel_profile: vesselProfile,
+      departure_time: departureTimeStr || new Date().toISOString(),
       optimize_departure: false
     })
   });

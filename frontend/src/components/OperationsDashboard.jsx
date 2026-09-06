@@ -35,9 +35,24 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
 
   const [activeMode, setActiveMode] = useState(resolvedMode);
   const [isChatOpen, setIsChatOpen] = useState(urlMode === 'advisor' || initialMode === 'advisor');
+  const [routeError, setRouteError] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(INITIAL_LOCATION);
   const [destinationLocation, setDestinationLocation] = useState(INITIAL_DESTINATION);
-  const [beamWidth, setBeamWidth] = useState(3.5);
+  const [vesselProfile, setVesselProfile] = useState({ length_m: 10.0, beam_m: 3.5, cruising_speed_kn: 10.0 });
+  const [currentTime, setCurrentTime] = useState(new Date().toISOString());
+  const [departureTime, setDepartureTime] = useState(new Date().toISOString());
+  const [isDepartureManual, setIsDepartureManual] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().toISOString();
+      setCurrentTime(now);
+      if (!isDepartureManual) {
+        setDepartureTime(now);
+      }
+    }, 1000); // Tick every second to keep the clock precisely aligned
+    return () => clearInterval(timer);
+  }, [isDepartureManual]);
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedHour, setSelectedHour] = useState(12);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
@@ -89,13 +104,13 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   useEffect(() => {
     let active = true;
     setDataStatus(prev => ({ ...prev, safety: 'loading' }));
-    resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour)).then(result => {
+    resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, vesselProfile.beam_m, selectedDay, selectedHour)).then(result => {
       if (!active) return;
       if (result.ok) { setSafetyData(result.data); setDataStatus(prev => ({ ...prev, safety: classifyPayload(result.data) })); }
       else setDataStatus(prev => ({ ...prev, safety: 'unavailable' }));
     });
     return () => { active = false; };
-  }, [selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour]);
+  }, [selectedLocation.lat, selectedLocation.lon, vesselProfile.beam_m, selectedDay, selectedHour]);
 
   // Exact selected location/day -> 24-hour forecast.
   useEffect(() => {
@@ -141,12 +156,22 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
 
   const handleCalculateRoute = useCallback(async () => {
     setIsRouteLoading(true);
-    try { setRouteData(await calculateRoute(selectedLocation, destinationLocation, beamWidth, selectedDay, selectedHour)); }
-    catch (error) { console.warn('[OperationsDashboard] Route unavailable:', error); setRouteData(null); }
+    setRouteError(null);
+    try { 
+      setRouteData(await calculateRoute(selectedLocation, destinationLocation, vesselProfile, departureTime)); 
+    }
+    catch (error) { 
+      console.warn('[OperationsDashboard] Route unavailable:', error); 
+      setRouteData(null); 
+      setRouteError(error.message || "Route calculation failed.");
+    }
     finally { setIsRouteLoading(false); }
-  }, [selectedLocation, destinationLocation, beamWidth, selectedDay, selectedHour]);
+  }, [selectedLocation, destinationLocation, vesselProfile, departureTime, selectedDay, selectedHour]);
 
-  const handleClearRoute = useCallback(() => setRouteData(null), []);
+  const handleClearRoute = useCallback(() => {
+    setRouteData(null);
+    setRouteError(null);
+  }, []);
 
   // Seven dynamic datasets: all requests start together and each result is tracked independently.
   const handleRefresh = useCallback(async () => {
@@ -154,7 +179,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
     setDataStatus({ safety: 'loading', forecast: 'loading', grid: 'loading', vectors: 'loading', advisories: 'loading', geofence: 'loading', pfz: 'loading' });
 
     const [safety, forecast, grid, vectors, advisories, geofence, pfz] = await Promise.all([
-      resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour)),
+      resultOf(getSafety(selectedLocation.lat, selectedLocation.lon, vesselProfile.beam_m, selectedDay, selectedHour)),
       resultOf(getForecast(selectedLocation.lat, selectedLocation.lon, selectedDay)),
       resultOf(getGrid(selectedDay, selectedHour)),
       resultOf(getVectorGrid(selectedDay, selectedHour)),
@@ -181,14 +206,14 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
       pfz: pfz.ok ? classifyPayload(pfz.data) : 'unavailable'
     });
     setIsLoading(false);
-  }, [selectedLocation.lat, selectedLocation.lon, beamWidth, selectedDay, selectedHour]);
+  }, [selectedLocation.lat, selectedLocation.lon, vesselProfile.beam_m, selectedDay, selectedHour]);
 
   const overallRisk = routeData?.summary?.overall_risk || safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
   const liveContext = {
     active_workspace: activeMode === 'routing' ? 'Tactical Routing' : activeMode === 'fisheries' ? 'Ocean Analytics' : 'Meteorological Hazards',
     origin_coords: selectedLocation,
     destination_coords: destinationLocation,
-    beam_width: `${beamWidth.toFixed(1)}m`,
+    beam_width: `${(vesselProfile?.beam_m || 3.5).toFixed(1)}m`,
     current_risk_score: overallRisk,
     bsi_score: safetyData?.bsi_metrics?.bsi_score ?? null,
     max_wave_height: safetyData?.raw_metrics?.inspect_hs != null ? `${Number(safetyData.raw_metrics.inspect_hs).toFixed(1)}m` : 'N/A',
@@ -199,19 +224,19 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#07111F] text-[#EAF4F8] font-sans overflow-hidden select-none">
-      <TopHeader activeMode={activeMode} selectedLocation={selectedLocation} safetyData={safetyData} dataStatus={dataStatus} isLoading={isLoading} onRefresh={handleRefresh} onBackToLanding={handleReturnToLanding} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} />
+      <TopHeader activeMode={activeMode} selectedLocation={selectedLocation} safetyData={safetyData} dataStatus={dataStatus} isLoading={isLoading} onRefresh={handleRefresh} onBackToLanding={handleReturnToLanding} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} currentTime={currentTime} />
       <div className="flex flex-1 overflow-hidden relative">
         <WorkspaceNav activeMode={activeMode} setActiveMode={handleModeChange} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} onBackToLanding={handleReturnToLanding} />
         <div className="w-[360px] sm:w-[380px] lg:w-[420px] min-w-[320px] h-full bg-[#0D1B2A] border-r border-[#20384D] flex flex-col shrink-0 z-10">
           <SpotlightCard className="h-full rounded-none border-0 bg-transparent flex flex-col">
-            {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} beamWidth={beamWidth} setBeamWidth={setBeamWidth} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} />}
+            {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime} isDepartureManual={isDepartureManual} setIsDepartureManual={setIsDepartureManual} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} error={routeError} />}
             {activeMode === 'fisheries' && <FisheriesSidebar sstOpacity={sstOpacity} setSstOpacity={setSstOpacity} chlOpacity={chlOpacity} setChlOpacity={setChlOpacity} pfzList={pfzGeojson.features || []} selectedPfz={selectedPfz} onSelectPfz={setSelectedPfz} onDestinationSelect={setDestinationLocation} selectedLocation={selectedLocation} layersOverride={layersOverride} setLayersOverride={setLayersOverride} />}
             {activeMode === 'weather' && <WeatherSidebar selectedDay={selectedDay} setSelectedDay={setSelectedDay} selectedHour={selectedHour} setSelectedHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} safetyData={safetyData} layersOverride={layersOverride} setLayersOverride={setLayersOverride} />}
           </SpotlightCard>
         </div>
         <main className="flex-1 flex flex-col h-full bg-[#07111F] relative overflow-hidden">
           <div className="flex-1 relative">
-            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={beamWidth} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} />
+            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={vesselProfile.beam_m} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} />
           </div>
           <WeatherTimelinePanel routeData={routeData} forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} activeMode={activeMode} />
         </main>

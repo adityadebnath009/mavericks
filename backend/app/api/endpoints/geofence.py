@@ -16,23 +16,44 @@ router = APIRouter()
 db_dependency = Depends(get_db)
 
 
+_cached_geojson = None
+_cached_geometries = []
+
 def load_fallback_geojson():
     """
     Loads static boundaries GeoJSON dataset for offline-first resilience.
+    Caches the file I/O and parsed shapely geometries for blazing fast repeated lookups.
     """
+    global _cached_geojson, _cached_geometries
+    if _cached_geojson is not None:
+        return _cached_geojson
+        
     possible_paths = [
         os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../data/boundaries/boundaries_fallback.geojson")),
         os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data/boundaries/boundaries_fallback.geojson")),
         os.path.abspath("data/boundaries/boundaries_fallback.geojson")
     ]
+    
     for path in possible_paths:
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    _cached_geojson = json.load(f)
+                    if Point and shape and _cached_geojson.get("features"):
+                        for feat in _cached_geojson.get("features", []):
+                            geom_data = feat.get("geometry")
+                            if geom_data:
+                                _cached_geometries.append({
+                                    "geom": shape(geom_data),
+                                    "type": feat.get("properties", {}).get("type"),
+                                    "name": feat.get("properties", {}).get("name")
+                                })
+                    return _cached_geojson
             except Exception:
                 continue
-    return {"type": "FeatureCollection", "features": []}
+                
+    _cached_geojson = {"type": "FeatureCollection", "features": []}
+    return _cached_geojson
 
 
 def evaluate_geofence_offline(lat: float, lon: float):
@@ -47,15 +68,12 @@ def evaluate_geofence_offline(lat: float, lon: float):
     distance_mpa = 999.0
     mpa_name = None
 
-    if Point and shape and fallback_data.get("features"):
+    if Point and shape and _cached_geometries:
         pt = Point(lon, lat)
-        for feat in fallback_data.get("features", []):
-            geom_data = feat.get("geometry")
-            if not geom_data:
-                continue
-            geom = shape(geom_data)
-            f_type = feat.get("properties", {}).get("type")
-            f_name = feat.get("properties", {}).get("name")
+        for feat in _cached_geometries:
+            geom = feat["geom"]
+            f_type = feat["type"]
+            f_name = feat["name"]
 
             if f_type == "EEZ":
                 if geom.contains(pt):
@@ -215,67 +233,14 @@ _cached_geofence_geojson = None
 @router.get("/geojson")
 @router.get("/geojson/")
 def get_geofence_geojson(db: Session = db_dependency):
-    """
-    Fetches simplified geometries of the Indian EEZ boundary and Marine Protected Areas (MPAs)
-    in GeoJSON format to render directly on the interactive map.
-    Falls back to 'data/boundaries/boundaries_fallback.geojson' if remote database is unreachable.
-    """
     global _cached_geofence_geojson
     if _cached_geofence_geojson is not None:
         return _cached_geofence_geojson
-
-    try:
-        # 1. Fetch simplified EEZ boundary
-        query_eez = text("""
-            SELECT ST_AsGeoJSON(ST_Simplify(geometry, 0.01)) as geojson
-            FROM india_eez;
-        """)
-        # 2. Fetch simplified Marine Protected Areas (MPAs)
-        query_mpa = text("""
-            SELECT "NAME_ENG" as name, ST_AsGeoJSON(ST_Simplify(geometry, 0.005)) as geojson
-            FROM marine_protected_areas;
-        """)
-
-        eez_rows = db.execute(query_eez).fetchall()
-        mpa_rows = db.execute(query_mpa).fetchall()
-
-        features = []
-
-        # Parse EEZ Boundaries
-        for row in eez_rows:
-            if row.geojson:
-                geom = json.loads(row.geojson)
-                features.append({
-                    "type": "Feature",
-                    "properties": {
-                        "type": "EEZ",
-                        "name": "Indian Exclusive Economic Zone (EEZ)"
-                    },
-                    "geometry": geom
-                })
-
-        # Parse MPA Restricted Zones
-        for row in mpa_rows:
-            if row.geojson:
-                geom = json.loads(row.geojson)
-                features.append({
-                    "type": "Feature",
-                    "properties": {
-                        "type": "MPA",
-                        "name": row.name or "Marine Protected Area"
-                    },
-                    "geometry": geom
-                })
-
-        if features:
-            _cached_geofence_geojson = {
-                "type": "FeatureCollection",
-                "features": features
-            }
-            return _cached_geofence_geojson
-        # Fallback if table was empty
-        return load_fallback_geojson()
-    except Exception:
-        # Return fallback boundaries GeoJSON dataset if DB connection drops
-        return load_fallback_geojson()
+    
+    fallback = load_fallback_geojson()
+    if fallback:
+        _cached_geofence_geojson = fallback
+        return fallback
+        
+    return {"type": "FeatureCollection", "features": []}
 
