@@ -142,86 +142,30 @@ export function MapConsole({
           data: EMPTY_FEATURE_COLLECTION
         });
 
-        // Layer 2: bsi-heatmap (Beautiful smooth gradient)
+        // Layer 2: bsi-heatmap (Data-driven blurred circles)
         map.addLayer({
           id: 'bsi-heatmap',
-          type: 'heatmap',
+          type: 'circle',
           source: 'bsi-points',
-          maxzoom: 9,
           paint: {
-            // Increase weight based on BSI risk score (0 to 7)
-            'heatmap-weight': [
+            'circle-color': [
               'interpolate',
               ['linear'],
-              ['get', 'bsi'],
-              0, 0.1,
-              3, 0.4,
-              7, 1.0
+              ['get', 'severity'],
+              0, '#18C7A0',  // Safe (Green)
+              40, '#18C7A0', // Stay green longer
+              50, '#FFB547', // Moderate (Yellow)
+              70, '#FF5C5C', // High (Red)
+              100, '#FF5C5C' // Extreme (Red)
             ],
-            // Smooth Navik color ramp transition
-            'heatmap-color': [
-              'interpolate',
-              ['linear'],
-              ['heatmap-density'],
-              0, 'rgba(7, 17, 31, 0)',
-              0.2, '#18C7A0', // Sea Green (Safe)
-              0.5, '#EAB308', // Yellow
-              0.75, '#FFB547', // Amber (Moderate)
-              1, '#FF5C5C'    // Coral Red (Danger)
-            ],
-            // Adjust blur radius based on zoom level to keep it smooth
-            'heatmap-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              3, 20,
-              6, 60
-            ],
-            'heatmap-opacity': 0.65
+            // Scale radius up as you zoom in to keep the screen covered in color
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 6, 25, 10, 60],
+            // Apply maximum blur so individual circles completely blend together
+            'circle-blur': 1.0,
+            'circle-opacity': 0.65,
+            'circle-stroke-width': 0
           },
-          layout: { visibility: 'none' }
-        });
-
-        // --- 2. Source: coastal-advisories ---
-        map.addSource('coastal-advisories', {
-          type: 'geojson',
-          data: advisoriesGeojson || EMPTY_FEATURE_COLLECTION
-        });
-
-        const initialSuffix = getSuffix(beamWidthRef.current);
-
-        // Layer 3: advisory-fill
-        map.addLayer({
-          id: 'advisory-fill',
-          type: 'fill',
-          source: 'coastal-advisories',
-          paint: {
-            'fill-color': [
-              'case',
-              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FFB547',
-              ['==', ['get', `Color${initialSuffix}`], 'red'], '#FF5C5C',
-              '#18C7A0'
-            ],
-            'fill-opacity': 0.35
-          },
-          layout: { visibility: 'none' }
-        });
-
-        // Layer 4: advisory-stroke
-        map.addLayer({
-          id: 'advisory-stroke',
-          type: 'line',
-          source: 'coastal-advisories',
-          paint: {
-            'line-color': [
-              'case',
-              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FB923C',
-              ['==', ['get', `Color${initialSuffix}`], 'red'], '#F87171',
-              '#4ADE80'
-            ],
-            'line-width': 1.2
-          },
-          layout: { visibility: 'none' }
+          layout: { visibility: 'visible' }
         });
 
         // --- 3. Source: geofencing-layers ---
@@ -937,20 +881,9 @@ export function MapConsole({
     if (gridGeojson) {
       setSourceDataSafe('bsi-grid', gridGeojson);
 
-      // Dynamically extract the centers of every blocky polygon to feed the smooth Heatmap engine
-      const pointsData = {
-        type: 'FeatureCollection',
-        features: (gridGeojson.features || []).map(f => {
-          const cLat = f.properties.center_lat ?? f.geometry.coordinates[0][0][1];
-          const cLon = f.properties.center_lon ?? f.geometry.coordinates[0][0][0];
-          return {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [cLon, cLat] },
-            properties: f.properties
-          };
-        })
-      };
-      setSourceDataSafe('bsi-points', pointsData);
+      // The backend grid is now natively a dense 0.25 Point cloud, so we pipe it directly!
+      // (This fixes the geometry.coordinates[0][0] crash since they are no longer polygons)
+      setSourceDataSafe('bsi-points', gridGeojson);
     }
   }, [gridGeojson, mapLoaded, setSourceDataSafe]);
 
