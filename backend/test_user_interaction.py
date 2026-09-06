@@ -1,4 +1,89 @@
+import asyncio
 from app.agents.user_interaction_agent import UserInteractionAgent
+
+class MockPlanner:
+    async def orchestrate_query(
+        self,
+        lat,
+        lon,
+        days=1,
+        time_factor=0.5,
+    ):
+        return {
+            "orchestration_status": "success",
+            "active_mode": "TEST",
+            "received_lat": lat,
+            "received_lon": lon,
+            "received_days": days,
+            "received_time_factor": time_factor,
+        }
+
+async def test_execute_planner_request():
+    agent = UserInteractionAgent()
+    planner = MockPlanner()
+
+    intent = agent.extract_intent(
+        "Can I go fishing tomorrow morning?"
+    )
+
+    request = agent.prepare_planner_request(
+        intent,
+        user_latitude=21.628,
+        user_longitude=87.508,
+    )
+
+    result = await agent.execute_planner_request(
+        planner,
+        request,
+    )
+
+    assert result["orchestration_status"] == "success"
+    assert result["received_lat"] == 21.628
+    assert result["received_lon"] == 87.508
+    assert result["received_days"] == 1
+    assert result["received_time_factor"] == 0.25
+
+    print("Planner execution test passed.")
+    print(f"Planner received: {result}")
+
+def test_generate_response():
+
+    agent = UserInteractionAgent()
+
+    intent = agent.extract_intent(
+        "Is it safe to go fishing tomorrow morning?"
+    )
+
+    fake_result = {
+        "orchestration_status": "success",
+        "active_mode": "TEST",
+        "total_latency_ms": 100,
+        "is_stale_fallback": True,
+        "system_advisory_warning": "Live weather data unavailable; using cached data.",
+
+        "weather_payload": {
+            "weather_safety_score": 82,
+            "imd_color_code": "GREEN (No Warning)",
+            "active_hazards": [],
+            "plain_language_summary":
+                "Marine weather conditions remain calm and clear."
+        },
+
+        "ocean_payload": {
+            "average_pfz_score": 0.74
+        }
+    }
+
+    response = agent.generate_response(
+        fake_result,
+        intent,
+    )
+
+    print("\nGenerated response:")
+    print(response)
+
+    assert "⚠️ " in response
+    assert "cached data" in response
 
 def test_prepare_planner_request():
     agent = UserInteractionAgent()
@@ -43,6 +128,8 @@ def main():
     test_prepare_planner_request()
     test_explicit_coordinates()
     print("Planner request tests passed.")
+
+    asyncio.run(test_execute_planner_request())
 
     agent = UserInteractionAgent()
 
@@ -98,6 +185,7 @@ def main():
         print(f"Days ahead: {result.days_ahead}")
         print(f"Time factor: {result.time_factor}")
 
+    test_generate_response()
 
 if __name__ == "__main__":
     main()

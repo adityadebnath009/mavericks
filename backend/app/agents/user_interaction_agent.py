@@ -224,15 +224,17 @@ class UserInteractionAgent:
         Convert a parsed user intent into parameters expected by the Planner Agent.
         """
 
-        intent = self.resolve_location(
-            intent,
-            user_latitude=user_latitude,
-            user_longitude=user_longitude,
-        )
-
+        # Explicit coordinates from the user's query take priority.
         if intent.latitude is not None and intent.longitude is not None:
             latitude = intent.latitude
             longitude = intent.longitude
+
+        # Otherwise, fall back to the user's current location.
+        elif user_latitude is not None and user_longitude is not None:
+            latitude = user_latitude
+            longitude = user_longitude
+
+        # We cannot ask the Planner for a location we don't have.
         else:
             raise ValueError("No location available for planner request.")
 
@@ -242,3 +244,121 @@ class UserInteractionAgent:
             "days": intent.days_ahead,
             "time_factor": intent.time_factor,
         }
+
+    async def execute_planner_request(
+        self,
+        planner,
+        planner_request: dict,
+    ) -> dict:
+        """
+        Execute a prepared request through the Planner Agent.
+        """
+
+        return await planner.orchestrate_query(
+            planner_request["latitude"],
+            planner_request["longitude"],
+            days=planner_request["days"],
+            time_factor=planner_request["time_factor"],
+        )
+
+    
+    def generate_response(
+        self,
+        pipeline_result: dict,
+        intent: ParsedIntent,
+    ) -> str:
+        """
+        Convert the Planner result into a human-readable response.
+        """
+        weather = pipeline_result.get("weather_payload", {})
+        ocean = pipeline_result.get("ocean_payload", {})
+
+        response_parts = []
+
+        # ---------------------------------------------------------
+        # Data availability / fallback status
+        # ---------------------------------------------------------
+        warning = pipeline_result.get("system_advisory_warning")
+        is_stale_fallback = pipeline_result.get("is_stale_fallback", False)
+
+        if is_stale_fallback:
+            if warning:
+                response_parts.append(f"⚠️ {warning}")
+            else:
+                response_parts.append(
+                    "⚠️ Live data was unavailable. This assessment is based "
+                    "on cached marine intelligence."
+                )
+        elif warning:
+            response_parts.append(f"⚠️ {warning}")
+
+        # ---------------------------------------------------------
+        # Weather information
+        # ---------------------------------------------------------
+        weather_score = weather.get("weather_safety_score")
+        imd_code = weather.get("imd_color_code")
+        hazards = weather.get("active_hazards", [])
+
+        # ---------------------------------------------------------
+        # Intent-specific response
+        # ---------------------------------------------------------
+        if intent.query_type == "safety_assessment":
+            if weather_score is not None:
+                response_parts.append(
+                    f"Weather safety score: {weather_score}/100."
+                )
+
+            if imd_code:
+                response_parts.append(
+                    f"IMD advisory level: {imd_code}."
+                )
+
+            if hazards:
+                response_parts.append(
+                    f"Active hazards: {', '.join(hazards)}."
+                )
+            else:
+                response_parts.append(
+                    "No active weather hazards were detected."
+                )
+
+        elif intent.query_type == "weather_conditions":
+            summary = weather.get("plain_language_summary")
+
+            if summary:
+                response_parts.append(summary)
+
+            if weather_score is not None:
+                response_parts.append(
+                    f"Weather safety score: {weather_score}/100."
+                )
+
+        elif intent.query_type == "fishing_conditions":
+            pfz_score = ocean.get("average_pfz_score")
+
+            if pfz_score is not None:
+                response_parts.append(
+                    f"Average fishing-zone suitability score: "
+                    f"{pfz_score:.2f}/1.00."
+                )
+
+            if weather_score is not None:
+                response_parts.append(
+                    f"Weather safety score: {weather_score}/100."
+                )
+
+        else:
+            summary = weather.get("plain_language_summary")
+
+            if summary:
+                response_parts.append(summary)
+
+            pfz_score = ocean.get("average_pfz_score")
+
+            if pfz_score is not None:
+                response_parts.append(
+                    f"Average fishing-zone suitability score: "
+                    f"{pfz_score:.2f}/1.00."
+                )
+
+        return " ".join(response_parts)
