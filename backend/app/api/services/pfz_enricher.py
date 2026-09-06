@@ -555,7 +555,7 @@ class PFZEnricherService:
         return {"type": "FeatureCollection", "enrichment_status": "PARTIAL_RAW_FALLBACK", "features": []}
 
     @classmethod
-    def enrich_feature_collection(cls, geojson_data: dict, cycle=None) -> dict:
+    def enrich_feature_collection(cls, geojson_data: dict, cycle=None, **kwargs) -> dict:
         """
         Enriches all features in a WFS GeoJSON FeatureCollection.
         Removes all static species inference and populates median telemetry.
