@@ -5,6 +5,7 @@ import tempfile
 import numpy as np
 from datetime import datetime
 
+from app.agents.context import AgentContext
 from app.agents.marine_data_agent import MarineDataDiscoveryAgent
 from app.agents.weather_agent import WeatherIntelligenceAgent
 from app.agents.ocean_agent import OceanAnalyticsAgent
@@ -29,7 +30,9 @@ async def refresh_single_scenario(lat: float, lon: float) -> dict:
     ocean_data = await discovery_agent.fetch_oceanographic_data(lat, lon, days=1)
 
     # 2. Run Weather Intelligence analysis
-    weather_report = weather_agent.analyze(met_data).model_dump()
+    context = AgentContext(latitude=lat, longitude=lon, query="")
+    import dataclasses
+    weather_report = dataclasses.asdict(await weather_agent.analyze(context))
     weather_report["execution_mode"] = "ROLLING_CACHE"
 
     # 3. Run Ocean Analytics & PFZ gradient synthesis

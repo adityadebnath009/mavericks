@@ -1,3 +1,4 @@
+from app.agents.evidence import EvidenceContract, ResultValidator
 from fastapi import APIRouter, HTTPException
 import numpy as np
 
@@ -60,7 +61,13 @@ async def process_chat_query(request: ChatRequest):
         # Ensure fallback payload structure is satisfied for existing frontend
         if "weather" not in selected_agents: selected_agents.append("weather")
         if "ocean" not in selected_agents: selected_agents.append("ocean")
+        if "geospatial" not in selected_agents: selected_agents.append("geospatial")
+
             
+        # Generate Evidence Contract
+        contract_dict = await llm_orchestrator.generate_evidence_contract(resolved_query)
+        contract = EvidenceContract(**contract_dict)
+        
         # Step 4: Deterministic DAG execution
         context = AgentContext(
             latitude=request.latitude, 
@@ -71,8 +78,22 @@ async def process_chat_query(request: ChatRequest):
         )
         dag_result = await planner.orchestrate(context, agents=selected_agents)
         
-        # Step 4: LLM synthesizes the explainable natural language response
-        synthesis = await llm_orchestrator.synthesize_response(resolved_query, dag_result, request.history)
+        # Validate Result against Evidence Contract
+        validated_result = ResultValidator.validate(contract, dag_result)
+        
+        # Step 5: LLM synthesizes the explainable natural language response based on ValidatedResult
+        synthesis = await llm_orchestrator.synthesize_response(resolved_query, validated_result, request.history, request.latitude, request.longitude)
+        
+        dag_result["evidence_contract"] = contract_dict
+        dag_result["validation_metrics"] = {
+            "evidence": f"{validated_result.met_count}/{validated_result.required_count}",
+            "validation": validated_result.validation_status,
+            "assessment": validated_result.assessment_status,
+            "certification": validated_result.certification_status,
+            "confidence": validated_result.confidence,
+            "causality": validated_result.causality_status
+        }
+        
         
         # Step 5: Generate followups
         followups = await llm_orchestrator.generate_followups(resolved_query, dag_result, request.history)
@@ -80,7 +101,10 @@ async def process_chat_query(request: ChatRequest):
         # Attach synthesis and followups to the final payload
         dag_result["conversational_response"] = synthesis
         dag_result["suggested_queries"] = followups
+        dag_result["temporal_context"] = temporal_data
         
         return dag_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+from app.api.endpoints import research
+api_router.include_router(research.router, prefix='/research', tags=['Research'])

@@ -20,4 +20,4 @@ netcdf4>=1.6.0
 pypdf>=4.0.0
 psycopg2-binary>=2.9
 pgvector>=0.2
-pip
+pipearthengine-api>=0.1.411

@@ -53,9 +53,18 @@ app.include_router(api_router, prefix="/api")
 def start_cache_warmer():
     """
     Spawns the background CacheWarmer daemon and starts the coastal advisories worker.
+    Initializes Google Earth Engine with Application Default Credentials (ADC).
     """
     import threading
+    import ee
     from app.api.services.cache_warmer import cache_warmer
+
+    # Initialize Google Earth Engine using ADC (Application Default Credentials)
+    try:
+        ee.Initialize(project=os.getenv("GOOGLE_CLOUD_PROJECT", "stately-winter-461407-c7"))
+        print("[GEE] Successfully initialized Earth Engine with ADC.")
+    except Exception as e:
+        print(f"[GEE ERROR] Failed to initialize Earth Engine: {e}")
 
     # Start the robust CacheWarmer
     cache_warmer.start()

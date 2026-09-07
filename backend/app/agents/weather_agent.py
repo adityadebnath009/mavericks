@@ -30,6 +30,15 @@ class WeatherAlert(BaseModel):
     threshold_value: float
     message: str
 
+class HazardStatus(BaseModel):
+    active: bool
+    severity: Optional[str] = None
+
+class Hazards(BaseModel):
+    cyclone: HazardStatus
+    lightning: HazardStatus
+    heavy_rain: HazardStatus
+
 class WeatherIntelligenceReport(BaseModel):
     max_wind_speed: float
     max_wind_gust: float
@@ -39,7 +48,7 @@ class WeatherIntelligenceReport(BaseModel):
     highest_severity: AlertSeverity
     imd_color_code: IMDColorCode
     weather_safety_score: int = Field(..., description="0 (Deadly) to 100 (Optimal)")
-    active_hazards: List[str]
+    hazards: Hazards
     timeline_alerts: List[WeatherAlert]
     hourly_risk_curve: List[int]
     plain_language_summary: str
@@ -71,7 +80,28 @@ class WeatherIntelligenceAgent(AbstractAgent):
             
         try:
             discovery = MarineDataDiscoveryAgent()
-            met_data = await discovery.fetch_meteorological_data(lat, lon, days=1)
+            # Dynamic forecasting horizon based on LLM semantic time window
+            days = 3 if context.temporal.mode == "forecast" else 1
+            met_data = await discovery.fetch_meteorological_data(lat, lon, days=days)
+            
+            # Slice the data to strictly match the requested temporal context window
+            if context.temporal.start_time and context.temporal.end_time:
+                from datetime import timezone
+                start = context.temporal.start_time.replace(tzinfo=timezone.utc)
+                end = context.temporal.end_time.replace(tzinfo=timezone.utc)
+                filtered_indices = [
+                    i for i, t in enumerate(met_data.time) 
+                    if start <= t.replace(tzinfo=timezone.utc) <= end
+                ]
+                if filtered_indices:
+                    met_data.time = [met_data.time[i] for i in filtered_indices]
+                    met_data.wind_speed_10m = [met_data.wind_speed_10m[i] for i in filtered_indices]
+                    met_data.wind_gusts_10m = [met_data.wind_gusts_10m[i] for i in filtered_indices]
+                    if met_data.precipitation_probability:
+                        met_data.precipitation_probability = [met_data.precipitation_probability[i] for i in filtered_indices]
+                    met_data.weather_code = [met_data.weather_code[i] for i in filtered_indices]
+                    met_data.visibility = [met_data.visibility[i] for i in filtered_indices]
+                    
             report = self._analyze_logic(met_data)
             latency = (time.perf_counter() - start_time) * 1000
             
@@ -191,6 +221,22 @@ class WeatherIntelligenceAgent(AbstractAgent):
             imd_tier = IMDColorCode.GREEN
             highest_sev = AlertSeverity.LOW
 
+        
+        cyclone_active = "Cyclone Danger Radius" in hazards_detected or "Cyclonic Gale" in hazards_detected
+        cyclone_sev = "extreme" if cyclone_active else None
+        
+        lightning_active = "Cloud-to-Sea Lightning" in hazards_detected or "Thunderstorm" in hazards_detected
+        lightning_sev = "extreme" if "Cloud-to-Sea Lightning" in hazards_detected else ("high" if "Thunderstorm" in hazards_detected else None)
+        
+        heavy_rain_active = "Heavy Rainfall" in hazards_detected
+        heavy_rain_sev = "moderate" if heavy_rain_active else None
+
+        hazards_obj = Hazards(
+            cyclone=HazardStatus(active=cyclone_active, severity=cyclone_sev),
+            lightning=HazardStatus(active=lightning_active, severity=lightning_sev),
+            heavy_rain=HazardStatus(active=heavy_rain_active, severity=heavy_rain_sev)
+        )
+
         summary = (
             "Marine weather conditions remain calm and clear across the forecast window."
             if not alerts else
@@ -208,7 +254,7 @@ class WeatherIntelligenceAgent(AbstractAgent):
             highest_severity=highest_sev,
             imd_color_code=imd_tier,
             weather_safety_score=overall_safety,
-            active_hazards=sorted(list(hazards_detected)),
+            hazards=hazards_obj,
             timeline_alerts=alerts,
             hourly_risk_curve=hourly_risk_curve,
             plain_language_summary=summary

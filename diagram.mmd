@@ -1,0 +1,50 @@
+graph TD
+    classDef default fill:#13263A,stroke:#20384D,stroke-width:2px,color:#EAF4F8;
+    classDef highlight fill:#0D1B2A,stroke:#00D4FF,stroke-width:2px,color:#EAF4F8;
+    classDef database fill:#13263A,stroke:#18C7A0,stroke-width:2px,color:#EAF4F8;
+    classDef external fill:#20384D,stroke:#FFB547,stroke-width:2px,color:#EAF4F8;
+
+    subgraph Layer 5: UI & Voice
+    UI["fa:fa-desktop React UI <br/>& MapLibre GL"]:::default
+    Voice["fa:fa-microphone Web Speech<br/>Native API"]:::default
+    end
+
+    subgraph Layer 4: API & Agents
+    FA["fa:fa-server FastAPI <br/>Controller"]:::default
+    PA("fa:fa-network-wired Planner<br/>Orchestrator"):::highlight
+    RAG["fa:fa-book Reporting<br/>RAG Agent"]:::default
+    end
+
+    subgraph Layer 3: Scientific Engines
+    BSI["fa:fa-water Ocean Agent<br/>BSI Engine"]:::default
+    Geo["fa:fa-map-marked PostGIS<br/>Geofencing"]:::default
+    Risk["fa:fa-route XGBoost <br/>A* Routing"]:::default
+    end
+
+    subgraph Layer 2: Unified DB
+    DB[("fa:fa-database PostgreSQL<br/>& SQLite")]:::database
+    PG["fa:fa-layer-group PostGIS &<br/>pgvector"]:::database
+    end
+
+    subgraph Layer 1: Data Ingestion
+    OM["fa:fa-cloud Open-Meteo<br/>Wave & Wind API"]:::external
+    INC["fa:fa-broadcast-tower INCOIS SVAS<br/>Advisories"]:::external
+    end
+
+    UI <--> FA
+    Voice <--> FA
+    FA <--> PA
+    
+    PA --> BSI
+    PA --> Geo
+    PA --> Risk
+    PA <--> RAG
+    
+    BSI -.->|Reads| DB
+    Geo <--> DB
+    DB --- PG
+    Risk <--> DB
+    RAG <--> PG
+    
+    OM -->|Live Telemetry| DB
+    INC -->|Zone Advisories| DB

@@ -91,14 +91,14 @@ class MarineForecastService:
                 # Use a strict 2-second thread timeout so INCOIS retries don't hang the entire Telemetry API
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(INCOISGeoServerClient.get_feature_info, lat, lon, "PFZ-TUNA-SST-CHL:chl")
-                    res_chl = future.result(timeout=2.0)
+                    res_chl = future.result(timeout=15.0)
                     
                 if res_chl.get("status") == "success" and res_chl.get("value") is not None:
                     chl_value = float(res_chl["value"])
                     
                 cls._sst_cache[sst_grid_key] = (current_time, sst_value, chl_value)
             except concurrent.futures.TimeoutError:
-                logger.warning(f"INCOIS fetch timed out (2s strict limit) for {lat},{lon}")
+                logger.warning(f"INCOIS fetch timed out (15s strict limit) for {lat},{lon}")
                 cls._sst_cache[sst_grid_key] = (current_time, sst_value, None)
             except Exception as e:
                 logger.warning(f"INCOIS fetch failed for {lat},{lon}, falling back: {e}")

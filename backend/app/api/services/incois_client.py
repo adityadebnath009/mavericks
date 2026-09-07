@@ -13,7 +13,7 @@ from app.core.exceptions import DataUnavailableError
 logger = logging.getLogger("incois_reliability")
 
 class CircuitBreaker:
-    def __init__(self, threshold=5, recovery_timeout=60, backoff_429=15, weight_429=2, clock=time.time):
+    def __init__(self, threshold=50, recovery_timeout=10, backoff_429=15, weight_429=2, clock=time.time):
         self.failures = 0
         self.threshold = threshold
         self.recovery_timeout = recovery_timeout
@@ -101,7 +101,7 @@ class IncoisHTTPAdapter(HTTPAdapter):
     def send(self, request, **kwargs):
         from urllib.parse import urlparse
         if kwargs.get("timeout") is None:
-            kwargs["timeout"] = (3.0, 10.0)
+            kwargs["timeout"] = (30.0, 120.0)
         hostname = urlparse(request.url).hostname or ""
         is_incois = hostname == "incois.gov.in" or hostname.endswith(".incois.gov.in")
         if not is_incois:
