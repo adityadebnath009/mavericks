@@ -59,6 +59,13 @@ def start_cache_warmer():
     import ee
     from app.api.services.cache_warmer import cache_warmer
 
+    # Apply IPv4 Global Patch for Urllib3/Requests to fix ISP IPv6 blackholing
+    import socket
+    _orig_getaddrinfo = socket.getaddrinfo
+    def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+    socket.getaddrinfo = _ipv4_only_getaddrinfo
+
     # Initialize Google Earth Engine using ADC (Application Default Credentials)
     try:
         ee.Initialize(project=os.getenv("GOOGLE_CLOUD_PROJECT", "stately-winter-461407-c7"))

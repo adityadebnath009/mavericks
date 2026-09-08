@@ -10,6 +10,9 @@ from app.core.exceptions import DataUnavailableError, NoSafeRouteError
 
 router = APIRouter()
 
+import time
+_pfz_augmented_cache = {"timestamp": 0, "data": None}
+
 class VesselLocation(BaseModel):
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
@@ -42,6 +45,10 @@ def get_pfz_lines():
     Retrieves the WFS GeoJSON features representing Potential Fishing Zones,
     and dynamically augments them with live Open-Meteo current/wave data and ORCA risk scores.
     """
+    global _pfz_augmented_cache
+    if _pfz_augmented_cache["data"] is not None and (time.time() - _pfz_augmented_cache["timestamp"] < 3600):
+        return _pfz_augmented_cache["data"]
+
     geojson = INCOISGeoServerClient.get_pfz_lines_wfs()
     
     features = geojson.get("features", [])
@@ -71,9 +78,15 @@ def get_pfz_lines():
             hs = snap.current.wave_height_m or 0.0
             curr = snap.current.current_speed_ms or 0.0
             
+            # Extract SST directly from Open-Meteo snapshot
+            sst = snap.current.sst_c if snap.current and snap.current.sst_c is not None else 28.5
+            
+            # Fetch Chlorophyll from GEE (or fallback) since Open-Meteo lacks it
+            from app.api.services.gee_service import GEEService
+            gee_data = GEEService.fetch_current_sst_and_chlorophyll(lat, lon)
+            chl = gee_data.get("chlorophyll", 0.5)
+            
             # Use the inverse of severity for fishing opportunity 'Score: X/100' 
-            # Or use a dedicated scoring logic. The frontend expects 'risk_score' to show out of 100.
-            # If severity is 20, fishing score is 80.
             fishing_score = max(0, 100 - res["severity_score"])
             
             if "properties" not in feat:
@@ -81,6 +94,8 @@ def get_pfz_lines():
                 
             feat["properties"]["wave_hs_median"] = hs
             feat["properties"]["current_median"] = curr
+            feat["properties"]["sst_median"] = sst
+            feat["properties"]["chl_median"] = chl
             feat["properties"]["risk_score"] = fishing_score
             feat["properties"]["bsi_severity"] = res["severity_score"]
             
@@ -88,9 +103,11 @@ def get_pfz_lines():
         except Exception:
             if "properties" not in feat:
                 feat["properties"] = {}
-            # Defaults if Open-Meteo fails
+            # Defaults if Open-Meteo/GEE fails
             feat["properties"]["wave_hs_median"] = 1.2
             feat["properties"]["current_median"] = 0.25
+            feat["properties"]["sst_median"] = 28.5
+            feat["properties"]["chl_median"] = 0.45
             feat["properties"]["risk_score"] = 85
             return feat
 
@@ -98,6 +115,9 @@ def get_pfz_lines():
         augmented_features = list(executor.map(augment_feature, features))
         
     geojson["features"] = augmented_features
+    
+    _pfz_augmented_cache["timestamp"] = time.time()
+    _pfz_augmented_cache["data"] = geojson
     return geojson
 
 @router.post("/evaluate")

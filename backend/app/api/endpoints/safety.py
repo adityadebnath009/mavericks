@@ -207,8 +207,8 @@ def get_safety_grid(
         if time.time() - timestamp < 3600:
             return geojson
 
-    # 1. Fetch sparse data at 1.0 degree to avoid API bans
-    spacing = 1.0
+    # 1. Fetch sparse data at 2.5 degree to avoid API bans and slash loading times
+    spacing = 2.5
     target_date = datetime.datetime.now(datetime.timezone.utc).replace(hour=hour, minute=0, second=0, microsecond=0)
     if day > 1:
         target_date += datetime.timedelta(days=day-1)

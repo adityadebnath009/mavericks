@@ -51,7 +51,8 @@ def get_pfz_advisory_lines():
     import time
     
     # 1. Check local augmented cache first
-    augmented_cache = "data/cache/pfz_lines_augmented.json"
+    CACHE_VERSION = "v3"
+    augmented_cache = os.path.join(os.path.dirname(__file__), "../../../data/cache", f"pfz_lines_augmented_{CACHE_VERSION}.json")
     os.makedirs(os.path.dirname(augmented_cache), exist_ok=True)
     if os.path.exists(augmented_cache):
         if time.time() - os.path.getmtime(augmented_cache) < 3600: # 1 hour cache
@@ -77,6 +78,71 @@ def get_pfz_advisory_lines():
     vessel = VesselProfile(length_m=15.0, beam_m=3.5, cruising_speed_kn=10.0)
     target_date = datetime.datetime.now(datetime.timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
 
+    # Load SVAS Data for Spatial District Naming
+    svas_path = "/Users/adityadebnath/Projects/mavericks/cache/svas_advisory.json"
+    coastal_districts = []
+    try:
+        if os.path.exists(svas_path):
+            with open(svas_path, "r", encoding="utf-8") as sf:
+                svas_data = json.load(sf)
+                for f in svas_data.get("features", []):
+                    geom = shape(f["geometry"])
+                    district_name = f.get("properties", {}).get("DistrictNa") or f.get("properties", {}).get("name") or "Coastal Zone"
+                    coastal_districts.append({"name": district_name, "geom": geom})
+    except Exception as e:
+        print(f"Error loading SVAS for distance calc: {e}")
+
+    from shapely.ops import nearest_points
+    import math
+
+    def haversine(lon1, lat1, lon2, lat2):
+        R = 6371.0 # Earth radius in kilometers
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = math.sin(dLat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon / 2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
+
+    def get_nearest_district(pfz_centroid):
+        if not coastal_districts:
+            return "Offshore Zone"
+        min_dist = float('inf')
+        nearest_name = "Offshore Zone"
+        for d in coastal_districts:
+            # Find closest points between centroid and boundary
+            p1, p2 = nearest_points(pfz_centroid, d["geom"])
+            dist_km = haversine(p1.x, p1.y, p2.x, p2.y)
+            if dist_km < min_dist:
+                min_dist = dist_km
+                nearest_name = d["name"]
+        return nearest_name
+
+    def calculate_sst_score(sst):
+        # Hackathon calibration model: Tuna thermal suitability
+        # Optimal 26 - 29 C
+        if sst < 24: return 20
+        elif sst < 26: return 60
+        elif 26 <= sst <= 29: return 95
+        elif sst <= 31: return 70
+        else: return 30
+
+    def calculate_chl_score(chl):
+        # Hackathon calibration model: Normalized biological productivity
+        # Optimal 0.2 - 2.0 mg/m3
+        if chl < 0.1: return 10
+        elif chl < 0.2: return 50
+        elif 0.2 <= chl <= 2.0: return 95
+        elif chl <= 5.0: return 60
+        else: return 40 # Too dense/algal bloom isn't great
+
+    def calculate_safety_score(bsi_severity):
+        # BSI -> operational safety mapping
+        if bsi_severity <= 20: return 100
+        elif bsi_severity <= 40: return 80
+        elif bsi_severity <= 60: return 60
+        elif bsi_severity <= 80: return 30
+        else: return 0
+
     def augment_feature(feat):
         try:
             geom = shape(feat["geometry"])
@@ -89,26 +155,66 @@ def get_pfz_advisory_lines():
             hs = snap.current.wave_height_m or 0.0
             curr = snap.current.current_speed_ms or 0.0
             
-            # Map BSI risk (0-100) inversely to Fishing catch score (100-0)
-            # A severe sea (80 risk) means poor fishing conditions (20 score).
-            fishing_score = max(0, 100 - res["severity_score"])
+            sst = snap.current.sst_c if snap.current and snap.current.sst_c is not None else 28.5
+            from app.api.services.gee_service import GEEService
+            gee_data = GEEService.fetch_current_sst_and_chlorophyll(lat, lon)
+            chl = gee_data.get("chlorophyll", 0.5)
+
+            # --- Isolated Scoring Logic ---
+            bsi_severity = res["severity_score"]
+            safety_score = calculate_safety_score(bsi_severity)
+            sst_score = calculate_sst_score(sst)
+            chl_score = calculate_chl_score(chl)
+
+            if bsi_severity > 80:
+                high_catch_score = 0
+            else:
+                high_catch_score = round((safety_score * 0.40) + (sst_score * 0.30) + (chl_score * 0.30))
+                
+            offshore_name = get_nearest_district(centroid)
             
             if "properties" not in feat:
                 feat["properties"] = {}
                 
+            feat["properties"]["offshore_name"] = offshore_name
             feat["properties"]["wave_hs_median"] = hs
             feat["properties"]["current_median"] = curr
-            feat["properties"]["risk_score"] = fishing_score
-            feat["properties"]["bsi_severity"] = res["severity_score"]
+            feat["properties"]["sst_median"] = sst
+            feat["properties"]["chl_median"] = chl
+            
+            # Explicit Score Components
+            feat["properties"]["safety_score"] = safety_score
+            feat["properties"]["sst_score"] = sst_score
+            feat["properties"]["chl_score"] = chl_score
+            feat["properties"]["high_catch_score"] = high_catch_score
+            
+            # Keep these for legacy mapping if needed, but UI should use new score
+            feat["properties"]["risk_score"] = safety_score 
+            feat["properties"]["bsi_severity"] = bsi_severity
+            
+            # Make sure feature has an id property for MapLibre
+            feat_id = feat.get("id") or feat["properties"].get("id") or hash(str(feat["geometry"]))
+            feat["id"] = feat_id
             
             return feat
-        except Exception:
+        except Exception as e:
+            print(f"Error augmenting PFZ: {e}")
             if "properties" not in feat:
                 feat["properties"] = {}
+            feat["properties"]["offshore_name"] = "Unknown Zone"
             feat["properties"]["wave_hs_median"] = 1.2
             feat["properties"]["current_median"] = 0.25
-            feat["properties"]["risk_score"] = 85
+            feat["properties"]["sst_median"] = 28.5
+            feat["properties"]["chl_median"] = 0.45
+            feat["properties"]["safety_score"] = 80
+            feat["properties"]["sst_score"] = 80
+            feat["properties"]["chl_score"] = 80
+            feat["properties"]["high_catch_score"] = 80
+            
+            feat_id = feat.get("id") or feat["properties"].get("id") or hash(str(feat["geometry"]))
+            feat["id"] = feat_id
             return feat
+
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         augmented_features = list(executor.map(augment_feature, features))

@@ -82,7 +82,7 @@ async def process_chat_query(request: ChatRequest):
         validated_result = ResultValidator.validate(contract, dag_result)
         
         # Step 5: LLM synthesizes the explainable natural language response based on ValidatedResult
-        synthesis = await llm_orchestrator.synthesize_response(resolved_query, validated_result, request.history, request.latitude, request.longitude)
+        synthesis = await llm_orchestrator.synthesize_response(resolved_query, validated_result, request.history, request.latitude, request.longitude, contract)
         
         dag_result["evidence_contract"] = contract_dict
         dag_result["validation_metrics"] = {

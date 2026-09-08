@@ -170,7 +170,17 @@ class LLMOrchestrator:
             
         return list(agents)
 
-    async def synthesize_response(self, query: str, validated_result: Any, history: List[Dict[str, str]], latitude: float, longitude: float) -> str:
+    async def synthesize_response(self, query: str, validated_result: Any, history: List[Dict[str, str]], latitude: float, longitude: float, contract: Any = None) -> str:
+        # Get causality status and intent
+        try:
+            causality_status = validated_result.causality
+            intent = contract.intent if contract else getattr(validated_result, 'intent', 'unknown')
+        except:
+            causality_status = getattr(validated_result, 'causality', 'NOT_APPLICABLE')
+            intent = 'unknown'
+
+        is_causal_intent = intent in ['productivity_decline_analysis', 'environmental_impact_analysis', 'research_correlation']
+
         prompt = f"""
         You are ORCA, a marine intelligence AI. 
         You are strictly an explanation engine. You must explain the VALIDATED RESULT provided below.
@@ -182,17 +192,28 @@ class LLMOrchestrator:
         Validation Status: {validated_result.validation_status}
         Assessment Status: {validated_result.assessment_status}
         Certification Status: {validated_result.certification_status}
+        Query Intent: {intent}
+        Causality Status: {causality_status}
         
-        CRITICAL EPISTEMIC RULES:
-        1. SAFETY DIRECTIVES: If the query is about safety, do NOT use directive language like "proceed with confidence". If assessment is SAFE, state: "Conditions meet the configured ORCA safety criteria." If UNSAFE, state: "Conditions exceed safety thresholds." Always append: "The operator remains responsible for the final decision."
-        2. MISSING EVIDENCE CONTEXT: If validation indicates INCOMPLETE evidence:
-           - State: "The requested analysis cannot be fully certified because critical evidence is unavailable."
-        3. STRICT PREFIX FORMATTING: You MUST start your response with the exact prefix `[Assessment: {validated_result.assessment_status} | Certification: {validated_result.certification_status}]`. Do not weave confidence or certification words naturally into sentences.
-        4. CAUSALITY: If causality_status is NOT_ESTABLISHED:
-           - If validation is INCOMPLETE, state EXACTLY: "No relationship can be reliably assessed because the required datasets are unavailable. Even if an association were observed, the available analysis would not establish causation."
-           - If validation is VALID, state EXACTLY: "The relationship is merely a correlation and causation cannot be established."
-        5. UNAVAILABLE != NONE: If 'marine_warnings' is missing, state: "Unable to verify alerts due to unavailable feeds."
-        6. Keep the explanation under 4 sentences. Be authoritative but scientifically honest.
+        CRITICAL EPISTEMIC RULES (Follow strictly):
+        1. AUTHORITATIVE ASSESSMENT: Assessment Status is authoritative. Do not infer, upgrade, downgrade, or reinterpret it from raw evidence. Use the supplied assessment status exactly as provided (e.g. if Assessment is UNKNOWN, do not infer safety from calm weather).
+        2. NON-SAFETY QUERIES: You MUST NOT introduce a safety assessment or safety conclusion if the query intent does not require it (e.g., nearest_pfz, local_conditions, fisheries_productivity_zone). Do not say "Conditions meet safety criteria" for these.
+        3. ROUTE SAFETY PHRASING: When the query involves a route (safest_route_fishing_vessel):
+           - If Assessment Status is SAFE: State exactly "The computed route satisfies the configured ORCA safety criteria."
+           - If Assessment Status is UNSAFE: State exactly "The computed route does not satisfy the configured ORCA safety criteria."
+           - If Assessment Status is UNKNOWN: Do not make any safety claim.
+           - If Certification Status is NOT_CERTIFIED: Explain what unavailable evidence prevents certification.
+           - NEVER say a route "is deemed safe" or "is completely safe".
+        4. CAUSALITY GUARD: ONLY if the Query Intent is causal/research (e.g., productivity_decline_analysis) AND Causality Status is NOT_ESTABLISHED:
+           - State exactly: "The relationship is merely a correlation and causation cannot be established."
+           - For all other intents (e.g., alerts, PFZ), IGNORE the causality status completely in your synthesis.
+        5. SPATIAL SCOPE:
+           - If the evidence evaluated is for a single coordinate point (e.g., just latitude/longitude), you MUST scope your claim: "At the specified location, [conditions]..."
+           - If actual spatial evidence covers multiple cells/grid, say: "Across the evaluated zone, ..."
+           - Do not silently extrapolate a point assessment into a regional or zone-level claim.
+        6. STRICT PREFIX FORMATTING: You MUST start your response with the exact prefix `[Assessment: {validated_result.assessment_status} | Certification: {validated_result.certification_status}]`.
+        
+        Keep the explanation under 4 sentences. Be authoritative but scientifically honest.
         """
         try:
             return await self._call_llm(prompt)
