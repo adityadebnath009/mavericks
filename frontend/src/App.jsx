@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
+import IntelligenceConsole from './pages/IntelligenceConsole';
 import OperationsDashboard from './components/OperationsDashboard';
 
 /**
@@ -32,6 +33,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPageWrapper />} />
         <Route path="/console/:mode" element={<OperationsDashboard />} />
+        <Route path="/intelligence" element={<IntelligenceConsole />} />
         <Route path="/console" element={<Navigate to="/console/routing" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

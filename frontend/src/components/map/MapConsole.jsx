@@ -48,6 +48,9 @@ export function MapConsole({
   onPfzInspect,
   selectedNodeId,
   onNodeSelect,
+  hoveredPfzId = null,
+  onHoverPfz = () => {},
+  selectedPfz = null,
   className = ''
 }) {
   const mapContainerRef = useRef(null);
@@ -422,7 +425,21 @@ export function MapConsole({
           data: pfzGeojson || EMPTY_FEATURE_COLLECTION
         });
 
-        // Layer 12: pfz-lines-stroke
+        // Layer 12A: pfz-lines-glow
+        map.addLayer({
+          id: 'pfz-lines-glow',
+          type: 'line',
+          source: 'incois-pfz-lines',
+          paint: {
+            'line-color': '#00D4FF',
+            'line-width': 8,
+            'line-opacity': 0.0,
+            'line-blur': 4
+          },
+          layout: { visibility: 'none' }
+        });
+
+        // Layer 12B: pfz-lines-stroke
         map.addLayer({
           id: 'pfz-lines-stroke',
           type: 'line',
@@ -1018,6 +1035,7 @@ export function MapConsole({
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'pfz-lines-glow': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
         'current-arrows': layersOverride.currentVectors ? 'visible' : 'none'
       },
@@ -1025,6 +1043,7 @@ export function MapConsole({
         'sst-raster': layersOverride.sst !== false ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll !== false ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'pfz-lines-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
@@ -1048,6 +1067,7 @@ export function MapConsole({
         'sst-raster': layersOverride.sst ? 'visible' : 'none',
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'pfz-lines-glow': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
         'current-arrows': layersOverride.currentVectors ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
@@ -1063,6 +1083,62 @@ export function MapConsole({
       }
     });
   }, [activeMode, layersOverride, mapLoaded, routeData]);
+
+
+
+  // Fly to selected PFZ
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && selectedPfz && selectedPfz.geometry) {
+      try {
+        const coords = selectedPfz.geometry.coordinates;
+        if (selectedPfz.geometry.type === 'MultiLineString' || selectedPfz.geometry.type === 'LineString') {
+          // Flatten coords to get bounds
+          const flatCoords = selectedPfz.geometry.type === 'MultiLineString' 
+            ? coords.flat(1) 
+            : coords;
+          
+          if (flatCoords.length > 0) {
+            // Find bounding box
+            const bounds = flatCoords.reduce((b, coord) => {
+              return b.extend(coord);
+            }, new maplibregl.LngLatBounds(flatCoords[0], flatCoords[0]));
+            
+            mapRef.current.fitBounds(bounds, { padding: 100, maxZoom: 9, duration: 1200 });
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fly to PFZ:", e);
+      }
+    }
+  }, [selectedPfz, mapLoaded]);
+
+  // Dynamic PFZ Hover Effects
+  useEffect(() => {
+    if (mapRef.current && mapLoaded) {
+      if (mapRef.current.getLayer('pfz-lines-stroke')) {
+        mapRef.current.setPaintProperty('pfz-lines-glow', 'line-opacity', [
+          'case',
+          ['==', ['id'], hoveredPfzId || ''], 0.3,
+          ['==', ['get', 'id'], hoveredPfzId || ''], 0.3,
+          0.0
+        ]);
+        
+        mapRef.current.setPaintProperty('pfz-lines-stroke', 'line-color', [
+          'case',
+          ['==', ['id'], hoveredPfzId || ''], '#00D4FF',
+          ['==', ['get', 'id'], hoveredPfzId || ''], '#00D4FF',
+          '#FFB547'
+        ]);
+
+        mapRef.current.setPaintProperty('pfz-lines-stroke', 'line-width', [
+          'case',
+          ['==', ['id'], hoveredPfzId || ''], 5,
+          ['==', ['get', 'id'], hoveredPfzId || ''], 5,
+          2.5
+        ]);
+      }
+    }
+  }, [hoveredPfzId, mapLoaded]);
 
   // 5. Dynamic Raster Opacity (via setPaintProperty)
   useEffect(() => {

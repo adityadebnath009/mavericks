@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Shield, 
   Compass, 
@@ -387,6 +388,7 @@ const ADVISORY_SAMPLES = {
 };
 
 export default function LandingPage({ onLaunchConsole }) {
+  const navigate = useNavigate();
   // Stepper & Popover States
   const [selectedJourneyStep, setSelectedJourneyStep] = useState(0);
   const [activeAgentId, setActiveAgentId] = useState(null);
@@ -556,6 +558,14 @@ export default function LandingPage({ onLaunchConsole }) {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => navigate('/intelligence')}
+                className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-transparent border-2 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.1)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] transition-all duration-300 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Agent Console</span>
+              </button>
+
               <button
                 onClick={() => handleLaunch('map')}
                 className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] transition-shadow duration-300 cursor-pointer"
@@ -1253,7 +1263,7 @@ export default function LandingPage({ onLaunchConsole }) {
               </span>
               <ul className="space-y-1.5 text-[#8FA8B8]">
                 <li><button onClick={() => handleLaunch('map')} className="hover:text-[#00D4FF] transition-colors cursor-pointer">➔ Interactive Map Canvas</button></li>
-                <li><button onClick={() => { setIsAdvisorModalOpen(true); playSpeechSample('en'); }} className="hover:text-[#00D4FF] transition-colors cursor-pointer">➔ AI Safety Advisor</button></li>
+                <li><a href="/intelligence" className="hover:text-[#00D4FF] transition-colors cursor-pointer text-[#00D4FF] font-bold">➔ Launch Tactical Agent Console</a></li>
                 <li><a href="#how-it-thinks" className="hover:text-[#00D4FF] transition-colors">➔ 5-Step User Journey</a></li>
                 <li><a href="#agents-graph" className="hover:text-[#00D4FF] transition-colors">➔ 9-Agent Node Graph</a></li>
               </ul>

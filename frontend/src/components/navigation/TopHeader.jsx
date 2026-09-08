@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Waves, RefreshCw, Sparkles } from 'lucide-react';
 import RiskBadge from '../common/RiskBadge';
 
@@ -38,6 +39,7 @@ export function TopHeader({
   isChatOpen = false,
   currentTime = new Date().toISOString()
 }) {
+  const navigate = useNavigate();
   const modeInfo = MODE_TITLES[activeMode] || MODE_TITLES.routing;
   const overallRisk = safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
   const distToBorder = safetyData?.raw_metrics?.distance_to_border_km;
@@ -97,12 +99,10 @@ export function TopHeader({
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#00D4FF]' : ''}`} />
             </button>
           )}
-          {onToggleChat && (
-            <button onClick={onToggleChat} className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-mono text-[10px] font-bold transition-all cursor-pointer ${isChatOpen ? 'bg-[#18C7A0]/20 border-[#18C7A0] text-[#18C7A0]' : 'bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 border-[#00D4FF]/40 text-[#00D4FF]'}`} title="Open AI Safety Advisor (Grounded RAG)">
-              <Sparkles className="w-3 h-3" />
-              <span className="hidden md:inline">ADVISOR</span>
-            </button>
-          )}
+          <button onClick={() => navigate('/intelligence')} className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-mono text-[10px] font-bold transition-all cursor-pointer bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 border-[#00D4FF]/40 text-[#00D4FF]`} title="Open Tactical Agent Console">
+            <Sparkles className="w-3 h-3" />
+            <span className="hidden md:inline">AGENT CONSOLE</span>
+          </button>
         </div>
       </div>
     </header>

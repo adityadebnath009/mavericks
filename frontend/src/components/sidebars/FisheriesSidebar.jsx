@@ -33,7 +33,9 @@ export function FisheriesSidebar({
   onDestinationSelect,
   selectedLocation = { lat: 18.96, lon: 72.82 },
   layersOverride = {},
-  setLayersOverride
+  setLayersOverride,
+  hoveredPfzId = null,
+  onHoverPfz = () => {}
 }) {
   const [sstVisible, setSstVisible] = useState(true);
   const [chlVisible, setChlVisible] = useState(true);
@@ -107,6 +109,10 @@ export function FisheriesSidebar({
     return pfzList.map((feat) => {
       const props = feat.properties || {};
       const isSelected = selectedPfz?.id === feat.id || selectedPfz?.properties?.id === feat.id;
+      const featId = feat.id || props.id;
+      const isHovered = hoveredPfzId === featId;
+      const score = props.high_catch_score != null ? props.high_catch_score : (props.risk_score || 85);
+      const offshoreName = props.offshore_name || `Zone ${featId || 'N/A'}`;
 
       const sstVal = props.sst_median != null ? `${Number(props.sst_median).toFixed(1)}°C` : 'N/A';
       const chlVal = props.chl_median != null ? `${Number(props.chl_median).toFixed(2)} mg/m³` : 'N/A';
@@ -115,20 +121,24 @@ export function FisheriesSidebar({
 
       return (
         <div
-          key={feat.id || props.id}
+          key={featId}
           onClick={() => onSelectPfz && onSelectPfz(feat)}
+          onMouseEnter={() => onHoverPfz(featId)}
+          onMouseLeave={() => onHoverPfz(null)}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
             isSelected
               ? 'bg-[#FFB547]/15 border-[#FFB547] shadow-[0_0_12px_rgba(255,181,71,0.2)]'
-              : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/50'
+              : isHovered
+                ? 'bg-[#00D4FF]/10 border-[#00D4FF] shadow-[0_0_12px_rgba(0,212,255,0.2)]'
+                : 'bg-[#07111F] border-[#20384D] hover:border-[#8FA8B8]/50'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="font-mono font-bold text-xs text-[#EAF4F8]">
-              PFZ Advisory Zone {feat.id || props.id || 'N/A'}
+            <span className="font-mono font-bold text-[11px] text-[#EAF4F8]">
+              PFZ - Offshore {offshoreName}
             </span>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#18C7A0]/10 text-[#18C7A0] border border-[#18C7A0]/20">
-              Score: {props.risk_score || 85}/100
+              Score: {score}/100
             </span>
           </div>
 

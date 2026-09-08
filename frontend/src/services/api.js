@@ -7,12 +7,9 @@
 const API_TIMEOUT_MS = 60000; // Extended from 15s to 60s for heavy A* routing queries
 
 export const getApiUrl = (path) => {
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location;
-    if (protocol === 'file:' || ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '8000')) {
-      return `http://127.0.0.1:8000${path}`;
-    }
-  }
+  // Always return the relative path. 
+  // In dev, vite.config.js proxies /api to the backend.
+  // In prod, the backend serves the frontend and the relative path works natively.
   return path;
 };
 
