@@ -434,6 +434,46 @@ export function MapConsole({
           layout: { visibility: 'none' }
         });
 
+        // --- 9. Source: coastal-advisories (SVAS Polygons) ---
+        map.addSource('coastal-advisories', {
+          type: 'geojson',
+          data: advisoriesGeojson || EMPTY_FEATURE_COLLECTION
+        });
+
+        const initialSuffix = getSuffix(beamWidthRef.current || 3.5);
+        map.addLayer({
+          id: 'advisory-fill',
+          type: 'fill',
+          source: 'coastal-advisories',
+          paint: {
+            'fill-opacity': 0.65,
+            'fill-color': [
+              'case',
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FFB547',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#FF5C5C',
+              '#18C7A0'
+            ]
+          },
+          layout: { visibility: 'visible' }
+        });
+
+        map.addLayer({
+          id: 'advisory-stroke',
+          type: 'line',
+          source: 'coastal-advisories',
+          paint: {
+            'line-color': [
+              'case',
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FB923C',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#F87171',
+              '#4ADE80'
+            ],
+            'line-width': 1.5,
+            'line-opacity': 0.8
+          },
+          layout: { visibility: 'visible' }
+        });
+
 
         // Interactive Popups & Event Handlers
         // -------------------------------------------------------------
@@ -651,7 +691,11 @@ export function MapConsole({
         map.on('mouseleave', 'bsi-grid-fill', () => { map.getCanvas().style.cursor = ''; });
 
         // 2. Coastal District Advisory Click
-        map.on('click', 'advisory-fill', (e) => {
+        map.on('mouseenter', 'advisory-fill', () => { 
+          map.getCanvas().style.cursor = 'pointer'; 
+        });
+
+        map.on('mousemove', 'advisory-fill', (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: ['advisory-fill'] });
           if (!features.length) return;
           const props = features[0].properties || {};
@@ -695,18 +739,22 @@ export function MapConsole({
             </div>
           `;
 
-          popupRef.current = new maplibregl.Popup({ maxWidth: 'none' })
+          popupRef.current = new maplibregl.Popup({ maxWidth: 'none', closeButton: false, closeOnClick: false })
             .setLngLat(e.lngLat)
             .setDOMContent(popupContent)
             .addTo(map);
+        });
 
+        map.on('mouseleave', 'advisory-fill', () => { 
+          map.getCanvas().style.cursor = ''; 
+          if (popupRef.current) popupRef.current.remove();
+        });
+
+        map.on('click', 'advisory-fill', (e) => {
           if (onLocationSelectRef.current) {
             onLocationSelectRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
           }
         });
-
-        map.on('mouseenter', 'advisory-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-        map.on('mouseleave', 'advisory-fill', () => { map.getCanvas().style.cursor = ''; });
 
         // 3. Marine Protected Area (MPA) Click
         map.on('click', 'mpa-fill', (e) => {
