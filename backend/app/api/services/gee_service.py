@@ -17,7 +17,7 @@ class GEEService:
             
         try:
             # Requires `earthengine authenticate` or ADC setup prior to running
-            ee.Initialize()
+            ee.Initialize(project='stately-winter-461407-c7')
             cls._initialized = True
             logger.info("Successfully initialized Google Earth Engine.")
             return True
