@@ -2,6 +2,13 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// MapLibre creates a worker blob at module load; jsdom does not provide this
+// browser URL API by default.
+if (typeof window !== 'undefined') {
+  window.URL.createObjectURL ||= vi.fn(() => 'blob:vitest-map-worker');
+  window.URL.revokeObjectURL ||= vi.fn();
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();

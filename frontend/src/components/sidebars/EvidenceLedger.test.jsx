@@ -39,4 +39,9 @@ describe('EvidenceLedger Component', () => {
     expect(getByText('GEE (Offline)')).toBeDefined();
     expect(getByText('INCOIS Cache')).toBeDefined();
   });
+
+  it('8. Renders a structured research citation as an outbound link', () => {
+    const { getByRole } = render(<EvidenceLedger ragFootnotes={[{ title: 'Marine productivity study', landingPageUrl: 'https://doi.org/10.1000/example' }]} />);
+    expect(getByRole('link', { name: 'Marine productivity study' }).getAttribute('href')).toBe('https://doi.org/10.1000/example');
+  });
 });

@@ -44,6 +44,16 @@ async function fetchJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   return res.json();
 }
 
+/** Intelligence Console V2: direct agent-orchestrated result. */
+export async function runIntelligenceQuery(payload, signal) {
+  return fetchJson(getApiUrl('/api/chat'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal
+  }, API_TIMEOUT_MS);
+}
+
 /** 1. Get Point Safety Assessment */
 export async function getSafety(lat, lon, beam = 3.5, day = 1, hour = 12) {
   const data = await fetchJson(getApiUrl(`/api/safety?lat=${lat}&lon=${lon}&beam=${beam}&day=${day}&hour=${hour}`));

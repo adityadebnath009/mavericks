@@ -91,7 +91,8 @@ describe('MapConsole - Sprint 1 & 2 Edge Cases', () => {
     expect(addSourceMock).toHaveBeenCalledWith("v2-source-gee_sst_edge", {
       type: "raster",
       tiles: ["https://earthengine.googleapis.com/v1/projects/.../tiles/{z}/{x}/{y}"],
-      tileSize: 256
+      tileSize: 256,
+      maxzoom: 7
     });
 
     // Should create the layer dynamically

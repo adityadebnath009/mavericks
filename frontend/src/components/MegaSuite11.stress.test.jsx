@@ -17,9 +17,19 @@ import SpotlightCard from './common/SpotlightCard';
 import RiskBadge from './common/RiskBadge';
 import LeftNavigation from './sidebars/LeftNavigation';
 
+// Mock MapLibre dependency which crashes JSDOM upon import resolution
+vi.mock('maplibre-gl', () => ({
+  default: {
+    Map: vi.fn(),
+    NavigationControl: vi.fn(),
+    Marker: vi.fn(),
+    LngLatBounds: vi.fn(),
+  }
+}));
+
 // Mock WebGL Map inside Console to prevent JSDOM crash
-vi.mock('./map/MarineMap', () => ({
-  default: () => <div data-testid="marine-map-mock" />
+vi.mock('./map/MapConsole', () => ({
+  MapConsole: () => <div data-testid="marine-map-mock" />
 }));
 
 describe('Mega-Suite 11: 50 Deep Component Loopholes (Total 650)', () => {

@@ -58,7 +58,13 @@ def get_pfz_advisory_lines():
         if time.time() - os.path.getmtime(augmented_cache) < 3600: # 1 hour cache
             try:
                 with open(augmented_cache, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    cached_geojson = json.load(f)
+                    # Older v3 cache files contain raw WFS geometry but do
+                    # not carry the status field expected by established
+                    # consumers.  Add only the missing contract metadata;
+                    # preserve every cached feature and property unchanged.
+                    cached_geojson.setdefault("enrichment_status", "PARTIAL_RAW_FALLBACK")
+                    return cached_geojson
             except Exception:
                 pass
 
@@ -66,6 +72,7 @@ def get_pfz_advisory_lines():
     
     features = geojson.get("features", [])
     if not features:
+        geojson.setdefault("enrichment_status", "PARTIAL_RAW_FALLBACK")
         return geojson
 
     from app.api.services.marine_forecast import MarineForecastService

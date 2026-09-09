@@ -52,7 +52,13 @@ export function MapConsole({
   onHoverPfz = () => {},
   selectedPfz = null,
   className = '',
-  overlayLayers = null
+  overlayLayers = null,
+  legendPositionClassName = 'top-4 left-4',
+  showLegend = true,
+  // The Operations map uses the established INCOIS point-analytics popup.
+  // Intelligence Console is deliberately provider-isolated, so it opts out
+  // and uses a local coordinate picker instead.
+  pointAnalyticsEnabled = true
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -70,6 +76,7 @@ export function MapConsole({
   const beamWidthRef = useRef(beamWidth);
   const layersOverrideRef = useRef(layersOverride);
   const selectedLocationRef = useRef(selectedLocation);
+  const pointAnalyticsEnabledRef = useRef(pointAnalyticsEnabled);
 
   useEffect(() => { onLocationSelectRef.current = onLocationSelect; }, [onLocationSelect]);
   useEffect(() => { onDestinationSelectRef.current = onDestinationSelect; }, [onDestinationSelect]);
@@ -78,6 +85,7 @@ export function MapConsole({
   useEffect(() => { beamWidthRef.current = beamWidth; }, [beamWidth]);
   useEffect(() => { layersOverrideRef.current = layersOverride; }, [layersOverride]);
   useEffect(() => { selectedLocationRef.current = selectedLocation; }, [selectedLocation]);
+  useEffect(() => { pointAnalyticsEnabledRef.current = pointAnalyticsEnabled; }, [pointAnalyticsEnabled]);
 
   // Helper to safely set GeoJSON data on a source if present
   const setSourceDataSafe = useCallback((sourceId, data) => {
@@ -454,6 +462,25 @@ export function MapConsole({
           layout: { visibility: 'none' }
         });
 
+        // PFZ advisories can be line features or point hotspots.  The previous
+        // implementation only drew lines, silently hiding valid Point GeoJSON.
+        map.addLayer({
+          id: 'pfz-points-glow',
+          type: 'circle',
+          source: 'incois-pfz-lines',
+          filter: ['==', ['geometry-type'], 'Point'],
+          paint: { 'circle-radius': 12, 'circle-color': '#00D4FF', 'circle-opacity': 0.20, 'circle-blur': 0.7 },
+          layout: { visibility: 'none' }
+        });
+        map.addLayer({
+          id: 'pfz-points',
+          type: 'circle',
+          source: 'incois-pfz-lines',
+          filter: ['==', ['geometry-type'], 'Point'],
+          paint: { 'circle-radius': 5, 'circle-color': '#FFB547', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#EAF4F8' },
+          layout: { visibility: 'none' }
+        });
+
         // --- 9. Source: coastal-advisories (SVAS Polygons) ---
         map.addSource('coastal-advisories', {
           type: 'geojson',
@@ -506,6 +533,31 @@ export function MapConsole({
           if (popupRef.current) {
             popupRef.current.remove();
             popupRef.current = null;
+          }
+
+          // Do not make the Console map trigger the legacy INCOIS OPeNDAP
+          // point-analytics request.  It still needs a clear, immediate way
+          // to change the query location or choose a route destination.
+          if (!pointAnalyticsEnabledRef.current) {
+            const pickerDom = document.createElement('div');
+            pickerDom.className = 'bg-[#0D1B2A] text-[#EAF4F8] p-3 rounded-xl border border-[#00D4FF]/40 font-sans shadow-2xl space-y-2';
+            pickerDom.style.maxWidth = '260px';
+            pickerDom.innerHTML = `
+              <div class="font-mono text-[10px] font-bold uppercase tracking-wider text-[#00D4FF]">Console operating point</div>
+              <div class="text-[11px] text-[#EAF4F8]">${clickLat.toFixed(4)}°N, ${clickLon.toFixed(4)}°E</div>
+              <p class="text-[9px] leading-relaxed text-[#8FA8B8]">This selects a Console location. It does not request the legacy INCOIS telemetry flow.</p>
+              <div class="flex gap-2">
+                <button id="console-set-departure" class="flex-1 rounded bg-[#20384D] px-2 py-1.5 text-[9px] font-bold uppercase text-[#EAF4F8]">Set position</button>
+                <button id="console-set-destination" class="flex-1 rounded bg-[#00D4FF] px-2 py-1.5 text-[9px] font-bold uppercase text-[#07111F]">Set destination</button>
+              </div>`;
+            const picker = new maplibregl.Popup({ maxWidth: 'none', className: 'navik-tactical-popup' })
+              .setLngLat(lngLat)
+              .setDOMContent(pickerDom)
+              .addTo(map);
+            popupRef.current = picker;
+            pickerDom.querySelector('#console-set-departure')?.addEventListener('click', () => onLocationSelectRef.current?.({ lat: clickLat, lon: clickLon }));
+            pickerDom.querySelector('#console-set-destination')?.addEventListener('click', () => onDestinationSelectRef.current?.({ lat: clickLat, lon: clickLon }));
+            return;
           }
 
           const popupDom = document.createElement('div');
@@ -955,6 +1007,7 @@ export function MapConsole({
 
       const sourceId = `v2-source-${layer.id}`;
       const layerId = `v2-layer-${layer.id}`;
+      let sourceCreated = false;
 
       // 1. Add Source if not exists
       if (!map.getSource(sourceId)) {
@@ -962,18 +1015,26 @@ export function MapConsole({
           map.addSource(sourceId, {
             type: 'raster',
             tiles: layer.tiles,
-            tileSize: 256
+            tileSize: 256,
+            maxzoom: layer.maxzoom || 7 // Force MapLibre to upscale satellite tiles instead of 404ing at high zooms!
           });
+          sourceCreated = true;
         } else if ((layer.type === 'geojson' || layer.type === 'heatmap') && layer.data) {
           map.addSource(sourceId, {
             type: 'geojson',
             data: layer.data
           });
+          sourceCreated = true;
         }
       } else if ((layer.type === 'geojson' || layer.type === 'heatmap') && layer.data) {
         // Update existing geojson data
         map.getSource(sourceId).setData(layer.data);
       }
+
+      // An available-looking raster without tiles is not renderable.  Do not
+      // add a MapLibre layer with a missing source; the console control will
+      // still expose the backend's unavailable reason.
+      if (!map.getSource(sourceId) && !sourceCreated) return;
 
       // 2. Add or Update Layer dynamically agnostic of type
       if (!map.getLayer(layerId)) {
@@ -1152,6 +1213,8 @@ export function MapConsole({
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'pfz-lines-glow': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'pfz-points-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'pfz-points': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
         'current-arrows': layersOverride.currentVectors ? 'visible' : 'none'
       },
@@ -1160,6 +1223,8 @@ export function MapConsole({
         'chl-raster': layersOverride.chlorophyll !== false ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'pfz-lines-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'pfz-points-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'pfz-points': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
@@ -1184,6 +1249,8 @@ export function MapConsole({
         'chl-raster': layersOverride.chlorophyll ? 'visible' : 'none',
         'pfz-lines-stroke': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'pfz-lines-glow': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'pfz-points-glow': layersOverride.pfzAdvisory ? 'visible' : 'none',
+        'pfz-points': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
         'current-arrows': layersOverride.currentVectors ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
@@ -1398,8 +1465,8 @@ export function MapConsole({
       {/* MapLibre WebGL Canvas Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Floating Tactical Legend Overlay */}
-      <MapLegend activeMode={activeMode} />
+      {/* Existing map modes retain this legend by default. */}
+      {showLegend && <MapLegend activeMode={activeMode} positionClassName={legendPositionClassName} />}
     </div>
   );
 }

@@ -1,17 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const CommandBar = ({ onQuerySubmit }) => {
+const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageChange }) => {
   const [query, setQuery] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('en-IN');
+  const [isSttSupported, setIsSttSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  const [localLanguage, setLocalLanguage] = useState('en-IN');
+  const language = controlledLanguage || localLanguage;
+  const changeLanguage = (nextLanguage) => onLanguageChange ? onLanguageChange(nextLanguage) : setLocalLanguage(nextLanguage);
   const recognitionRef = useRef(null);
+  const isIntentionallyRecording = useRef(false);
+  const finalTranscriptRef = useRef('');
 
   // Initialize Web Speech API
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setIsSttSupported(Boolean(SpeechRecognition));
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true; // KEEP ALIVE! Don't shut off instantly
       recognition.interimResults = true;
 
       recognition.onstart = () => {
@@ -19,24 +26,48 @@ const CommandBar = ({ onQuerySubmit }) => {
       };
 
       recognition.onresult = (event) => {
-        const currentTranscript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setQuery(currentTranscript);
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+          else interimTranscript += event.results[i][0].transcript;
+        }
+        if (finalTranscript) finalTranscriptRef.current += finalTranscript;
+        setQuery(`${finalTranscriptRef.current}${interimTranscript}`);
       };
 
       recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
+        const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+          ? 'Microphone access was denied. Allow it in your browser settings, or type your query.'
+          : `Voice input failed (${event.error}). You can type your query instead.`;
+        setVoiceError(message);
+        if (event.error !== 'no-speech') {
+          isIntentionallyRecording.current = false;
+          setIsRecording(false);
+        }
       };
 
       recognition.onend = () => {
-        setIsRecording(false);
+        // Chrome aggressively kills the mic on silence. Auto-restart if we didn't manually stop it.
+        if (isIntentionallyRecording.current) {
+          try {
+            recognition.start();
+          } catch(e) {
+            setIsRecording(false);
+            isIntentionallyRecording.current = false;
+          }
+        } else {
+          setIsRecording(false);
+        }
       };
 
       recognitionRef.current = recognition;
     }
+    return () => {
+      isIntentionallyRecording.current = false;
+      if (typeof recognitionRef.current?.abort === 'function') recognitionRef.current.abort();
+      recognitionRef.current = null;
+    };
   }, []);
 
   // Update recognition language when language state changes
@@ -47,27 +78,46 @@ const CommandBar = ({ onQuerySubmit }) => {
   }, [language]);
 
   const toggleRecording = () => {
+    if (!isSttSupported || !recognitionRef.current) {
+      setVoiceError('Voice recognition is not available in this browser. Please type your query.');
+      return;
+    }
     if (isRecording) {
+      isIntentionallyRecording.current = false;
       recognitionRef.current?.stop();
+      setIsRecording(false);
     } else {
-      setQuery(''); // Clear existing query for fresh dictation
-      recognitionRef.current?.start();
+      setVoiceError('');
+      finalTranscriptRef.current = query ? `${query.trim()} ` : '';
+      isIntentionallyRecording.current = true;
+      try {
+        recognitionRef.current?.start();
+        setIsRecording(true);
+      } catch (e) {
+          setVoiceError('Voice input could not start. Please try again or type your query.');
+      }
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (query.trim() && onQuerySubmit) {
+      // A submitted transcript is final. Stop Chrome's silence-restart loop
+      // before the network request begins; the next microphone click creates
+      // a deliberate new listening session.
+      isIntentionallyRecording.current = false;
+      recognitionRef.current?.stop?.();
+      setIsRecording(false);
       onQuerySubmit(query.trim(), language);
       setQuery('');
     }
   };
 
   return (
-    <div className="w-full bg-[#0D1B2A]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col items-center shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+    <div className="w-full bg-[#0D1B2A]/80 backdrop-blur-xl border border-[#00D4FF]/30 hover:border-[#00D4FF]/60 rounded-3xl p-4 flex flex-col items-center shadow-[0_0_30px_rgba(0,212,255,0.1)] transition-all duration-300">
       
       {/* Localization Toggles */}
-      <div className="flex space-x-4 mb-3 w-full max-w-4xl px-2">
+      <div className="flex items-center space-x-4 mb-3 w-full max-w-4xl px-4">
         <span className="text-[#8FA8B8] text-[10px] uppercase font-bold tracking-widest mt-1">
           Input Lang:
         </span>
@@ -76,7 +126,7 @@ const CommandBar = ({ onQuerySubmit }) => {
             <button
               key={lang.code}
               type="button"
-              onClick={() => setLanguage(lang.code)}
+              onClick={() => changeLanguage(lang.code)}
               className={`text-xs px-2 py-0.5 rounded border transition-colors ${
                 language === lang.code
                   ? 'border-[#00D4FF] bg-[#13263A] text-[#00D4FF]'
@@ -100,20 +150,21 @@ const CommandBar = ({ onQuerySubmit }) => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Enter operational query or activate voice command..."
-          className="w-full bg-[#13263A] border border-[#20384D] rounded-lg py-3 pl-10 pr-16 text-[#EAF4F8] font-mono focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] placeholder-[#8FA8B8]/50 transition-all shadow-inner"
+          className="w-full bg-[#07111F]/50 border border-[#20384D] rounded-full py-4 pl-12 pr-16 text-[#EAF4F8] font-mono text-sm focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] placeholder-[#8FA8B8]/40 transition-all shadow-inner"
         />
 
         {/* Voice Dictation Button */}
         <button
           type="button"
           onClick={toggleRecording}
-          disabled={!recognitionRef.current}
+          disabled={!isSttSupported}
           className={`absolute right-3 p-2 rounded-full transition-all flex items-center justify-center ${
             isRecording 
               ? 'bg-[#18C7A0]/20 text-[#18C7A0] animate-pulse shadow-[0_0_10px_rgba(24,199,160,0.5)]' 
               : 'text-[#8FA8B8] hover:text-[#00D4FF] hover:bg-[#20384D]/50'
           }`}
-          title={!recognitionRef.current ? "Web Speech API not supported in this browser" : "Voice Dictation"}
+          aria-label="Start or stop voice dictation"
+          title={!isSttSupported ? "Web Speech API not supported in this browser" : "Voice Dictation"}
         >
           {isRecording ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,6 +178,7 @@ const CommandBar = ({ onQuerySubmit }) => {
           )}
         </button>
       </form>
+      {voiceError && <p role="status" className="mt-2 w-full px-4 text-xs text-[#FFB547]">{voiceError}</p>}
     </div>
   );
 };

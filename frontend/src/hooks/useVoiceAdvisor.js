@@ -20,6 +20,8 @@ export function useVoiceAdvisor(initialLang = 'en-IN') {
   const [transcript, setTranscript] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState(null);
+  const [voices, setVoices] = useState([]);
+  const [voiceUnavailable, setVoiceUnavailable] = useState(false);
 
   const recognitionRef = useRef(null);
   const onResultCallbackRef = useRef(null);
@@ -30,6 +32,16 @@ export function useVoiceAdvisor(initialLang = 'en-IN') {
   );
   const isTtsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   const isSupported = isSttSupported || isTtsSupported;
+
+  useEffect(() => {
+    if (!isTtsSupported) return undefined;
+    const loadVoices = () => {
+      try { setVoices(window.speechSynthesis.getVoices?.() || []); } catch (_) { setVoices([]); }
+    };
+    loadVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', loadVoices);
+  }, [isTtsSupported]);
 
   // Cleanup speech synthesis and recognition on unmount
   useEffect(() => {
@@ -156,9 +168,29 @@ export function useVoiceAdvisor(initialLang = 'en-IN') {
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         .trim();
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const Utterance = window.SpeechSynthesisUtterance;
+      // Some test/webview environments expose speechSynthesis but not the
+      // constructor. A plain utterance-shaped object is still accepted by the
+      // browser adapter and keeps the feature graceful in those environments.
+      const utterance = Utterance ? new Utterance(cleanText) : { text: cleanText };
       const targetLang = langCode || selectedLanguage;
       utterance.lang = targetLang;
+      const normalizedTarget = targetLang.toLowerCase();
+      const baseLanguage = normalizedTarget.split('-')[0];
+      const matchingVoice = voices.find((voice) => voice.lang?.toLowerCase() === normalizedTarget)
+        || voices.find((voice) => voice.lang?.toLowerCase().startsWith(`${baseLanguage}-`))
+        || voices.find((voice) => voice.lang?.toLowerCase() === baseLanguage);
+      if (matchingVoice) {
+        utterance.voice = matchingVoice;
+        setVoiceUnavailable(false);
+      } else {
+        // Never present the browser's default (often English) voice as Hindi
+        // or Marathi speech. English may use its default voice, while an
+        // unavailable selected Indian-language voice remains text-only.
+        setVoiceUnavailable(true);
+        setError(`Voice unavailable for selected language (${targetLang}); the answer remains available as text.`);
+        if (targetLang !== 'en-IN') return false;
+      }
       utterance.rate = 0.95; // Slightly measured rate for clear marine advisory delivery
       utterance.pitch = 1.0;
 
@@ -176,11 +208,13 @@ export function useVoiceAdvisor(initialLang = 'en-IN') {
       };
 
       window.speechSynthesis.speak(utterance);
+      return true;
     } catch (err) {
       console.error('[useVoiceAdvisor] TTS synthesis exception:', err);
       setIsSpeaking(false);
+      return false;
     }
-  }, [isTtsSupported, selectedLanguage]);
+  }, [isTtsSupported, selectedLanguage, voices]);
 
   /**
    * Stop any active audio playback
@@ -208,6 +242,7 @@ export function useVoiceAdvisor(initialLang = 'en-IN') {
     isListening,
     transcript,
     isSpeaking,
+    voiceUnavailable,
     error,
     isSupported,
     isSttSupported,

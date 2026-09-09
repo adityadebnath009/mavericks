@@ -14,14 +14,14 @@
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 13.0,
-        "max_wind_gust": 29.5,
-        "min_visibility": 1780.0,
-        "max_precip_probability": 77,
+        "max_wind_speed": 9.1,
+        "max_wind_gust": 32.0,
+        "min_visibility": 2180.0,
+        "max_precip_probability": 92,
         "has_active_alerts": true,
-        "highest_severity": "HIGH",
-        "imd_color_code": "ORANGE (Be Prepared / Alert)",
-        "weather_safety_score": 35,
+        "highest_severity": "EXTREME",
+        "imd_color_code": "RED (Take Action / Warning)",
+        "weather_safety_score": 10,
         "hazards": {
           "cyclone": {
             "active": false,
@@ -29,89 +29,7 @@
           },
           "lightning": {
             "active": true,
-            "severity": "high"
-          },
-          "heavy_rain": {
-            "active": false,
-            "severity": null
-          }
-        },
-        "timeline_alerts": [
-          {
-            "timestamp": "2026-09-09 13:00:00",
-            "hazard_type": "Thunderstorm",
-            "severity": "HIGH",
-            "trigger_value": 95.0,
-            "threshold_value": 95.0,
-            "message": "Active convective storm cells (WMO 95)."
-          }
-        ],
-        "hourly_risk_curve": [
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          65,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10
-        ],
-        "plain_language_summary": "Active marine hazards detected (Thunderstorm). Peak wind reaches 13.0 km/h with 77% max rain probability. Official IMD advisory level: ORANGE (Be Prepared / Alert)."
-      },
-      "latency_ms": 1247.34,
-      "execution_mode": "ROLLING_CACHE",
-      "confidence": null,
-      "sources": [
-        "open-meteo"
-      ],
-      "warnings": [],
-      "errors": []
-    },
-    "ocean_agent": {
-      "max_pfz_probability": 1.0,
-      "coincidence_edge_detected": true,
-      "highly_suitable_species": [],
-      "execution_mode": "ROLLING_CACHE"
-    },
-    "last_cached_at": "2026-09-09T07:36:53.659465Z"
-  },
-  "goa_safe": {
-    "weather_agent": {
-      "agent_name": "weather",
-      "status": "success",
-      "data": {
-        "max_wind_speed": 17.4,
-        "max_wind_gust": 37.4,
-        "min_visibility": 4880.0,
-        "max_precip_probability": 96,
-        "has_active_alerts": true,
-        "highest_severity": "MODERATE",
-        "imd_color_code": "YELLOW (Be Updated / Watch)",
-        "weather_safety_score": 55,
-        "hazards": {
-          "cyclone": {
-            "active": false,
-            "severity": null
-          },
-          "lightning": {
-            "active": false,
-            "severity": null
+            "severity": "extreme"
           },
           "heavy_rain": {
             "active": true,
@@ -121,43 +39,27 @@
         "timeline_alerts": [
           {
             "timestamp": "2026-09-09 13:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
-            "trigger_value": 85.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (85% probability)."
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
+            "trigger_value": 75.0,
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 75% rain probability."
           },
           {
             "timestamp": "2026-09-09 14:00:00",
             "hazard_type": "Heavy Rainfall",
             "severity": "MODERATE",
-            "trigger_value": 90.0,
+            "trigger_value": 92.0,
             "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (90% probability)."
+            "message": "Heavy marine precipitation (92% probability)."
           },
           {
             "timestamp": "2026-09-09 15:00:00",
             "hazard_type": "Heavy Rainfall",
             "severity": "MODERATE",
-            "trigger_value": 94.0,
+            "trigger_value": 85.0,
             "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (94% probability)."
-          },
-          {
-            "timestamp": "2026-09-09 16:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
-            "trigger_value": 96.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (96% probability)."
-          },
-          {
-            "timestamp": "2026-09-09 17:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
-            "trigger_value": 92.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (92% probability)."
+            "message": "Heavy marine precipitation (85% probability)."
           }
         ],
         "hourly_risk_curve": [
@@ -174,11 +76,11 @@
           10,
           10,
           10,
+          90,
           45,
           45,
-          45,
-          45,
-          45,
+          10,
+          10,
           10,
           10,
           10,
@@ -186,9 +88,9 @@
           10,
           10
         ],
-        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 17.4 km/h with 96% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
+        "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall). Peak wind reaches 9.1 km/h with 92% max rain probability. Official IMD advisory level: RED (Take Action / Warning)."
       },
-      "latency_ms": 1008.9,
+      "latency_ms": 717.2,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -203,7 +105,7 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T07:36:56.711968Z"
+    "last_cached_at": "2026-09-09T17:30:50.101757Z"
   },
   "paradip_cyclone": {
     "weather_agent": {
@@ -212,8 +114,8 @@
       "data": {
         "max_wind_speed": 14.7,
         "max_wind_gust": 33.5,
-        "min_visibility": 2400.0,
-        "max_precip_probability": 94,
+        "min_visibility": 2460.0,
+        "max_precip_probability": 97,
         "has_active_alerts": true,
         "highest_severity": "EXTREME",
         "imd_color_code": "RED (Take Action / Warning)",
@@ -243,51 +145,43 @@
           },
           {
             "timestamp": "2026-09-09 07:00:00",
-            "hazard_type": "Thunderstorm",
-            "severity": "HIGH",
-            "trigger_value": 95.0,
-            "threshold_value": 95.0,
-            "message": "Active convective storm cells (WMO 95)."
-          },
-          {
-            "timestamp": "2026-09-09 12:00:00",
-            "hazard_type": "Thunderstorm",
-            "severity": "HIGH",
-            "trigger_value": 95.0,
-            "threshold_value": 95.0,
-            "message": "Active convective storm cells (WMO 95)."
-          },
-          {
-            "timestamp": "2026-09-09 13:00:00",
             "hazard_type": "Cloud-to-Sea Lightning",
             "severity": "EXTREME",
-            "trigger_value": 74.0,
+            "trigger_value": 77.0,
             "threshold_value": 70.0,
-            "message": "Severe electrical hazard: lightning cells with 74% rain probability."
+            "message": "Severe electrical hazard: lightning cells with 77% rain probability."
           },
           {
-            "timestamp": "2026-09-09 15:00:00",
-            "hazard_type": "Cloud-to-Sea Lightning",
-            "severity": "EXTREME",
-            "trigger_value": 87.0,
-            "threshold_value": 70.0,
-            "message": "Severe electrical hazard: lightning cells with 87% rain probability."
-          },
-          {
-            "timestamp": "2026-09-09 16:00:00",
-            "hazard_type": "Cloud-to-Sea Lightning",
-            "severity": "EXTREME",
-            "trigger_value": 94.0,
-            "threshold_value": 70.0,
-            "message": "Severe electrical hazard: lightning cells with 94% rain probability."
-          },
-          {
-            "timestamp": "2026-09-09 17:00:00",
+            "timestamp": "2026-09-09 14:00:00",
             "hazard_type": "Heavy Rainfall",
             "severity": "MODERATE",
             "trigger_value": 94.0,
             "threshold_value": 85.0,
             "message": "Heavy marine precipitation (94% probability)."
+          },
+          {
+            "timestamp": "2026-09-09 15:00:00",
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
+            "trigger_value": 97.0,
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 97% rain probability."
+          },
+          {
+            "timestamp": "2026-09-09 16:00:00",
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
+            "trigger_value": 93.0,
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 93% rain probability."
+          },
+          {
+            "timestamp": "2026-09-09 17:00:00",
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
+            "trigger_value": 86.0,
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 86% rain probability."
           }
         ],
         "hourly_risk_curve": [
@@ -298,17 +192,17 @@
           65,
           10,
           10,
-          65,
-          10,
-          10,
-          10,
-          10,
-          65,
           90,
           10,
-          90,
-          90,
+          10,
+          10,
+          10,
+          10,
+          10,
           45,
+          90,
+          90,
+          90,
           10,
           10,
           10,
@@ -316,9 +210,9 @@
           10,
           10
         ],
-        "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall, Thunderstorm). Peak wind reaches 14.7 km/h with 94% max rain probability. Official IMD advisory level: RED (Take Action / Warning)."
+        "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall, Thunderstorm). Peak wind reaches 14.7 km/h with 97% max rain probability. Official IMD advisory level: RED (Take Action / Warning)."
       },
-      "latency_ms": 1058.69,
+      "latency_ms": 646.52,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -333,81 +227,21 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T07:36:59.786218Z"
+    "last_cached_at": "2026-09-09T17:30:59.873280Z"
   },
   "visakhapatnam": {
     "weather_agent": {
       "agent_name": "weather",
-      "status": "success",
-      "data": {
-        "max_wind_speed": 9.1,
-        "max_wind_gust": 22.0,
-        "min_visibility": 3400.0,
-        "max_precip_probability": 86,
-        "has_active_alerts": true,
-        "highest_severity": "MODERATE",
-        "imd_color_code": "YELLOW (Be Updated / Watch)",
-        "weather_safety_score": 55,
-        "hazards": {
-          "cyclone": {
-            "active": false,
-            "severity": null
-          },
-          "lightning": {
-            "active": false,
-            "severity": null
-          },
-          "heavy_rain": {
-            "active": true,
-            "severity": "moderate"
-          }
-        },
-        "timeline_alerts": [
-          {
-            "timestamp": "2026-09-09 14:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
-            "trigger_value": 86.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (86% probability)."
-          }
-        ],
-        "hourly_risk_curve": [
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          45,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10,
-          10
-        ],
-        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 9.1 km/h with 86% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
-      },
-      "latency_ms": 838.74,
+      "status": "failed",
+      "data": {},
+      "latency_ms": null,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
-      "sources": [
-        "open-meteo"
-      ],
+      "sources": [],
       "warnings": [],
-      "errors": []
+      "errors": [
+        ""
+      ]
     },
     "ocean_agent": {
       "max_pfz_probability": 1.0,
@@ -415,17 +249,17 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T07:37:02.699780Z"
+    "last_cached_at": "2026-09-09T17:31:09.467283Z"
   },
   "kochi": {
     "weather_agent": {
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 16.4,
-        "max_wind_gust": 38.2,
-        "min_visibility": 5480.0,
-        "max_precip_probability": 70,
+        "max_wind_speed": 16.1,
+        "max_wind_gust": 37.1,
+        "min_visibility": 8160.0,
+        "max_precip_probability": 59,
         "has_active_alerts": false,
         "highest_severity": "LOW",
         "imd_color_code": "GREEN (No Warning)",
@@ -473,7 +307,7 @@
         ],
         "plain_language_summary": "Marine weather conditions remain calm and clear across the forecast window."
       },
-      "latency_ms": 1063.9,
+      "latency_ms": 796.95,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -488,6 +322,120 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T07:37:06.052654Z"
+    "last_cached_at": "2026-09-09T17:31:11.761985Z"
+  },
+  "goa_safe": {
+    "weather_agent": {
+      "agent_name": "weather",
+      "status": "success",
+      "data": {
+        "max_wind_speed": 19.6,
+        "max_wind_gust": 40.0,
+        "min_visibility": 4880.0,
+        "max_precip_probability": 100,
+        "has_active_alerts": true,
+        "highest_severity": "MODERATE",
+        "imd_color_code": "YELLOW (Be Updated / Watch)",
+        "weather_safety_score": 55,
+        "hazards": {
+          "cyclone": {
+            "active": false,
+            "severity": null
+          },
+          "lightning": {
+            "active": false,
+            "severity": null
+          },
+          "heavy_rain": {
+            "active": true,
+            "severity": "moderate"
+          }
+        },
+        "timeline_alerts": [
+          {
+            "timestamp": "2026-09-09 13:00:00",
+            "hazard_type": "Heavy Rainfall",
+            "severity": "MODERATE",
+            "trigger_value": 88.0,
+            "threshold_value": 85.0,
+            "message": "Heavy marine precipitation (88% probability)."
+          },
+          {
+            "timestamp": "2026-09-09 14:00:00",
+            "hazard_type": "Heavy Rainfall",
+            "severity": "MODERATE",
+            "trigger_value": 100.0,
+            "threshold_value": 85.0,
+            "message": "Heavy marine precipitation (100% probability)."
+          },
+          {
+            "timestamp": "2026-09-09 15:00:00",
+            "hazard_type": "Heavy Rainfall",
+            "severity": "MODERATE",
+            "trigger_value": 100.0,
+            "threshold_value": 85.0,
+            "message": "Heavy marine precipitation (100% probability)."
+          },
+          {
+            "timestamp": "2026-09-09 16:00:00",
+            "hazard_type": "Heavy Rainfall",
+            "severity": "MODERATE",
+            "trigger_value": 100.0,
+            "threshold_value": 85.0,
+            "message": "Heavy marine precipitation (100% probability)."
+          },
+          {
+            "timestamp": "2026-09-09 17:00:00",
+            "hazard_type": "Heavy Rainfall",
+            "severity": "MODERATE",
+            "trigger_value": 96.0,
+            "threshold_value": 85.0,
+            "message": "Heavy marine precipitation (96% probability)."
+          }
+        ],
+        "hourly_risk_curve": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          45,
+          45,
+          45,
+          45,
+          45,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 19.6 km/h with 100% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
+      },
+      "latency_ms": 5935.24,
+      "execution_mode": "ROLLING_CACHE",
+      "confidence": null,
+      "sources": [
+        "open-meteo"
+      ],
+      "warnings": [],
+      "errors": []
+    },
+    "ocean_agent": {
+      "max_pfz_probability": 1.0,
+      "coincidence_edge_detected": true,
+      "highly_suitable_species": [],
+      "execution_mode": "ROLLING_CACHE"
+    },
+    "last_cached_at": "2026-09-09T17:30:57.607762Z"
   }
 }

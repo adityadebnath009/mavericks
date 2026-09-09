@@ -82,6 +82,12 @@ describe('Mega-Suite 9: 50 Web Speech API & Component Stress Tests', () => {
         act(() => { result.current.stopSpeaking(); });
         expect(window.speechSynthesis.cancel).toHaveBeenCalled();
     });
+    it('9. Does not substitute an English voice for unavailable Marathi TTS', () => {
+        const { result } = renderHook(() => useVoiceAdvisor());
+        act(() => { result.current.speak('Marine advisory', 'mr-IN'); });
+        expect(window.speechSynthesis.speak).not.toHaveBeenCalled();
+        expect(result.current.voiceUnavailable).toBe(true);
+    });
     it('9. Resets transcript safely', () => {
         const { result } = renderHook(() => useVoiceAdvisor());
         act(() => { result.current.resetTranscript(); });

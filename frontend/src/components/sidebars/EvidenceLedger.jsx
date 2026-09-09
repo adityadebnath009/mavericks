@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 
+const citationLabel = (citation) => typeof citation === 'string' ? citation : citation?.title || 'Scholarly source';
+const citationHref = (citation) => typeof citation === 'object' ? (citation.landingPageUrl || citation.doi || citation.id) : null;
+
 const getStatusColor = (assessment) => {
   switch (assessment?.toUpperCase()) {
     case 'SAFE':
@@ -30,7 +33,7 @@ const EvidenceLedger = ({
   const statusColor = getStatusColor(assessment);
 
   return (
-    <div className={`flex flex-col bg-[#0D1B2A]/90 backdrop-blur-md border border-[#20384D] rounded-lg p-4 w-80 text-[#EAF4F8] shadow-2xl font-sans ${className}`}>
+    <div className={`flex flex-col bg-transparent w-full text-[#EAF4F8] font-sans ${className}`}>
       <div className="flex items-center justify-between mb-4 border-b border-[#20384D] pb-2">
         <h2 className="text-[#8FA8B8] text-[11px] uppercase font-bold tracking-widest flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5 text-[#00D4FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -39,7 +42,7 @@ const EvidenceLedger = ({
         {isSafetyFloorTriggered && (
           <div className="group relative">
             <svg className="w-3.5 h-3.5 text-[#FF5C5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#07111F] text-[9px] text-[#FF5C5C] p-2 rounded border border-[#FF5C5C]/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+            <div className="absolute right-0 top-full mt-2 w-48 bg-[#07111F]/50 shadow-inner text-[9px] text-[#FF5C5C] p-2 rounded border border-[#FF5C5C]/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
               Deterministic Safety Floor Triggered: ML inference overridden.
             </div>
           </div>
@@ -55,7 +58,7 @@ const EvidenceLedger = ({
               {evidenceMet} / {evidenceRequired}
             </div>
           </div>
-          <div className="w-full bg-[#07111F] rounded-full h-1.5 border border-[#20384D] overflow-hidden">
+          <div className="w-full bg-[#07111F]/50 shadow-inner rounded-full h-1.5 border border-[#20384D] overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${percentage === 100 ? 'bg-[#18C7A0]' : 'bg-[#00D4FF]'}`}
               style={{ width: `${percentage}%` }}
@@ -70,14 +73,14 @@ const EvidenceLedger = ({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <h3 className="text-[#8FA8B8] text-[9px] uppercase font-bold tracking-wider mb-1.5">Assessment</h3>
-            <div className="flex items-center space-x-2 bg-[#07111F] px-2.5 py-1.5 rounded border border-[#20384D]">
+            <div className="flex items-center space-x-2 bg-[#07111F]/50 shadow-inner px-2.5 py-1.5 rounded border border-[#20384D]">
               <div className={`w-1.5 h-1.5 rounded-full bg-current ${statusColor} ${assessment !== 'UNKNOWN' ? 'animate-pulse' : ''}`} />
               <span className={`font-mono text-[11px] font-bold ${statusColor}`}>{assessment}</span>
             </div>
           </div>
           <div>
             <h3 className="text-[#8FA8B8] text-[9px] uppercase font-bold tracking-wider mb-1.5">Certification</h3>
-            <div className="flex items-center space-x-2 bg-[#07111F] px-2.5 py-1.5 rounded border border-[#20384D]">
+            <div className="flex items-center space-x-2 bg-[#07111F]/50 shadow-inner px-2.5 py-1.5 rounded border border-[#20384D]">
               {certification === 'VALID' ? (
                 <svg className="w-3 h-3 text-[#18C7A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               ) : (
@@ -104,7 +107,7 @@ const EvidenceLedger = ({
                   className={`flex items-center space-x-1.5 px-2 py-1 rounded text-[9px] font-medium border ${
                     isOffline ? 'bg-[#FF5C5C]/10 border-[#FF5C5C]/30 text-[#FF5C5C]' :
                     isCache ? 'bg-[#FFB547]/10 border-[#FFB547]/30 text-[#FFB547]' :
-                    'bg-[#07111F] border-[#20384D] text-[#EAF4F8] hover:border-[#00D4FF]'
+                    'bg-[#07111F]/50 shadow-inner border-[#20384D] text-[#EAF4F8] hover:border-[#00D4FF]'
                   } transition-colors`}
                 >
                   <span className="opacity-70 text-[10px]">
@@ -124,22 +127,25 @@ const EvidenceLedger = ({
         <div>
           <h3 className="text-[#8FA8B8] text-[9px] uppercase font-bold tracking-wider mb-2">Compliance Footnotes</h3>
           <div className="space-y-1.5">
-            {(ragFootnotes || []).map((footnote, idx) => (
+            {(ragFootnotes || []).map((footnote, idx) => {
+              const href = citationHref(footnote);
+              const label = citationLabel(footnote);
+              return (
               <div 
                 key={idx}
                 onClick={() => setExpandedFootnote(expandedFootnote === idx ? null : idx)}
-                className="group cursor-pointer bg-[#07111F] rounded border border-[#20384D] hover:border-[#00D4FF]/50 transition-colors"
+                className="group cursor-pointer bg-[#07111F]/50 shadow-inner rounded border border-[#20384D] hover:border-[#00D4FF]/50 transition-colors"
               >
                 <div className="flex items-start p-2 gap-2">
                   <div className="text-[#00D4FF] font-mono text-[9px] mt-0.5">[{idx + 1}]</div>
                   <div className={`text-[10px] text-[#8FA8B8] group-hover:text-[#EAF4F8] transition-colors leading-relaxed ${expandedFootnote === idx ? '' : 'line-clamp-2'}`}>
-                    {footnote}
+                    {href ? <a href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="text-[#00D4FF] hover:underline">{label}</a> : label}
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
             {(!ragFootnotes || ragFootnotes.length === 0) && (
-              <div className="text-[10px] text-[#8FA8B8] italic opacity-50 font-mono p-2 bg-[#07111F] rounded border border-[#20384D] border-dashed">
+              <div className="text-[10px] text-[#8FA8B8] italic opacity-50 font-mono p-2 bg-[#07111F]/50 shadow-inner rounded border border-[#20384D] border-dashed">
                 No official compliance documents cited for this assessment.
               </div>
             )}

@@ -1,132 +1,140 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import LeftNavigation from '../components/sidebars/LeftNavigation';
 import EvidenceLedger from '../components/sidebars/EvidenceLedger';
 import CommandBar from '../components/chat/CommandBar';
 import BriefingCard from '../components/chat/BriefingCard';
+import ResearchTrendChart from '../components/chat/ResearchTrendChart';
 import OrchestrationHUD from '../components/timeline/OrchestrationHUD';
-import MarineMap from '../components/map/MarineMap';
+import { MapConsole } from '../components/map/MapConsole';
+import { runIntelligenceQuery } from '../services/api';
+
+const DEFAULT_LOCATION = { lat: 17.431, lon: 84.703 };
+const HISTORY_STORAGE_KEY = 'orca-intelligence-query-history-v1';
+const MAX_HISTORY_ITEMS = 8;
+
+const readHistory = () => {
+  try {
+    const stored = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY_ITEMS) : [];
+  } catch {
+    return [];
+  }
+};
+
+const asFeatureCollection = (points) => {
+  if (points?.type === 'FeatureCollection') return points;
+  return { type: 'FeatureCollection', features: (points || []).map((point) => point.type === 'Feature' ? point : ({
+    type: 'Feature', geometry: { type: 'Point', coordinates: [point.lon, point.lat] }, properties: point.properties || point
+  })) };
+};
+
+const asRouteData = (route) => {
+  if (!route) return null;
+  if (route.path) return route;
+  const coordinates = route?.geometry?.coordinates || route?.coordinates;
+  if (!Array.isArray(coordinates)) return null;
+  return { path: coordinates.map(([lon, lat], index) => ({ lon, lat, node_id: `route-${index}`, severity_score: 0 })) };
+};
 
 const IntelligenceConsole = () => {
-  // STRICT RULE: ZERO HARDCODING. Initial state is empty.
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [hudEvents, setHudEvents] = useState([]);
+  const [state, setState] = useState('idle');
   const [currentPayload, setCurrentPayload] = useState(null);
+  const [error, setError] = useState(null);
+  const [location, setLocation] = useState(DEFAULT_LOCATION);
+  const [destination, setDestination] = useState(null);
+  const [language, setLanguage] = useState('en-IN');
+  const [queryHistory, setQueryHistory] = useState(readHistory);
+  const abortRef = useRef(null);
 
-  // This handles both text input AND follow-up button clicks
-  const handleQuerySubmit = (query, language) => {
-    // 1. Enter Loading / Orchestration State
-    setIsProcessing(true);
-    // Sprint 7: Keep previous payload in state to enable dimming effect
-    
-    // Simulate DAG Execution Trace
-    setHudEvents([{ status: 'done', text: 'Query classified' }, { status: 'pending', text: 'Routing to Ocean Analytics...' }]);
-    
-    setTimeout(() => {
-      setHudEvents(prev => [...prev.slice(0, 1), { status: 'done', text: 'Routing to Ocean Analytics...' }, { status: 'pending', text: 'Fetching GEE overlays...' }]);
-    }, 800);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-    setTimeout(() => {
-      setHudEvents(prev => [...prev.slice(0, 2), { status: 'done', text: 'Fetching GEE overlays...' }, { status: 'pending', text: 'Validating evidence contract...' }]);
-    }, 1600);
+  const updateHistory = (entry) => {
+    setQueryHistory((previous) => {
+      const next = [entry, ...previous.filter((item) => item.id !== entry.id && item.query !== entry.query)].slice(0, MAX_HISTORY_ITEMS);
+      try { window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
-    // 2. Resolve Mock Payload (In production, this is the FastAPI response)
-    setTimeout(() => {
-      setIsProcessing(false);
-      setCurrentPayload({
-        assessment: "SAFE",
-        certification: "VALID",
-        synthesis: {
-          summary: `Analysis complete for: "${query}". Conditions are optimal for marine operations in the designated sector.`,
-          hazards: ["Minor swell (1.2m) approaching from South-East.", "Low visibility anticipated post 18:00 UTC."],
-          directives: ["Proceed with standard route planning.", "Activate GEE Sea Surface Temp overlay to monitor thermal fronts.", "Maintain 15km distance from restricted MPA buffer zones."]
-        },
-        evidenceMet: 4,
-        evidenceRequired: 4,
-        sources: ["🛰 GEE (SST & Chlorophyll)", "🌊 INCOIS (Currents)", "🌦 Open-Meteo"],
-        ragFootnotes: ["FAO Marine Safety Code (Sec 2.1)", "Coast Guard Geofencing Protocol 4A"],
-        followups: ["Plot nearest PFZ hotspots", "Overlay Wave Height models"],
-        
-        // Dynamic Map Data to bring the canvas to life
-        mapData: {
-          startPoint: [17.431, 84.703],
-          destinationPoint: [18.12, 85.10],
-          activeRoute: [[17.431, 84.703], [17.65, 84.85], [17.90, 84.95], [18.12, 85.10]],
-          pfzPoints: [{ position: [17.75, 84.90], label: "High Confidence PFZ" }, { position: [17.85, 85.05], label: "Moderate PFZ" }],
-          overlayLayers: [] // In production, this would contain "https://earthengine.googleapis.com/v1alpha/projects/..." URLs
-        }
-      });
-    }, 2800);
+  const handleQuerySubmit = async (query, requestedLanguage = language, requestedLocation = location) => {
+    abortRef.current?.abort();
+    const requestId = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setState('executing');
+    setError(null);
+    const historyEntry = { id: requestId, query, language: requestedLanguage, location: requestedLocation, state: 'RUNNING', createdAt: new Date().toISOString() };
+    // The API receives only prior local questions; the in-flight question is
+    // passed separately above.  Keeping the trace fields in the content makes
+    // a future context resolver aware of the location and freshness of a turn.
+    const recentHistory = queryHistory.slice(0, 5).reverse().map((entry) => ({
+      role: 'user',
+      content: `[${entry.createdAt || 'unknown time'}; ${entry.state || 'UNKNOWN'}; ${entry.language || 'en-IN'}; ${entry.location?.lat ?? 'unknown'}, ${entry.location?.lon ?? 'unknown'}] ${entry.query}`
+    }));
+    updateHistory(historyEntry);
+    try {
+      const payload = await runIntelligenceQuery({ request_id: requestId, query, latitude: requestedLocation.lat, longitude: requestedLocation.lon, destination_lat: destination?.lat, destination_lon: destination?.lon, language: requestedLanguage, history: recentHistory }, controller.signal);
+      if (controller.signal.aborted) return;
+      setCurrentPayload(payload);
+      const responseState = payload.state === 'cached' ? 'CACHED' : 'LIVE';
+      setState(payload.state === 'cached' ? 'cached' : 'live');
+      updateHistory({ ...historyEntry, id: payload.request_id || requestId, state: responseState });
+    } catch (requestError) {
+      if (requestError.name === 'AbortError') return;
+      setState('error');
+      setError(requestError.message || 'The intelligence service did not return a result.');
+      updateHistory({ ...historyEntry, state: 'FAILED' });
+    }
+  };
+
+  const toggleOverlay = (overlayId) => setCurrentPayload((previous) => previous ? ({
+    ...previous,
+    mapData: { ...previous.mapData, overlayLayers: (previous.mapData?.overlayLayers || []).map((layer) =>
+      layer.id === overlayId && layer.status !== 'UNAVAILABLE' ? { ...layer, visible: !layer.visible } : layer) }
+  }) : previous);
+
+  const mapData = currentPayload?.mapData || {};
+  const isProcessing = state === 'executing';
+  const agentStatuses = Object.entries(currentPayload?.execution?.agents || {});
+  const sourceStatuses = currentPayload?.execution?.sourceStatus || [];
+  const mapLayers = [...(mapData.overlayLayers || []), ...(mapData.disabledLayers || [])];
+  const layerClassName = (layer) => {
+    if (layer.status === 'UNAVAILABLE') return 'text-[#8FA8B8]';
+    if (layer.status === 'STALE') return 'cursor-pointer text-[#FFB547]';
+    return 'cursor-pointer text-[#EAF4F8]';
+  };
+  const layerStatusText = (layer) => {
+    if (layer.status === 'UNAVAILABLE') return ` — ${layer.unavailableReason || 'Unavailable'}`;
+    if (layer.status === 'STALE') {
+      const age = layer.ageHours != null ? ` (${Math.round(layer.ageHours)}h old)` : '';
+      return ` — STALE${age}: ${layer.staleReason || 'Satellite image is not current.'}`;
+    }
+    return '';
   };
 
   return (
-    <div className="relative h-screen w-full bg-[#07111F] overflow-hidden font-sans flex">
-      
-      {/* MAP BACKGROUND (ABSOLUTE INSET-0) */}
-      <div className="absolute inset-0 z-0">
-        <MarineMap 
-          activeRoute={currentPayload?.mapData?.activeRoute}
-          startPoint={currentPayload?.mapData?.startPoint}
-          destinationPoint={currentPayload?.mapData?.destinationPoint}
-          pfzPoints={currentPayload?.mapData?.pfzPoints}
-          overlayLayers={currentPayload?.mapData?.overlayLayers}
-        />
-      </div>
+    <main className="relative flex h-screen w-full overflow-hidden bg-[#07111F] font-sans text-[#EAF4F8]" aria-label="ORCA Intelligence Console">
+      <div className="absolute inset-0 z-0"><MapConsole activeMode="routing" showLegend={false} pointAnalyticsEnabled={false} selectedLocation={location} onLocationSelect={setLocation} destinationLocation={mapData.destinationPoint || destination} onDestinationSelect={setDestination} routeData={asRouteData(mapData.activeRoute || mapData.routeData)} pfzGeojson={asFeatureCollection(mapData.pfzGeojson || mapData.pfzPoints)} geofenceGeojson={mapData.geofences || null} gridGeojson={mapData.bsiGrid || null} vectorGrid={{ windGeojson: mapData.windVectors || null, currentGeojson: mapData.currentVectors || null }} layersOverride={{ bsiRisk: Boolean(mapData.bsiGrid?.features?.length), windVectors: Boolean(mapData.windVectors?.features?.length), currentVectors: Boolean(mapData.currentVectors?.features?.length), route: true, restricted: true, eezBorder: true }} overlayLayers={mapData.overlayLayers || []} /></div>
 
-      {/* LEFT NAVIGATION (FLOATING) */}
-      <div className="relative z-20 h-full w-64 flex-shrink-0 bg-[#0D1B2A]/70 backdrop-blur-xl border-r border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)]">
-        <LeftNavigation />
-      </div>
+      <aside className="relative z-20 hidden h-full w-60 shrink-0 border-r border-[#20384D]/70 bg-[#07111F]/72 backdrop-blur-sm lg:block"><LeftNavigation history={queryHistory} agentState={state} onQuerySelect={(entry) => { if (entry.location) setLocation(entry.location); if (entry.query) handleQuerySubmit(entry.query, entry.language || 'en-IN', entry.location || location); }} /></aside>
 
-      {/* CENTER HUD & COMMAND BAR (FLOATING) */}
-      <div className="relative z-10 flex-1 flex flex-col pointer-events-none">
-        
-        {/* Orchestration & Briefing Overlay Area */}
-        <div className="flex-1 flex flex-col justify-end p-8 pb-12 items-start relative">
-          
-          {currentPayload && (
-            <div className={`pointer-events-auto w-full max-w-2xl transition-all duration-500 origin-bottom-left ${isProcessing ? 'opacity-30 blur-[2px] scale-[0.97] grayscale-[30%] pointer-events-none' : 'opacity-100 scale-100'}`}>
-              <BriefingCard 
-                assessment={currentPayload.assessment}
-                certification={currentPayload.certification}
-                synthesis={currentPayload.synthesis}
-                ragFootnotes={currentPayload.ragFootnotes}
-                followups={currentPayload.followups}
-                onFollowupClick={(action) => handleQuerySubmit(action, 'en-IN')} // The Dynamic Loop!
-              />
-            </div>
-          )}
-
-          {isProcessing && (
-            <div className={`pointer-events-auto absolute ${currentPayload ? 'bottom-16 left-12' : 'bottom-12 left-8'} z-50 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4`}>
-              <OrchestrationHUD events={hudEvents} />
-            </div>
-          )}
-
-        </div>
-
-        {/* FLOATING COMMAND PILL */}
-        <div className="pointer-events-auto w-full flex justify-center pb-8">
-          <div className="w-full max-w-3xl">
-            <CommandBar onQuerySubmit={handleQuerySubmit} />
+      <section className="relative z-10 flex min-w-0 flex-1 flex-col pointer-events-none">
+        <div className="relative flex min-h-0 flex-1 flex-col p-4 pb-3 sm:p-6">
+          <div className="pointer-events-auto min-h-0 flex-1 max-w-2xl overflow-y-auto pr-1 [scrollbar-width:thin]">
+            {!currentPayload && !isProcessing && !error && <div className="max-w-md rounded-xl border border-[#20384D]/70 bg-[#07111F]/78 p-5 shadow-xl backdrop-blur-sm"><p className="font-mono text-xs uppercase tracking-[0.2em] text-[#00D4FF]">ORCA Intelligence</p><h1 className="mt-3 text-xl font-semibold">Ask a marine operations question</h1><p className="mt-2 text-sm leading-relaxed text-[#8FA8B8]">Live agent evidence for the selected vessel position. Drag the marker or click the map to set it. For a route, choose <strong>Set Destination</strong> in the map popup first.</p><p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-[#8FA8B8]">Position · {location.lat.toFixed(3)}, {location.lon.toFixed(3)}{destination && ` · Destination ${destination.lat.toFixed(3)}, ${destination.lon.toFixed(3)}`}</p></div>}
+            {currentPayload && <div className={`w-full origin-top-left transition-all duration-300 ${isProcessing ? 'scale-[0.98] opacity-40 grayscale' : ''}`}><BriefingCard assessment={currentPayload.assessment} certification={currentPayload.certification} synthesis={currentPayload.synthesis} safetyEvidence={mapData.safetyEvidence} ragFootnotes={currentPayload.ragFootnotes} followups={currentPayload.followups} language={language} onLanguageChange={setLanguage} onFollowupClick={(action) => handleQuerySubmit(action, language)} />{currentPayload.translation?.state === 'UNAVAILABLE' && language !== 'en-IN' && <p role="status" className="mt-2 max-w-2xl rounded-lg border border-[#FFB547]/35 bg-[#07111F]/85 px-3 py-2 text-xs text-[#FFB547] backdrop-blur-sm">Translation is unavailable for {language}; English evidence is shown. {currentPayload.translation.reason}</p>}</div>}
+            {currentPayload?.intent === 'research' && <ResearchTrendChart series={mapData.historicalSeries} analysis={mapData.historicalAnalysis} papers={mapData.literaturePapers} />}
+            {error && <div role="alert" className="max-w-lg rounded-xl border border-[#FF5C5C]/50 bg-[#07111F]/80 p-4 text-sm backdrop-blur-md"><p className="font-semibold text-[#FF5C5C]">Intelligence request failed</p><p className="mt-1 text-[#8FA8B8]">{error}</p></div>}
           </div>
+          {isProcessing && <div className="pointer-events-auto absolute bottom-3 left-4 z-50 sm:left-6"><OrchestrationHUD events={['Planner', 'Weather evidence', 'Ocean / PFZ evidence', 'Geospatial safety', 'Risk and evidence validation'].map((text, index) => ({ status: index === 0 ? 'pending' : 'queued', text }))} /></div>}
+          {(mapLayers.length > 0 || agentStatuses.length > 0) && <details className="pointer-events-auto mt-3 max-w-2xl rounded-xl border border-[#20384D]/70 bg-[#07111F]/90 px-3 py-2 shadow-xl backdrop-blur-sm"><summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-[#8FA8B8]">Intelligence layers & agent trace</summary><div className="mt-3 grid gap-3 md:grid-cols-2">{mapLayers.length > 0 && <div><p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#8FA8B8]">Scientific layers</p>{mapLayers.map((layer) => <label key={layer.id} className={`flex items-center justify-between gap-3 py-1 text-xs ${layerClassName(layer)}`}><span>{layer.title}{layerStatusText(layer)}</span><input aria-label={`Toggle ${layer.title}`} type="checkbox" checked={Boolean(layer.visible)} disabled={layer.status === 'UNAVAILABLE'} onChange={() => toggleOverlay(layer.id)} /></label>)}</div>}{agentStatuses.length > 0 && <div><div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-widest text-[#8FA8B8]">Agent trace</p><span className="font-mono text-[10px] text-[#00D4FF]">{currentPayload.execution?.totalLatencyMs ? `${Math.round(currentPayload.execution.totalLatencyMs)} ms` : 'complete'}</span></div><div className="mt-2 flex flex-wrap gap-2">{agentStatuses.map(([name, agentState]) => <span key={name} className={`rounded px-2 py-1 font-mono text-[10px] ${agentState === 'success' ? 'bg-[#18C7A0]/10 text-[#18C7A0]' : 'bg-[#FFB547]/10 text-[#FFB547]'}`}>{name} · {agentState}</span>)}</div>{sourceStatuses.length > 0 && <p className="mt-2 text-[10px] text-[#8FA8B8]">{sourceStatuses.map((source) => `${source.source}: ${source.state}`).join(' · ')}</p>}</div>}</div></details>}
         </div>
+        <div className="pointer-events-auto flex w-full justify-center px-3 pb-4 sm:px-8 sm:pb-8"><div className="w-full max-w-3xl"><CommandBar onQuerySubmit={handleQuerySubmit} language={language} onLanguageChange={setLanguage} /></div></div>
+      </section>
 
-      </div>
-
-      {/* RIGHT EVIDENCE LEDGER (FLOATING) */}
-      {currentPayload && (
-        <div className={`relative z-20 h-full w-80 flex-shrink-0 bg-[#0D1B2A]/70 backdrop-blur-xl border-l border-white/10 shadow-[-5px_0_20px_rgba(0,0,0,0.5)] p-5 transition-all duration-500 ${isProcessing ? 'opacity-40 blur-[2px] grayscale-[50%] pointer-events-none' : 'opacity-100'}`}>
-          <EvidenceLedger 
-            evidenceMet={currentPayload.evidenceMet}
-            evidenceRequired={currentPayload.evidenceRequired}
-            assessment={currentPayload.assessment}
-            certification={currentPayload.certification}
-            sources={currentPayload.sources}
-          />
-        </div>
-      )}
-
-    </div>
+      {currentPayload && <aside className={`relative z-20 hidden h-full w-72 shrink-0 flex-col border-l border-[#20384D]/70 bg-[#07111F]/72 p-4 backdrop-blur-sm xl:flex ${isProcessing ? 'pointer-events-none opacity-40' : ''}`}><div className="mb-3 shrink-0 text-[10px] font-mono uppercase tracking-widest text-[#8FA8B8]">{state === 'cached' ? 'Cached evidence' : 'Live evidence'} · {currentPayload.request_id?.slice(0, 8) || 'untraced'}</div><EvidenceLedger className="min-h-0 flex-1" evidenceMet={currentPayload.evidenceMet} evidenceRequired={currentPayload.evidenceRequired} assessment={currentPayload.assessment} certification={currentPayload.certification} sources={currentPayload.sources} ragFootnotes={currentPayload.ragFootnotes} isSafetyFloorTriggered={currentPayload.isSafetyFloorTriggered} /></aside>}
+    </main>
   );
 };
 

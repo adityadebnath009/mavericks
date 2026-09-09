@@ -17,6 +17,7 @@ import {
 export function MapLegend({
   activeMode = 'routing',
   className = '',
+  positionClassName = 'top-4 left-4',
   isCollapsed: controlledCollapsed,
   onToggleCollapse
 }) {
@@ -26,7 +27,7 @@ export function MapLegend({
 
   return (
     <div 
-      className={`absolute top-4 left-4 z-10 select-none transition-all duration-300 ${className}`}
+      className={`absolute ${positionClassName} z-10 select-none transition-all duration-300 ${className}`}
       aria-label="Tactical Map Legend"
     >
       <div className="bg-[#0D1B2A]/90 backdrop-blur-md border border-[#20384D] rounded-xl shadow-2xl p-3.5 w-64 text-[#EAF4F8] font-sans">

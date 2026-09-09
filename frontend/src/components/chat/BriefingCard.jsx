@@ -7,29 +7,40 @@ const getBadgeStyle = (assessment) => {
     case 'SAFE':
       return 'bg-[#18C7A0]/20 border-[#18C7A0] text-[#18C7A0] shadow-[0_0_15px_rgba(24,199,160,0.3)]';
     case 'UNSAFE':
+    case 'EXTREME':
       return 'bg-[#FF5C5C]/20 border-[#FF5C5C] text-[#FF5C5C] shadow-[0_0_15px_rgba(255,92,92,0.3)]';
     default:
       return 'bg-[#FFB547]/20 border-[#FFB547] text-[#FFB547] shadow-[0_0_15px_rgba(255,181,71,0.3)]';
   }
 };
 
+const citationLabel = (citation) => typeof citation === 'string' ? citation : citation?.title || 'Scholarly source';
+const citationHref = (citation) => typeof citation === 'object' ? (citation.landingPageUrl || citation.doi || citation.id) : null;
+
 const BriefingCard = ({
   assessment = 'COMPUTED',
   certification = 'VALID',
   synthesis = null,
+  safetyEvidence = null,
   ragFootnotes = [],
   followups = [],
-  onFollowupClick
+  onFollowupClick,
+  language: controlledLanguage,
+  onLanguageChange
 }) => {
   const {
     selectedLanguage,
     setSelectedLanguage,
     isSpeaking,
     isTtsSupported,
+    voiceUnavailable,
+    error: voiceError,
     speak,
     stopSpeaking,
     supportedLanguages
   } = useVoiceAdvisor('en-IN');
+  const language = controlledLanguage || selectedLanguage;
+  const changeLanguage = (nextLanguage) => onLanguageChange ? onLanguageChange(nextLanguage) : setSelectedLanguage(nextLanguage);
 
   const badgeStyle = getBadgeStyle(assessment);
   const isStructured = typeof synthesis === 'object' && synthesis !== null;
@@ -37,7 +48,11 @@ const BriefingCard = ({
 
 
   return (
-    <div className="flex flex-col bg-[#07111F]/60 backdrop-blur-2xl border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all duration-500">
+    <div className={`flex flex-col bg-[#07111F]/88 backdrop-blur-sm border rounded-xl w-full max-w-2xl overflow-hidden shadow-xl transition-all duration-500 ${
+      assessment?.toUpperCase() === 'SAFE' ? 'border-[#18C7A0]/45' :
+      ['UNSAFE', 'EXTREME'].includes(assessment?.toUpperCase()) ? 'border-[#FF5C5C]/45' :
+      'border-[#FFB547]/45'
+    }`}>
       
       {/* Header Badge */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-transparent to-white/[0.02]">
@@ -60,8 +75,8 @@ const BriefingCard = ({
               <div className="flex items-center px-2 py-1.5 border-r border-[#20384D]">
                 <Languages className="w-3.5 h-3.5 text-[#8FA8B8] mr-1.5" />
                 <select 
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  value={language}
+                  onChange={(e) => changeLanguage(e.target.value)}
                   className="bg-transparent text-[#EAF4F8] text-[10px] font-mono outline-none cursor-pointer"
                 >
                   {supportedLanguages.map(lang => (
@@ -72,7 +87,7 @@ const BriefingCard = ({
                 </select>
               </div>
               <button
-                onClick={() => isSpeaking ? stopSpeaking() : speak(isStructured ? synthesis.summary : rawText)}
+                onClick={() => isSpeaking ? stopSpeaking() : speak(isStructured ? (synthesis.executive_summary || synthesis.summary || '') : rawText, language)}
                 className={`px-3 py-1.5 flex items-center justify-center transition-colors cursor-pointer ${
                   isSpeaking 
                     ? 'bg-[#00D4FF]/20 text-[#00D4FF] hover:bg-[#00D4FF]/30' 
@@ -92,45 +107,53 @@ const BriefingCard = ({
       </div>
 
       {/* Structured Narrative Body */}
-      <div className="p-6 text-[#EAF4F8] text-sm leading-relaxed font-sans space-y-6">
+      <div className="p-4 sm:p-5 text-[#EAF4F8] text-sm leading-relaxed font-sans space-y-4">
+        {voiceUnavailable && <p role="status" className="rounded-md border border-[#FFB547]/35 bg-[#FFB547]/10 px-2 py-1 text-xs text-[#FFB547]">{voiceError || 'Voice unavailable for selected language; browser default voice may be used.'}</p>}
         {isStructured ? (
           <>
             {/* Executive Summary */}
-            {synthesis.summary && (
+            {(synthesis.executive_summary || synthesis.summary) && (
               <div>
-                <p className="text-base text-white font-medium">{synthesis.summary}</p>
+                <p className="text-base text-white font-medium">{synthesis.executive_summary || synthesis.summary}</p>
               </div>
             )}
             
             {/* Hazards List */}
-            {synthesis.hazards && synthesis.hazards.length > 0 && (
+            {(synthesis.identified_hazards || synthesis.hazards)?.length > 0 && (
               <div>
                 <h4 className="text-[10px] uppercase font-bold tracking-widest text-[#FFB547] mb-2 flex items-center">
                   <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                   Identified Hazards
                 </h4>
                 <ul className="space-y-1.5 pl-5">
-                  {synthesis.hazards.map((hazard, i) => (
-                    <li key={i} className="list-disc text-[#8FA8B8] marker:text-[#FFB547]">{hazard}</li>
+                  {(synthesis.identified_hazards || synthesis.hazards).map((hazard, i) => (
+                    <li key={i} className="list-disc text-[#8FA8B8] marker:text-[#FFB547]">{hazard.text || hazard}</li>
                   ))}
                 </ul>
               </div>
             )}
 
             {/* Operational Directives */}
-            {synthesis.directives && synthesis.directives.length > 0 && (
+            {(synthesis.operational_directives || synthesis.directives)?.length > 0 && (
               <div>
                 <h4 className="text-[10px] uppercase font-bold tracking-widest text-[#00D4FF] mb-2 flex items-center">
                   <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                   Operational Directives
                 </h4>
                 <ul className="space-y-1.5 pl-5">
-                  {synthesis.directives.map((dir, i) => (
-                    <li key={i} className="list-disc text-[#EAF4F8] marker:text-[#00D4FF]">{dir}</li>
+                  {(synthesis.operational_directives || synthesis.directives).map((dir, i) => (
+                    <li key={i} className="list-disc text-[#EAF4F8] marker:text-[#00D4FF]">{dir.text || dir}</li>
                   ))}
                 </ul>
               </div>
             )}
+            {safetyEvidence && <section className="rounded-lg border border-[#20384D]/70 bg-[#07111F]/65 p-3" aria-label="ORCA BSI and ML evidence">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#00D4FF]">ORCA safety evidence</h4>
+              <div className="mt-2 grid gap-2 text-xs text-[#8FA8B8] sm:grid-cols-2">
+                <div><span className="font-medium text-[#EAF4F8]">Deterministic ORCA BSI:</span> {safetyEvidence.bsiEvidence?.state === 'LIVE' ? `${Number(safetyEvidence.bsi?.severityScore).toFixed(0)}/100 (${safetyEvidence.bsi?.report?.confidence || 'unknown'} confidence)` : 'score withheld — required environmental evidence is incomplete.'}</div>
+                <div><span className="font-medium text-[#EAF4F8]">ML risk model:</span> {safetyEvidence.mlEvidence?.state === 'LIVE' ? `${safetyEvidence.mlRisk?.ml_risk_class || 'unknown'} (${safetyEvidence.mlRisk?.model_version || 'active model'})` : 'unavailable; deterministic fallback is not reported as ML.'}</div>
+              </div>
+            </section>}
           </>
         ) : (
           <p>{rawText || 'Awaiting intelligence briefing...'}</p>
@@ -144,12 +167,11 @@ const BriefingCard = ({
             Cited Sources
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            {ragFootnotes.map((note, idx) => (
-              <span key={idx} className="inline-flex items-center px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] text-[#00D4FF] hover:bg-white/10 cursor-pointer transition-colors">
-                <span className="mr-1.5 opacity-70">📄</span>
-                {note}
-              </span>
-            ))}
+            {ragFootnotes.map((note, idx) => {
+              const href = citationHref(note);
+              const content = <><span className="mr-1.5 opacity-70">📄</span>{citationLabel(note)}</>;
+              return href ? <a key={idx} href={href} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] text-[#00D4FF] hover:bg-white/10 transition-colors">{content}</a> : <span key={idx} className="inline-flex items-center px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] text-[#00D4FF]">{content}</span>;
+            })}
           </div>
         </div>
       )}

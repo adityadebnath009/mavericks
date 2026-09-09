@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.requests import Request
 from app.core.exceptions import DataUnavailableError, NoSafeRouteError
 from app.api.router import api_router
+from app.api.intelligence_router import intelligence_router
 from app.models import ChatRequest, PipelineResult
 from app.agents.planner_agent import PlannerAgent
 from app.services.cache_updater import periodic_cache_refresh_worker
@@ -48,6 +49,9 @@ async def no_safe_route_exception_handler(request: Request, exc: NoSafeRouteErro
 
 # Register main API routers
 app.include_router(api_router, prefix="/api")
+# The Intelligence Console is mounted separately so its agents/providers cannot
+# alter the established operations API router.
+app.include_router(intelligence_router, prefix="/api")
 
 @app.on_event("startup")
 def start_cache_warmer():
@@ -119,4 +123,3 @@ def serve_frontend(fallback_path: str):
         "version": "1.0.0",
         "note": "Frontend assets not found. Run npm run build in frontend."
     }
-
