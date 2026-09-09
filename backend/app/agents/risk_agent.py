@@ -132,6 +132,7 @@ class RiskAnalysisAgent(AbstractAgent):
             bsi_report["ml_assessment"] = ml_report
             bsi_report["deterministic_class"] = class_map.get(det_class, "LOW")
             bsi_report["final_fused_risk"] = final_risk
+            bsi_report["isSafetyFloorTriggered"] = det_class > ml_class
             
             latency = (time.perf_counter() - start_time) * 1000
             

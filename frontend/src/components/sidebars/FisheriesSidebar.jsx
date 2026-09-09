@@ -106,7 +106,7 @@ export function FisheriesSidebar({
   };
 
   const renderedPfzCards = useMemo(() => {
-    return pfzList.map((feat) => {
+    return (pfzList || []).map((feat) => {
       const props = feat.properties || {};
       const isSelected = selectedPfz?.id === feat.id || selectedPfz?.properties?.id === feat.id;
       const featId = feat.id || props.id;
@@ -216,7 +216,7 @@ export function FisheriesSidebar({
               type="button"
               onClick={handleToggleWindHeatmap}
               className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                layersOverride.windVectors
+                (layersOverride || {}).windVectors
                   ? 'bg-[#00D4FF]/20 border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.25)]'
                   : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:border-[#8FA8B8]/50'
               }`}
@@ -226,7 +226,7 @@ export function FisheriesSidebar({
                 <Wind className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.windVectors ? 'ACTIVE (km/h)' : 'OFF'}
+                {(layersOverride || {}).windVectors ? 'ACTIVE (km/h)' : 'OFF'}
               </span>
             </button>
 
@@ -234,7 +234,7 @@ export function FisheriesSidebar({
               type="button"
               onClick={handleToggleCurrentHeatmap}
               className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                layersOverride.currentVectors
+                (layersOverride || {}).currentVectors
                   ? 'bg-[#18C7A0]/20 border-[#18C7A0] text-[#18C7A0] shadow-[0_0_10px_rgba(24,199,160,0.25)]'
                   : 'bg-[#07111F] border-[#20384D] text-[#8FA8B8] hover:border-[#8FA8B8]/50'
               }`}
@@ -244,7 +244,7 @@ export function FisheriesSidebar({
                 <Compass className="w-3.5 h-3.5" />
               </div>
               <span className="text-[9px] font-mono font-bold mt-1">
-                {layersOverride.currentVectors ? 'ACTIVE (m/s)' : 'OFF'}
+                {(layersOverride || {}).currentVectors ? 'ACTIVE (m/s)' : 'OFF'}
               </span>
             </button>
           </div>
@@ -347,7 +347,7 @@ export function FisheriesSidebar({
               Active High Catch Vectors
             </span>
             <span className="text-[9px] font-mono text-[#FFB547] font-bold">
-              {pfzList.length} Zones
+              {(pfzList || []).length} Zones
             </span>
           </div>
 

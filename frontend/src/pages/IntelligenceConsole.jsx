@@ -16,7 +16,7 @@ const IntelligenceConsole = () => {
   const handleQuerySubmit = (query, language) => {
     // 1. Enter Loading / Orchestration State
     setIsProcessing(true);
-    setCurrentPayload(null); // Clear previous UI
+    // Sprint 7: Keep previous payload in state to enable dimming effect
     
     // Simulate DAG Execution Trace
     setHudEvents([{ status: 'done', text: 'Query classified' }, { status: 'pending', text: 'Routing to Ocean Analytics...' }]);
@@ -81,16 +81,10 @@ const IntelligenceConsole = () => {
       <div className="relative z-10 flex-1 flex flex-col pointer-events-none">
         
         {/* Orchestration & Briefing Overlay Area */}
-        <div className="flex-1 flex flex-col justify-end p-8 pb-12 items-start">
+        <div className="flex-1 flex flex-col justify-end p-8 pb-12 items-start relative">
           
-          {isProcessing && (
-            <div className="pointer-events-auto">
-              <OrchestrationHUD events={hudEvents} />
-            </div>
-          )}
-
-          {(!isProcessing && currentPayload) && (
-            <div className="pointer-events-auto">
+          {currentPayload && (
+            <div className={`pointer-events-auto w-full max-w-2xl transition-all duration-500 origin-bottom-left ${isProcessing ? 'opacity-30 blur-[2px] scale-[0.97] grayscale-[30%] pointer-events-none' : 'opacity-100 scale-100'}`}>
               <BriefingCard 
                 assessment={currentPayload.assessment}
                 certification={currentPayload.certification}
@@ -99,6 +93,12 @@ const IntelligenceConsole = () => {
                 followups={currentPayload.followups}
                 onFollowupClick={(action) => handleQuerySubmit(action, 'en-IN')} // The Dynamic Loop!
               />
+            </div>
+          )}
+
+          {isProcessing && (
+            <div className={`pointer-events-auto absolute ${currentPayload ? 'bottom-16 left-12' : 'bottom-12 left-8'} z-50 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4`}>
+              <OrchestrationHUD events={hudEvents} />
             </div>
           )}
 
@@ -115,7 +115,7 @@ const IntelligenceConsole = () => {
 
       {/* RIGHT EVIDENCE LEDGER (FLOATING) */}
       {currentPayload && (
-        <div className="relative z-20 h-full w-80 flex-shrink-0 bg-[#0D1B2A]/70 backdrop-blur-xl border-l border-white/10 shadow-[-5px_0_20px_rgba(0,0,0,0.5)] p-5">
+        <div className={`relative z-20 h-full w-80 flex-shrink-0 bg-[#0D1B2A]/70 backdrop-blur-xl border-l border-white/10 shadow-[-5px_0_20px_rgba(0,0,0,0.5)] p-5 transition-all duration-500 ${isProcessing ? 'opacity-40 blur-[2px] grayscale-[50%] pointer-events-none' : 'opacity-100'}`}>
           <EvidenceLedger 
             evidenceMet={currentPayload.evidenceMet}
             evidenceRequired={currentPayload.evidenceRequired}

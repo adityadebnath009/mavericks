@@ -227,20 +227,37 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
     <div className="flex flex-col h-screen w-screen bg-[#07111F] text-[#EAF4F8] font-sans overflow-hidden select-none">
       <TopHeader activeMode={activeMode} selectedLocation={selectedLocation} safetyData={safetyData} dataStatus={dataStatus} isLoading={isLoading} onRefresh={handleRefresh} onBackToLanding={handleReturnToLanding} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} currentTime={currentTime} />
       <div className="flex flex-1 overflow-hidden relative">
-        <WorkspaceNav activeMode={activeMode} setActiveMode={handleModeChange} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} onBackToLanding={handleReturnToLanding} />
-        <div className="w-[360px] sm:w-[380px] lg:w-[420px] min-w-[320px] h-full bg-[#0D1B2A] border-r border-[#20384D] flex flex-col shrink-0 z-10">
-          <SpotlightCard className="h-full rounded-none border-0 bg-transparent flex flex-col">
-            {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime} isDepartureManual={isDepartureManual} setIsDepartureManual={setIsDepartureManual} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} error={routeError} />}
-            {activeMode === 'fisheries' && <FisheriesSidebar sstOpacity={sstOpacity} setSstOpacity={setSstOpacity} chlOpacity={chlOpacity} setChlOpacity={setChlOpacity} pfzList={pfzGeojson.features || []} selectedPfz={selectedPfz} onSelectPfz={setSelectedPfz} onDestinationSelect={setDestinationLocation} selectedLocation={selectedLocation} layersOverride={layersOverride} setLayersOverride={setLayersOverride} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId}  />}
-            {activeMode === 'weather' && <WeatherSidebar selectedDay={selectedDay} setSelectedDay={setSelectedDay} selectedHour={selectedHour} setSelectedHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} safetyData={safetyData} layersOverride={layersOverride} setLayersOverride={setLayersOverride} />}
-          </SpotlightCard>
+        
+        {/* Layer 0: Edge-to-Edge Map Canvas */}
+        <div className="absolute inset-0 z-0">
+          <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={vesselProfile.beam_m} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} selectedPfz={selectedPfz} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId} />
         </div>
-        <main className="flex-1 flex flex-col h-full bg-[#07111F] relative overflow-hidden">
-          <div className="flex-1 relative">
-            <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={vesselProfile.beam_m} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} selectedPfz={selectedPfz} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId}  />
+
+        {/* Layer 1: Floating UI with Glassmorphism */}
+        <div className="relative z-10 flex h-full w-full pointer-events-none">
+          
+          {/* Navigation */}
+          <div className="pointer-events-auto shrink-0 flex h-full">
+            <WorkspaceNav activeMode={activeMode} setActiveMode={handleModeChange} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} onBackToLanding={handleReturnToLanding} />
           </div>
-          <WeatherTimelinePanel routeData={routeData} forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} activeMode={activeMode} />
-        </main>
+          
+          {/* V2 Glassmorphism Sidebar */}
+          <div className="pointer-events-auto w-[360px] sm:w-[380px] lg:w-[420px] min-w-[320px] h-full bg-[#0D1B2A]/75 backdrop-blur-md border-r border-[#20384D]/50 shadow-2xl flex flex-col shrink-0 transition-all duration-300">
+            <SpotlightCard className="h-full rounded-none border-0 bg-transparent flex flex-col">
+              {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime} isDepartureManual={isDepartureManual} setIsDepartureManual={setIsDepartureManual} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} error={routeError} />}
+              {activeMode === 'fisheries' && <FisheriesSidebar sstOpacity={sstOpacity} setSstOpacity={setSstOpacity} chlOpacity={chlOpacity} setChlOpacity={setChlOpacity} pfzList={pfzGeojson.features || []} selectedPfz={selectedPfz} onSelectPfz={setSelectedPfz} onDestinationSelect={setDestinationLocation} selectedLocation={selectedLocation} layersOverride={layersOverride} setLayersOverride={setLayersOverride} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId} />}
+              {activeMode === 'weather' && <WeatherSidebar selectedDay={selectedDay} setSelectedDay={setSelectedDay} selectedHour={selectedHour} setSelectedHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} safetyData={safetyData} layersOverride={layersOverride} setLayersOverride={setLayersOverride} />}
+            </SpotlightCard>
+          </div>
+
+          {/* Floating Timeline Panel at Bottom Right */}
+          <div className="flex-1 relative flex flex-col justify-end p-4 pointer-events-none overflow-hidden">
+            <div className="pointer-events-auto">
+              <WeatherTimelinePanel routeData={routeData} forecastTimeline={forecastTimeline} selectedHour={selectedHour} onSelectHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} selectedDay={selectedDay} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} activeMode={activeMode} />
+            </div>
+          </div>
+        </div>
+
         <SafetyAdvisorChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} liveContext={liveContext} activeMode={activeMode} />
       </div>
     </div>

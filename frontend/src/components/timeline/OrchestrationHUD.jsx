@@ -15,7 +15,7 @@ const OrchestrationHUD = ({ events = [] }) => {
         </h3>
         
         <div className="space-y-2 font-mono text-sm">
-          {events.map((event, idx) => (
+          {events.map((event, idx) => event && (
             <div key={idx} className="flex items-start">
               <span className={`mr-3 mt-0.5 ${event.status === 'pending' ? 'text-[#FFB547] animate-pulse' : 'text-[#18C7A0]'}`}>
                 {event.status === 'pending' ? '[~]' : '[+]'}

@@ -51,7 +51,8 @@ export function MapConsole({
   hoveredPfzId = null,
   onHoverPfz = () => {},
   selectedPfz = null,
-  className = ''
+  className = '',
+  overlayLayers = null
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -97,9 +98,11 @@ export function MapConsole({
       center: [78.9629, 16.5000], // Centered over Indian peninsula & EEZ boundaries
       zoom: 4.5,
       maxBounds: [
-        [55.0, -5.0],  // South-West limit (Arabian Sea & Maldives)
-        [105.0, 35.0]  // North-East limit (Bay of Bengal & Andaman)
-      ]
+        [35.0, -15.0],  // Expanded South-West limit (Allows panning India out from under left sidebar)
+        [115.0, 40.0]   // Expanded North-East limit
+      ],
+      minZoom: 3,
+      maxZoom: 18
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
@@ -940,6 +943,119 @@ export function MapConsole({
     }
   }, [selectedNodeId, mapLoaded, routeData]);
 
+
+  // [V2 Overhaul] Dynamic Overlay Layer Renderer (3-Tier Architecture)
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !overlayLayers) return;
+    const map = mapRef.current;
+
+    overlayLayers.forEach(layer => {
+      // Don't render if unavailable
+      if (!layer || layer.status === "UNAVAILABLE") return;
+
+      const sourceId = `v2-source-${layer.id}`;
+      const layerId = `v2-layer-${layer.id}`;
+
+      // 1. Add Source if not exists
+      if (!map.getSource(sourceId)) {
+        if (layer.type === 'raster' && layer.tiles) {
+          map.addSource(sourceId, {
+            type: 'raster',
+            tiles: layer.tiles,
+            tileSize: 256
+          });
+        } else if ((layer.type === 'geojson' || layer.type === 'heatmap') && layer.data) {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: layer.data
+          });
+        }
+      } else if ((layer.type === 'geojson' || layer.type === 'heatmap') && layer.data) {
+        // Update existing geojson data
+        map.getSource(sourceId).setData(layer.data);
+      }
+
+      // 2. Add or Update Layer dynamically agnostic of type
+      if (!map.getLayer(layerId)) {
+        if (layer.type === 'raster') {
+          map.addLayer({
+            id: layerId,
+            type: 'raster',
+            source: sourceId,
+            paint: {
+              'raster-opacity': layer.visible ? (layer.opacity ?? 0.65) : 0.0,
+              'raster-fade-duration': 300
+            },
+            layout: { visibility: layer.visible ? 'visible' : 'none' }
+          });
+        } else if (layer.type === 'heatmap') {
+          map.addLayer({
+            id: layerId,
+            type: 'heatmap',
+            source: sourceId,
+            paint: {
+              'heatmap-weight': 1,
+              'heatmap-intensity': 1,
+              'heatmap-color': [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0, 'rgba(0, 0, 255, 0)',
+                0.5, 'cyan',
+                1, 'blue'
+              ],
+              'heatmap-opacity': layer.visible ? (layer.opacity ?? 0.6) : 0.0
+            },
+            layout: { visibility: layer.visible ? 'visible' : 'none' }
+          });
+        } else if (layer.type === 'geojson') {
+          // Render points as circles
+          map.addLayer({
+            id: `${layerId}-point`,
+            type: 'circle',
+            source: sourceId,
+            filter: ['==', ['geometry-type'], 'Point'],
+            paint: {
+              'circle-radius': 5,
+              'circle-color': '#00D4FF',
+              'circle-opacity': layer.visible ? (layer.opacity ?? 0.8) : 0.0,
+              'circle-stroke-width': 1,
+              'circle-stroke-color': '#07111F'
+            },
+            layout: { visibility: layer.visible ? 'visible' : 'none' }
+          });
+          // Render lines/polygons as strokes
+          map.addLayer({
+            id: `${layerId}-line`,
+            type: 'line',
+            source: sourceId,
+            filter: ['!=', ['geometry-type'], 'Point'],
+            paint: {
+              'line-width': 3,
+              'line-color': '#18C7A0',
+              'line-opacity': layer.visible ? (layer.opacity ?? 0.8) : 0.0
+            },
+            layout: { visibility: layer.visible ? 'visible' : 'none' }
+          });
+        }
+      } else {
+        // Update visibility and opacity
+        if (layer.type === 'raster') {
+          map.setPaintProperty(layerId, 'raster-opacity', layer.visible ? (layer.opacity ?? 0.65) : 0.0);
+          map.setLayoutProperty(layerId, 'visibility', layer.visible ? 'visible' : 'none');
+        } else if (layer.type === 'heatmap') {
+          map.setPaintProperty(layerId, 'heatmap-opacity', layer.visible ? (layer.opacity ?? 0.6) : 0.0);
+          map.setLayoutProperty(layerId, 'visibility', layer.visible ? 'visible' : 'none');
+        } else if (layer.type === 'geojson') {
+          map.setPaintProperty(`${layerId}-point`, 'circle-opacity', layer.visible ? (layer.opacity ?? 0.8) : 0.0);
+          map.setLayoutProperty(`${layerId}-point`, 'visibility', layer.visible ? 'visible' : 'none');
+          map.setPaintProperty(`${layerId}-line`, 'line-opacity', layer.visible ? (layer.opacity ?? 0.8) : 0.0);
+          map.setLayoutProperty(`${layerId}-line`, 'visibility', layer.visible ? 'visible' : 'none');
+        }
+      }
+    });
+  }, [mapLoaded, overlayLayers]);
+
   // 2. React to GeoJSON Prop Updates
   useEffect(() => {
     if (!mapLoaded) return;
@@ -1103,7 +1219,7 @@ export function MapConsole({
               return b.extend(coord);
             }, new maplibregl.LngLatBounds(flatCoords[0], flatCoords[0]));
             
-            mapRef.current.fitBounds(bounds, { padding: 100, maxZoom: 9, duration: 1200 });
+            mapRef.current.fitBounds(bounds, { padding: { left: 450, right: 50, top: 50, bottom: 50 }, maxZoom: 14, duration: 1200 });
           }
         }
       } catch (e) {

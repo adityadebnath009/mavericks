@@ -14,9 +14,9 @@
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 10.9,
-        "max_wind_gust": 27.4,
-        "min_visibility": 2400.0,
+        "max_wind_speed": 13.0,
+        "max_wind_gust": 29.5,
+        "min_visibility": 1780.0,
         "max_precip_probability": 77,
         "has_active_alerts": true,
         "highest_severity": "HIGH",
@@ -72,9 +72,9 @@
           10,
           10
         ],
-        "plain_language_summary": "Active marine hazards detected (Thunderstorm). Peak wind reaches 10.9 km/h with 77% max rain probability. Official IMD advisory level: ORANGE (Be Prepared / Alert)."
+        "plain_language_summary": "Active marine hazards detected (Thunderstorm). Peak wind reaches 13.0 km/h with 77% max rain probability. Official IMD advisory level: ORANGE (Be Prepared / Alert)."
       },
-      "latency_ms": 760.93,
+      "latency_ms": 1247.34,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -89,15 +89,15 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T04:51:57.605189Z"
+    "last_cached_at": "2026-09-09T07:36:53.659465Z"
   },
   "goa_safe": {
     "weather_agent": {
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 15.3,
-        "max_wind_gust": 33.8,
+        "max_wind_speed": 17.4,
+        "max_wind_gust": 37.4,
         "min_visibility": 4880.0,
         "max_precip_probability": 96,
         "has_active_alerts": true,
@@ -186,9 +186,9 @@
           10,
           10
         ],
-        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 15.3 km/h with 96% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
+        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 17.4 km/h with 96% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
       },
-      "latency_ms": 737.84,
+      "latency_ms": 1008.9,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -203,7 +203,7 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T04:52:00.037393Z"
+    "last_cached_at": "2026-09-09T07:36:56.711968Z"
   },
   "paradip_cyclone": {
     "weather_agent": {
@@ -212,7 +212,7 @@
       "data": {
         "max_wind_speed": 14.7,
         "max_wind_gust": 33.5,
-        "min_visibility": 2020.0,
+        "min_visibility": 2400.0,
         "max_precip_probability": 94,
         "has_active_alerts": true,
         "highest_severity": "EXTREME",
@@ -242,28 +242,44 @@
             "message": "Active convective storm cells (WMO 95)."
           },
           {
-            "timestamp": "2026-09-09 14:00:00",
+            "timestamp": "2026-09-09 07:00:00",
+            "hazard_type": "Thunderstorm",
+            "severity": "HIGH",
+            "trigger_value": 95.0,
+            "threshold_value": 95.0,
+            "message": "Active convective storm cells (WMO 95)."
+          },
+          {
+            "timestamp": "2026-09-09 12:00:00",
+            "hazard_type": "Thunderstorm",
+            "severity": "HIGH",
+            "trigger_value": 95.0,
+            "threshold_value": 95.0,
+            "message": "Active convective storm cells (WMO 95)."
+          },
+          {
+            "timestamp": "2026-09-09 13:00:00",
             "hazard_type": "Cloud-to-Sea Lightning",
             "severity": "EXTREME",
-            "trigger_value": 80.0,
+            "trigger_value": 74.0,
             "threshold_value": 70.0,
-            "message": "Severe electrical hazard: lightning cells with 80% rain probability."
+            "message": "Severe electrical hazard: lightning cells with 74% rain probability."
           },
           {
             "timestamp": "2026-09-09 15:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
             "trigger_value": 87.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (87% probability)."
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 87% rain probability."
           },
           {
             "timestamp": "2026-09-09 16:00:00",
-            "hazard_type": "Heavy Rainfall",
-            "severity": "MODERATE",
+            "hazard_type": "Cloud-to-Sea Lightning",
+            "severity": "EXTREME",
             "trigger_value": 94.0,
-            "threshold_value": 85.0,
-            "message": "Heavy marine precipitation (94% probability)."
+            "threshold_value": 70.0,
+            "message": "Severe electrical hazard: lightning cells with 94% rain probability."
           },
           {
             "timestamp": "2026-09-09 17:00:00",
@@ -282,16 +298,16 @@
           65,
           10,
           10,
+          65,
           10,
           10,
           10,
           10,
-          10,
-          10,
+          65,
+          90,
           10,
           90,
-          45,
-          45,
+          90,
           45,
           10,
           10,
@@ -302,7 +318,7 @@
         ],
         "plain_language_summary": "Active marine hazards detected (Cloud-to-Sea Lightning, Heavy Rainfall, Thunderstorm). Peak wind reaches 14.7 km/h with 94% max rain probability. Official IMD advisory level: RED (Take Action / Warning)."
       },
-      "latency_ms": 1011.55,
+      "latency_ms": 1058.69,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -317,16 +333,16 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T04:52:02.847620Z"
+    "last_cached_at": "2026-09-09T07:36:59.786218Z"
   },
   "visakhapatnam": {
     "weather_agent": {
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 9.2,
-        "max_wind_gust": 21.2,
-        "min_visibility": 3500.0,
+        "max_wind_speed": 9.1,
+        "max_wind_gust": 22.0,
+        "min_visibility": 3400.0,
         "max_precip_probability": 86,
         "has_active_alerts": true,
         "highest_severity": "MODERATE",
@@ -382,9 +398,9 @@
           10,
           10
         ],
-        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 9.2 km/h with 86% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
+        "plain_language_summary": "Active marine hazards detected (Heavy Rainfall). Peak wind reaches 9.1 km/h with 86% max rain probability. Official IMD advisory level: YELLOW (Be Updated / Watch)."
       },
-      "latency_ms": 1025.22,
+      "latency_ms": 838.74,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -399,16 +415,16 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T04:52:05.602098Z"
+    "last_cached_at": "2026-09-09T07:37:02.699780Z"
   },
   "kochi": {
     "weather_agent": {
       "agent_name": "weather",
       "status": "success",
       "data": {
-        "max_wind_speed": 16.3,
-        "max_wind_gust": 37.8,
-        "min_visibility": 3700.0,
+        "max_wind_speed": 16.4,
+        "max_wind_gust": 38.2,
+        "min_visibility": 5480.0,
         "max_precip_probability": 70,
         "has_active_alerts": false,
         "highest_severity": "LOW",
@@ -457,7 +473,7 @@
         ],
         "plain_language_summary": "Marine weather conditions remain calm and clear across the forecast window."
       },
-      "latency_ms": 833.43,
+      "latency_ms": 1063.9,
       "execution_mode": "ROLLING_CACHE",
       "confidence": null,
       "sources": [
@@ -472,6 +488,6 @@
       "highly_suitable_species": [],
       "execution_mode": "ROLLING_CACHE"
     },
-    "last_cached_at": "2026-09-09T04:52:08.161644Z"
+    "last_cached_at": "2026-09-09T07:37:06.052654Z"
   }
 }

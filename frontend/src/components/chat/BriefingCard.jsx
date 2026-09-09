@@ -1,4 +1,6 @@
 import React from 'react';
+import { Volume2, VolumeX, Languages } from 'lucide-react';
+import { useVoiceAdvisor } from '../../hooks/useVoiceAdvisor';
 
 const getBadgeStyle = (assessment) => {
   switch (assessment?.toUpperCase()) {
@@ -14,16 +16,25 @@ const getBadgeStyle = (assessment) => {
 const BriefingCard = ({
   assessment = 'COMPUTED',
   certification = 'VALID',
-  synthesis = null, // Structured object: { summary, hazards[], directives[] }
+  synthesis = null,
   ragFootnotes = [],
   followups = [],
   onFollowupClick
 }) => {
-  const badgeStyle = getBadgeStyle(assessment);
+  const {
+    selectedLanguage,
+    setSelectedLanguage,
+    isSpeaking,
+    isTtsSupported,
+    speak,
+    stopSpeaking,
+    supportedLanguages
+  } = useVoiceAdvisor('en-IN');
 
-  // Fallback if synthesis is a string instead of an object (for backward compatibility)
+  const badgeStyle = getBadgeStyle(assessment);
   const isStructured = typeof synthesis === 'object' && synthesis !== null;
   const rawText = !isStructured ? synthesis : '';
+
 
   return (
     <div className="flex flex-col bg-[#07111F]/60 backdrop-blur-2xl border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all duration-500">
@@ -41,6 +52,43 @@ const BriefingCard = ({
             </span>
           </div>
         </div>
+        
+        {/* Sprint 6: Multilingual Web Speech API */}
+        <div className="flex items-center space-x-3">
+          {isTtsSupported && (
+            <div className="flex items-center bg-[#07111F] rounded-lg border border-[#20384D] overflow-hidden">
+              <div className="flex items-center px-2 py-1.5 border-r border-[#20384D]">
+                <Languages className="w-3.5 h-3.5 text-[#8FA8B8] mr-1.5" />
+                <select 
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="bg-transparent text-[#EAF4F8] text-[10px] font-mono outline-none cursor-pointer"
+                >
+                  {supportedLanguages.map(lang => (
+                    <option key={lang.code} value={lang.code} className="bg-[#07111F]">
+                      {lang.short} {lang.flag}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => isSpeaking ? stopSpeaking() : speak(isStructured ? synthesis.summary : rawText)}
+                className={`px-3 py-1.5 flex items-center justify-center transition-colors cursor-pointer ${
+                  isSpeaking 
+                    ? 'bg-[#00D4FF]/20 text-[#00D4FF] hover:bg-[#00D4FF]/30' 
+                    : 'bg-transparent text-[#8FA8B8] hover:text-[#00D4FF] hover:bg-white/5'
+                }`}
+                title={isSpeaking ? "Stop Reading" : "Read Summary Aloud"}
+              >
+                {isSpeaking ? <VolumeX className="w-4 h-4 animate-pulse" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Spacer to prevent header from duplicating since we closed the flex container above */}
+      <div className="hidden">
       </div>
 
       {/* Structured Narrative Body */}

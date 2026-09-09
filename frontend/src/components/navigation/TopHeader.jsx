@@ -40,6 +40,13 @@ export function TopHeader({
   currentTime = new Date().toISOString()
 }) {
   const navigate = useNavigate();
+  let safeDate;
+  try {
+    safeDate = safeDate;
+    if (isNaN(safeDate.getTime())) throw new Error("Invalid");
+  } catch (e) {
+    safeDate = new Date();
+  }
   const modeInfo = MODE_TITLES[activeMode] || MODE_TITLES.routing;
   const overallRisk = safetyData?.navik_risk?.overall_status || safetyData?.rating || 'LOW';
   const distToBorder = safetyData?.raw_metrics?.distance_to_border_km;
@@ -84,13 +91,13 @@ export function TopHeader({
 
       <div className="flex items-center gap-4 text-[#8FA8B8] font-semibold">
         <div className="hidden xl:flex items-center gap-3 text-[10px] font-mono">
-          <StatusBadge label="INCOIS" status={dataStatus.safety} />
-          <StatusBadge label="WW3" status={dataStatus.vectors} icon={Waves} />
+          <StatusBadge label="INCOIS" status={dataStatus?.safety} />
+          <StatusBadge label="WW3" status={dataStatus?.vectors} icon={Waves} />
         </div>
 
         <div className="text-right hidden sm:block">
           <span className="text-[8px] text-[#8FA8B8] block uppercase font-mono">System Epoch</span>
-          <span className="font-mono text-[#EAF4F8] font-bold text-[10px]">{new Date(currentTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} • {new Date(currentTime).toISOString().substring(11, 16)} UTC</span>
+          <span className="font-mono text-[#EAF4F8] font-bold text-[10px]">{safeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} • {safeDate.toISOString().substring(11, 16)} UTC</span>
         </div>
 
         <div className="flex items-center gap-2 border-l border-[#20384D] pl-3 sm:pl-4">

@@ -43,10 +43,10 @@ export function RoutingSidebar({
   const [landingCenters, setLandingCenters] = useState([]);
 
   useEffect(() => {
-    getNearbyLandingCenters(selectedLocation.lat || 18.9220, selectedLocation.lon || 72.8347)
+    getNearbyLandingCenters((selectedLocation?.lat) || 18.9220, (selectedLocation?.lon) || 72.8347)
       .then(setLandingCenters)
       .catch(console.error);
-  }, [selectedLocation.lat, selectedLocation.lon]);
+  }, [(selectedLocation?.lat), (selectedLocation?.lon)]);
 
   const handleOriginPortChange = (e) => {
     const portId = e.target.value;

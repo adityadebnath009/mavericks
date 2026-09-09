@@ -62,7 +62,8 @@ class OceanAnalyticsAgent(AbstractAgent):
         return AgentResult(
             agent_name=self.spec.name,
             status="success",
-            data=payload
+            data=payload,
+            sources=["GEE"]
         )
 
     def _normalize(self, array, invert: bool = False):

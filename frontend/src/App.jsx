@@ -11,6 +11,8 @@ function LandingPageWrapper() {
   const navigate = useNavigate();
 
   const handleLaunchConsole = (mode = 'routing') => {
+    // Restore V1 Operations Dashboard routing.
+    // 'map' should alias to 'routing'
     const targetMode = mode === 'map' ? 'routing' : mode;
     navigate(`/console/${targetMode}`);
   };

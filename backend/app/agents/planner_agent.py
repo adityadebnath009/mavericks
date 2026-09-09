@@ -13,6 +13,7 @@ from app.agents.geospatial_agent import GeospatialReasoningAgent
 from app.agents.risk_agent import RiskAnalysisAgent
 from app.agents.reporting_agent import ReportingAgent
 from app.agents.research_agent import AcademicResearchAgent
+from app.agents.synthesis_agent import ExecutiveSynthesisAgent
 
 # Lightweight registry
 AGENT_REGISTRY: Dict[str, AbstractAgent] = {
@@ -22,6 +23,7 @@ AGENT_REGISTRY: Dict[str, AbstractAgent] = {
     "risk": RiskAnalysisAgent(),
     "reporting": ReportingAgent(),
     "research": AcademicResearchAgent(),
+    "synthesis": ExecutiveSynthesisAgent(),
 }
 
 class PlannerAgent:
@@ -138,6 +140,7 @@ class PlannerAgent:
         # Ensure compatibility with frontend (Phase 5 compatibility)
         weather_payload = results_dict.get("weather").data if "weather" in results_dict else {}
         ocean_payload = results_dict.get("ocean").data if "ocean" in results_dict else {}
+        synthesis_payload = results_dict.get("synthesis").data if "synthesis" in results_dict else {}
 
         import dataclasses
         return {
@@ -147,6 +150,7 @@ class PlannerAgent:
             "is_stale_fallback": is_any_stale,
             "system_advisory_warning": " | ".join(global_warnings) if global_warnings else None,
             "agent_results": {k: dataclasses.asdict(v) for k, v in results_dict.items()},
+            "pipeline_result": synthesis_payload,
             # Legacy payloads for router/frontend compatibility
             "weather_payload": weather_payload,
             "ocean_payload": ocean_payload

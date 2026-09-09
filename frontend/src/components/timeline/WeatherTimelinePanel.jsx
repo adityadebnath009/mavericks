@@ -43,7 +43,7 @@ export function WeatherTimelinePanel({
   if (activeMode === 'routing' && routeData?.path) {
     return (
       <section 
-        className={`bg-[#0D1B2A] border-t border-[#20384D] select-none transition-all duration-300 z-20 shrink-0 ${className} ${
+        className={`bg-[#0D1B2A]/75 backdrop-blur-md border border-[#20384D]/50 rounded-xl shadow-2xl select-none transition-all duration-300 z-20 shrink-0 overflow-hidden ${className} ${
           isCollapsed ? 'h-9' : 'h-48 min-h-[192px]'
         }`}
         aria-label="Route Severity Timeline"
@@ -128,7 +128,7 @@ export function WeatherTimelinePanel({
   // Original weather timeline fallback
   return (
     <section 
-      className={`bg-[#0D1B2A] border-t border-[#20384D] select-none transition-all duration-300 z-20 shrink-0 ${className} ${
+      className={`bg-[#0D1B2A]/75 backdrop-blur-md border border-[#20384D]/50 rounded-xl shadow-2xl select-none transition-all duration-300 z-20 shrink-0 overflow-hidden ${className} ${
         isCollapsed ? 'h-9' : 'h-48 min-h-[192px]'
       }`}
       aria-label="24-Hour Diurnal Weather Timeline"

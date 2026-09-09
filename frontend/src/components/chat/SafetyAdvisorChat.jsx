@@ -153,7 +153,7 @@ export function SafetyAdvisorChat({
         sender: 'advisor',
         text: response.response_text || 'Advisory data retrieved successfully.',
         citations: response.citations || [],
-        safety_rating: response.safety_rating || liveContext.current_risk_score || 'SAFE',
+        safety_rating: response.safety_rating || (liveContext?.current_risk_score) || 'SAFE',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
@@ -301,9 +301,9 @@ export function SafetyAdvisorChat({
             <span>LIVE CONTEXT ATTACHED:</span>
             <span className="text-[#00D4FF] font-bold uppercase">{activeMode}</span>
             <span>•</span>
-            <span className="text-[#EAF4F8]">Beam: {liveContext.beam_width || '3.5m'}</span>
+            <span className="text-[#EAF4F8]">Beam: {(liveContext?.beam_width) || '3.5m'}</span>
             <span>•</span>
-            <span className="text-[#18C7A0] font-bold">{liveContext.current_risk_score || 'LOW'}</span>
+            <span className="text-[#18C7A0] font-bold">{(liveContext?.current_risk_score) || 'LOW'}</span>
           </div>
 
           <button
@@ -323,15 +323,15 @@ export function SafetyAdvisorChat({
               {JSON.stringify(
                 {
                   active_workspace: activeMode,
-                  origin_coords: liveContext.origin_coords || { lat: 18.92, lon: 72.83 },
-                  destination_coords: liveContext.destination_coords || null,
-                  vessel_beam_m: liveContext.beam_width || 3.5,
-                  risk_assessment: liveContext.current_risk_score || 'LOW',
-                  bsi_score: liveContext.bsi_score ?? 1,
-                  max_wave_height: liveContext.max_wave_height || '1.2m',
-                  wind_speed_peak: liveContext.wind_speed || '18.5 km/h',
-                  distance_to_border: liveContext.distance_to_border || '116.9 km (CLEAR)',
-                  avoided_hazards: liveContext.avoided_hazards || ['Gulf of Mannar MPA', 'High Wave Zone']
+                  origin_coords: (liveContext?.origin_coords) || { lat: 18.92, lon: 72.83 },
+                  destination_coords: (liveContext?.destination_coords) || null,
+                  vessel_beam_m: (liveContext?.beam_width) || 3.5,
+                  risk_assessment: (liveContext?.current_risk_score) || 'LOW',
+                  bsi_score: (liveContext?.bsi_score) ?? 1,
+                  max_wave_height: (liveContext?.max_wave_height) || '1.2m',
+                  wind_speed_peak: (liveContext?.wind_speed) || '18.5 km/h',
+                  distance_to_border: (liveContext?.distance_to_border) || '116.9 km (CLEAR)',
+                  avoided_hazards: (liveContext?.avoided_hazards) || ['Gulf of Mannar MPA', 'High Wave Zone']
                 },
                 null,
                 2
