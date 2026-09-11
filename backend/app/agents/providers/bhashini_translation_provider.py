@@ -1,8 +1,7 @@
 """Console-only Bhashini translation adapter.
 
-No translation is fabricated.  Deployments opt in by supplying the Bhashini
-gateway URL and API key; without both, callers receive an explicit unavailable
-state and retain the original English evidence text.
+Supports Bhashini Udyat's direct Pipeline Compute call.  The browser never
+receives either key; unavailable translation leaves the evidence in English.
 """
 from __future__ import annotations
 
@@ -14,6 +13,7 @@ import httpx
 
 class BhashiniTranslationProvider:
     _language_codes = {"hi-IN": "hi", "mr-IN": "mr"}
+    _default_inference_url = "https://dhruva-api.bhashini.gov.in/services/inference/pipeline"
 
     @staticmethod
     def _translated_text(payload: Dict[str, Any]) -> str | None:
@@ -40,11 +40,18 @@ class BhashiniTranslationProvider:
         if not target:
             return {"provider": "bhashini", "state": "UNAVAILABLE", "language": language,
                     "reason": "The selected Console language is unsupported."}
+        inference_key = os.getenv("BHASHINI_INFERENCE_KEY")
+        service_id = os.getenv("BHASHINI_NMT_SERVICE_ID")
+        # Udyat's inference key is used directly with a chosen service ID.
+        # The old generic gateway variables remain supported for deployments
+        # that already use a custom Bhashini proxy.
+        if inference_key and service_id:
+            return await self._native_translate(text, language, target, inference_key, service_id)
         endpoint = os.getenv("BHASHINI_TRANSLATION_URL")
         api_key = os.getenv("BHASHINI_API_KEY")
         if not endpoint or not api_key:
             return {"provider": "bhashini", "state": "UNAVAILABLE", "language": language,
-                    "reason": "Bhashini credentials are not configured."}
+                    "reason": "Bhashini translation service is not configured."}
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
                 response = await client.post(
@@ -60,3 +67,30 @@ class BhashiniTranslationProvider:
             return {"provider": "bhashini", "state": "LIVE", "language": language, "text": translated}
         except Exception as exc:
             return {"provider": "bhashini", "state": "UNAVAILABLE", "language": language, "reason": str(exc)}
+
+    async def _native_translate(self, text: str, language: str, target: str, inference_key: str, service_id: str) -> Dict[str, Any]:
+        """Call the Udyat Pipeline Compute API for one NMT task."""
+        endpoint = os.getenv("BHASHINI_INFERENCE_URL", self._default_inference_url)
+        payload = {
+            "pipelineTasks": [{
+                "taskType": "translation",
+                "config": {
+                    "language": {"sourceLanguage": "en", "targetLanguage": target},
+                    "serviceId": service_id,
+                },
+            }],
+            "inputData": {"input": [{"source": text}]},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                response = await client.post(endpoint, headers={"Authorization": inference_key, "Content-Type": "application/json"}, json=payload)
+                response.raise_for_status()
+                translated = self._translated_text(response.json())
+            if not translated:
+                return {"provider": "bhashini", "state": "UNAVAILABLE", "language": language,
+                        "reason": "Bhashini returned no translated text."}
+            return {"provider": "bhashini", "state": "LIVE", "language": language, "text": translated,
+                    "serviceId": service_id}
+        except Exception as exc:
+            return {"provider": "bhashini", "state": "UNAVAILABLE", "language": language,
+                    "reason": f"Bhashini native inference failed: {exc}"}

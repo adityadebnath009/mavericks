@@ -33,7 +33,9 @@ import {
 import TacticalGlobe from './TacticalGlobe';
 import SpotlightCard from './SpotlightCard';
 
-// 9 Specialized AI Agents Data & Technical Specifications
+// 9 Specialized AI Agents Data & Technical Specifications.  This landing-page
+// catalogue describes deployed capabilities; operational evidence and
+// freshness are shown only inside the Intelligence Console.
 const AGENT_SPECIFICATIONS = [
   {
     id: 'agent-01',
@@ -43,10 +45,10 @@ const AGENT_SPECIFICATIONS = [
     icon: Mic,
     color: '#00D4FF',
     status: 'ACTIVE // LISTENING',
-    inputs: 'Browser Web Speech API, Localized Speech-to-Text (STT)',
-    outputs: 'Vocal syntheses (TTS) & UI state in English, Hindi (हिन्दी), Marathi (मराठी)',
-    tech: 'Web Speech API, Multi-turn Dialogue State Tracker',
-    description: 'Captures voice queries directly in the browser with zero external speech API cost. Synthesizes spoken advisory responses in regional fishing languages.'
+    inputs: 'Browser Web Speech API, localized speech-to-text (STT)',
+    outputs: 'Translated text and browser TTS fallback in English, Hindi (हिन्दी), Marathi (मराठी)',
+    tech: 'Browser Web Speech API, Bhashini NMT, local query history',
+    description: 'Captures supported browser voice queries and renders Hindi/Marathi translations through Bhashini. Speech availability is shown honestly per browser and installed voice.'
   },
   {
     id: 'agent-02',
@@ -69,10 +71,10 @@ const AGENT_SPECIFICATIONS = [
     icon: Database,
     color: '#18C7A0',
     status: 'SYNCED (0.4° GRID)',
-    inputs: 'INCOIS OPeNDAP THREDDS catalog, Open-Meteo services',
-    outputs: 'Slices NetCDF arrays (Hs, T02, Wind, Currents) via xarray',
-    tech: 'xarray, THREDDS OPeNDAP, ISRO MOSDAC Adapter',
-    description: 'Wraps telemetry endpoints behind an interchangeable interface, enabling development Open-Meteo feeds to swap with ISRO MOSDAC / INCOIS feeds seamlessly.'
+    inputs: 'Open-Meteo services, Google Earth Engine, read-only INCOIS PFZ cache',
+    outputs: 'Weather/marine evidence, satellite layers, verified cached PFZ observations',
+    tech: 'Console provider adapters, cache freshness metadata',
+    description: 'Uses provider-specific evidence with LIVE, CACHED, STALE, and UNAVAILABLE states rather than presenting unavailable data as a completed observation.'
   },
   {
     id: 'agent-04',
@@ -82,10 +84,10 @@ const AGENT_SPECIFICATIONS = [
     icon: Wind,
     color: '#FFB547',
     status: 'ANALYZING',
-    inputs: 'WaveWatch III grids, IMD RSMC weather bulletins',
+    inputs: 'Open-Meteo weather and marine model evidence',
     outputs: 'SVAS Boat Safety Index (BSI), crossing sea & wave steepness flags',
     tech: 'SVAS BSI Calculator, Crossing Sea Detection Vector',
-    description: 'Calculates directional wave spread, steepness indices, and wind gusts to identify marine depressions and squall lines along planned tracks.'
+    description: 'Calculates directional wave spread, steepness indices, and wind gusts. Official IMD warning verification stays explicitly unavailable until access is approved.'
   },
   {
     id: 'agent-05',
@@ -95,10 +97,10 @@ const AGENT_SPECIFICATIONS = [
     icon: Waves,
     color: '#18C7A0',
     status: 'ACTIVE // PFZ-17',
-    inputs: 'SST rasters, Chlorophyll-a gradients, INCOIS WFS contours',
+    inputs: 'GEE SST/chlorophyll layers, read-only INCOIS PFZ cache',
     outputs: 'Potential Fishing Zone coordinates & thermal fronts',
-    tech: 'SST Gradient Filter, Chlorophyll-a Optical Slicer',
-    description: 'Detects thermal front boundaries and chlorophyll convergence lines to identify high-yield Potential Fishing Zones (PFZs).'
+    tech: 'Satellite layer visualization, verified PFZ cache lookup',
+    description: 'Shows SST/chlorophyll context and only returns PFZ coordinates when a verified cache observation exists; it never invents candidates.'
   },
   {
     id: 'agent-06',
@@ -149,8 +151,8 @@ const AGENT_SPECIFICATIONS = [
     status: 'pgvector READY',
     inputs: 'Calculated risk parameters, FAO small craft manuals, Coast Guard codes',
     outputs: 'Plain-language advisory with verifiable legal & safety citations',
-    tech: 'pgvector (Neon DB), BGE-M3 Embeddings, Gemini Flash RAG',
-    description: 'Performs semantic vector searches against official maritime regulations, ensuring all safety advisories provide cited, explainable rationale rather than a black box.'
+    tech: 'pgvector (Neon DB), BGE-M3 Embeddings, source-backed reporting',
+    description: 'Presents available citations and source provenance alongside explainable operational evidence rather than a black-box conclusion.'
   }
 ];
 
@@ -204,12 +206,12 @@ const USER_JOURNEY_STEPS = [
     step: '05',
     phase: 'ADVISE',
     title: 'Explainable Grounded Advisory',
-    tag: 'GROUNDED RAG & VOICE',
+    tag: 'EVIDENCE & VOICE',
     quote: '"Safe to venture into sea. Departure recommended at 06:00 UTC. CMFRI Guideline Clause 4.2 cited."',
     actor: '08-09. Reporting & Visualization Agents',
-    detail: 'Renders the safe route on the MapLibre tactical canvas, charts 24h diurnal trends, and vocalizes the safety verdict quoting official maritime safety codes via pgvector.',
-    outputLabel: 'Verified Advisory Verdict',
-    outputVal: 'RATING: SAFE (BSI 1/7) // DEPARTURE WINDOW: 06:00 UTC (+2H OPTIMAL) // CITATION: FAO Small Craft Code §4.2 • CMFRI Advisory'
+    detail: 'Renders available route and map evidence, charts trends where data exists, and provides a spoken browser fallback. Official-warning availability is always displayed with the verdict.',
+    outputLabel: 'Illustrative Advisory Format',
+    outputVal: 'ASSESSMENT: CAUTION // CERTIFICATION: PARTIAL // BSI + ML + GEOFENCE EVIDENCE // IMD: PENDING'
   }
 ];
 
@@ -224,7 +226,7 @@ const CAPABILITY_CARDS = [
     points: [
       'XGBoost trained on temporal split ocean datasets.',
       'Deterministic floors: Waves >= 4m force score 85.',
-      'Cyclone alerts mathematically enforce rating 92.'
+      'Official-warning clearance is never claimed while IMD access is pending.'
     ]
   },
   {
@@ -268,11 +270,11 @@ const CAPABILITY_CARDS = [
     title: 'Multilingual Voice Outreach',
     category: 'WEB SPEECH API',
     color: '#00D4FF',
-    summary: 'Zero-cost client-side speech recognition and vocal read-back in coastal fishing languages.',
+    summary: 'Browser speech fallback with Bhashini-backed Hindi/Marathi rendered-answer translation.',
     points: [
       'Native browser Speech-to-Text (STT) integration.',
-      'Audio synthesis (TTS) in English, Hindi, and Marathi.',
-      'Zero external cloud API subscription overhead.'
+      'Browser TTS uses a matching installed voice when available.',
+      'Bhashini translation state is shown when an answer is rendered.'
     ]
   },
   {
@@ -289,14 +291,23 @@ const CAPABILITY_CARDS = [
   }
 ];
 
-// Section 5: Live System Telemetry Bulletins
+// Section 5: Clearly labelled presentation simulation, never operational evidence.
 const TELEMETRY_FEED = [
-  { type: 'SYS', color: '#18C7A0', text: 'INCOIS GeoServer & OPeNDAP proxy ONLINE // 0.4° resolution diurnal grid synchronized.' },
-  { type: 'GEO', color: '#00D4FF', text: 'Vessel Sagar Kanya updated coordinates (17.43°N, 84.70°E). EEZ buffer clear: 116.9 km.' },
-  { type: 'WARN', color: '#FFB547', text: 'Significant wave height warning (Hs >= 3.5m) in Gujarat Coastline. Small craft advisory.' },
-  { type: 'RISK', color: '#FF5C5C', text: 'Deterministic safety floor active in Sector-4 due to IMD Squally Weather bulletin.' },
-  { type: 'RAG', color: '#00D4FF', text: 'pgvector semantic index primed: 1,420 regulatory safety clauses embedded.' },
-  { type: 'FLEET', color: '#18C7A0', text: 'Active Simulation Fleet: 104 vessels operating within monitored EEZ sectors.' }
+  { type: 'SIM', color: '#00D4FF', text: 'Illustrative vessel route and fleet markers are a presentation simulation, not live AIS telemetry.' },
+  { type: 'READY', color: '#18C7A0', text: 'Console capabilities: GEE satellite layers, Open-Meteo marine evidence, ORCA BSI, XGBoost, geofence, and PFZ cache.' },
+  { type: 'IMD', color: '#FFB547', text: 'Official IMD warning verification: PENDING institutional access and IP whitelisting.' },
+  { type: 'EVID', color: '#00D4FF', text: 'Operational answers display LIVE, CACHED, STALE, or UNAVAILABLE source state after each query.' }
+];
+
+const CONSOLE_EXAMPLES = [
+  'Where is the nearest Potential Fishing Zone (PFZ) today?',
+  'Is it safe to venture into the sea tomorrow morning?',
+  'What are the tide, weather, and sea conditions near my fishing location?',
+  'Are there any lightning or cyclone alerts in my area?',
+  'Which regions show high chlorophyll concentration and favourable sea surface temperature?',
+  'What is the safest route for a fishing vessel considering weather and sea-state conditions?',
+  'Why has fish productivity declined in a particular coastal region?',
+  'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?'
 ];
 
 // Section 6: Progressive Disclosure FAQ Items
@@ -432,6 +443,22 @@ export default function LandingPage({ onLaunchConsole }) {
     }
   };
 
+  // This is intentionally a browser-only handoff.  It preserves the existing
+  // /api/chat request contract: IntelligenceConsole remains the sole caller
+  // of that endpoint after the user chooses an example.
+  const launchIntelligence = (query = '') => {
+    if (query) {
+      try {
+        window.sessionStorage.setItem('orca-intelligence-pending-query', query);
+      } catch (_) {}
+    }
+    // Preserve the existing landing-page callback contract for consumers that
+    // observe launches.  The direct navigation immediately follows, so this
+    // never changes the Operations Dashboard route or its behavior.
+    if (!query && onLaunchConsole) onLaunchConsole('intelligence');
+    navigate('/intelligence');
+  };
+
   const playSpeechSample = (langKey) => {
     setAdvisorLang(langKey);
     const sample = ADVISORY_SAMPLES[langKey];
@@ -516,14 +543,14 @@ export default function LandingPage({ onLaunchConsole }) {
         <div className="flex items-center gap-3">
           <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#13263A] border border-[#20384D] text-[10px] font-mono text-[#18C7A0]">
             <div className="w-1.5 h-1.5 rounded-full bg-[#18C7A0] animate-pulse" />
-            <span>SIMULATION FEED ACTIVE</span>
+            <span>SIMULATION VISUALS</span>
           </div>
 
           <button
-            onClick={() => handleLaunch('map')}
+            onClick={() => launchIntelligence()}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00D4FF] text-[#07111F] font-bold text-xs hover:bg-[#00D4FF]/90 transition-all shadow-[0_0_15px_rgba(0,212,255,0.25)] cursor-pointer"
           >
-            <span>LAUNCH CONSOLE</span>
+            <span>LAUNCH CONSOLE · AGENT</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -559,11 +586,11 @@ export default function LandingPage({ onLaunchConsole }) {
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
-                onClick={() => navigate('/intelligence')}
+                onClick={() => launchIntelligence()}
                 className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-transparent border-2 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.1)] hover:shadow-[0_0_25px_rgba(0,212,255,0.4)] transition-all duration-300 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Agent Console</span>
+                <span>Launch Intelligence Console</span>
               </button>
 
               <button
@@ -587,28 +614,29 @@ export default function LandingPage({ onLaunchConsole }) {
               </button>
             </div>
 
-            {/* Compact Simulation Telemetry Strip */}
+            {/* Compact, explicitly labelled capability strip.  Live evidence
+                freshness appears only after an Intelligence Console query. */}
             <div className="bg-[#0D1B2A] border border-[#20384D] rounded-xl p-3.5 space-y-2 font-mono shadow-lg">
               <div className="flex items-center justify-between text-[11px] border-b border-[#20384D]/70 pb-2">
                 <div className="flex items-center gap-2 text-[#18C7A0] font-semibold">
                   <div className="w-2 h-2 rounded-full bg-[#18C7A0] animate-pulse" />
-                  <span>SIMULATION ACTIVE</span>
+                  <span>CONFIGURED CONSOLE CAPABILITIES</span>
                 </div>
-                <span className="text-[#8FA8B8] text-[10px]">FORECAST STEP: 24H</span>
+                <span className="text-[#8FA8B8] text-[10px]">NOT A LIVE HEALTH CHECK</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-[10px]">
                 <div className="bg-[#13263A] p-2 rounded border border-[#20384D]">
-                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Sim Fleet</span>
-                  <span className="text-[#EAF4F8] font-bold text-xs">104 Vessels</span>
+                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Data & maps</span>
+                  <span className="text-[#EAF4F8] font-bold text-xs">GEE + Open-Meteo</span>
                 </div>
                 <div className="bg-[#13263A] p-2 rounded border border-[#20384D]">
-                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Enforced Boundaries</span>
-                  <span className="text-[#00D4FF] font-bold text-xs">12 Zones</span>
+                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Safety model</span>
+                  <span className="text-[#00D4FF] font-bold text-xs">ORCA BSI + ML</span>
                 </div>
                 <div className="bg-[#13263A] p-2 rounded border border-[#20384D]">
-                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Grid Resolution</span>
-                  <span className="text-[#18C7A0] font-bold text-xs">0.4° Mesh</span>
+                  <span className="text-[#8FA8B8] block text-[9px] uppercase">Official IMD</span>
+                  <span className="text-[#FFB547] font-bold text-xs">PENDING ACCESS</span>
                 </div>
               </div>
             </div>
@@ -622,6 +650,24 @@ export default function LandingPage({ onLaunchConsole }) {
             />
           </div>
 
+        </div>
+      </section>
+
+      {/* 3a. Problem-statement quick starts.  These are real Console queries,
+          not canned answers; the Console preserves location/language state. */}
+      <section id="explore-queries" className="px-4 pb-8 lg:px-8 lg:pb-12 max-w-7xl mx-auto">
+        <div className="rounded-2xl border border-[#20384D] bg-[#0D1B2A]/80 p-5 shadow-xl backdrop-blur-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#00D4FF]">Problem-statement query lab</p>
+              <h2 className="mt-2 text-xl font-bold text-[#EAF4F8]">Explore a real Intelligence Console workflow</h2>
+              <p className="mt-1 max-w-2xl text-sm text-[#8FA8B8]">Choose a marine question to open the Console. Results use its current evidence, freshness, and availability states.</p>
+            </div>
+            <button onClick={() => launchIntelligence()} className="rounded-lg border border-[#00D4FF]/50 px-3 py-2 text-xs font-bold text-[#00D4FF] transition-colors hover:bg-[#00D4FF]/10">Open empty Console</button>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {CONSOLE_EXAMPLES.map((query) => <button key={query} onClick={() => launchIntelligence(query)} className="rounded-lg border border-[#20384D] bg-[#07111F]/70 px-3 py-3 text-left text-xs leading-relaxed text-[#EAF4F8] transition-colors hover:border-[#00D4FF]/60 hover:bg-[#00D4FF]/5"><span className="mr-2 font-mono text-[#00D4FF]">›</span>{query}</button>)}
+          </div>
         </div>
       </section>
 
@@ -1089,12 +1135,12 @@ export default function LandingPage({ onLaunchConsole }) {
         </div>
       </section>
 
-      {/* 6. Live System Telemetry Scrolling Marquee Ticker */}
+      {/* 6. Presentation simulation and capability ticker */}
       <section id="telemetry" className="border-y border-[#20384D] bg-[#0D1B2A] py-2.5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#13263A] border border-[#20384D] text-[10px] font-mono font-bold text-[#00D4FF] whitespace-nowrap z-10 flex-shrink-0">
             <Activity className="w-3 h-3 animate-spin" />
-            <span>LIVE BULLETIN</span>
+            <span>DEMO DISCLOSURE</span>
           </div>
 
           {/* Continuous CSS Marquee Container */}
@@ -1206,20 +1252,20 @@ export default function LandingPage({ onLaunchConsole }) {
                 READY FOR DEPLOYMENT // SIH26176
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#EAF4F8]">
-                LAUNCH OPERATIONS CONSOLE
+                LAUNCH INTELLIGENCE CONSOLE
               </h2>
               <p className="text-sm text-[#8FA8B8] max-w-xl">
-                Explore the interactive MapLibre spatial canvas with dynamic SVAS BSI grids, Recharts 24-hour diurnal timelines, and real-time beam vulnerability calculations.
+                Ask a context-aware marine question and inspect its evidence, freshness, map layers, BSI/ML safety reasoning, and geofence result.
               </p>
             </div>
 
             <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-end">
               <button
-                onClick={() => handleLaunch('map')}
+                onClick={() => launchIntelligence()}
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-[#00D4FF] text-[#07111F] font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] transition-shadow duration-300 cursor-pointer"
               >
                 <Compass className="w-4 h-4" />
-                <span>Launch Operations Console</span>
+                <span>Launch Intelligence Console</span>
               </button>
 
               <button
@@ -1263,7 +1309,7 @@ export default function LandingPage({ onLaunchConsole }) {
               </span>
               <ul className="space-y-1.5 text-[#8FA8B8]">
                 <li><button onClick={() => handleLaunch('map')} className="hover:text-[#00D4FF] transition-colors cursor-pointer">➔ Interactive Map Canvas</button></li>
-                <li><a href="/intelligence" className="hover:text-[#00D4FF] transition-colors cursor-pointer text-[#00D4FF] font-bold">➔ Launch Tactical Agent Console</a></li>
+                <li><button onClick={() => launchIntelligence()} className="hover:text-[#00D4FF] transition-colors cursor-pointer text-[#00D4FF] font-bold">➔ Launch Tactical Agent Console</button></li>
                 <li><a href="#how-it-thinks" className="hover:text-[#00D4FF] transition-colors">➔ 5-Step User Journey</a></li>
                 <li><a href="#agents-graph" className="hover:text-[#00D4FF] transition-colors">➔ 9-Agent Node Graph</a></li>
               </ul>
@@ -1275,10 +1321,10 @@ export default function LandingPage({ onLaunchConsole }) {
                 Scientific Provenance
               </span>
               <ul className="space-y-1.5 text-[#8FA8B8]">
-                <li><span className="text-[#18C7A0]">●</span> INCOIS THREDDS OPeNDAP</li>
-                <li><span className="text-[#18C7A0]">●</span> ISRO MOSDAC Telemetry</li>
-                <li><span className="text-[#18C7A0]">●</span> IMD RSMC Cyclone Alerts</li>
-                <li><span className="text-[#18C7A0]">●</span> GEBCO Bathymetry Contours</li>
+                <li><span className="text-[#18C7A0]">●</span> GEE satellite SST & chlorophyll</li>
+                <li><span className="text-[#18C7A0]">●</span> Open-Meteo weather & marine evidence</li>
+                <li><span className="text-[#FFB547]">●</span> IMD official warnings — pending access</li>
+                <li><span className="text-[#18C7A0]">●</span> Read-only INCOIS PFZ cache</li>
               </ul>
             </div>
 
@@ -1289,10 +1335,10 @@ export default function LandingPage({ onLaunchConsole }) {
                 <span className="text-[#18C7A0]">● LIVE</span>
               </div>
               <div className="text-[10px] space-y-1">
-                <div>SYSTEM STATUS: <span className="text-[#EAF4F8]">ONLINE // SIMULATION ACTIVE</span></div>
-                <div>DATABASE PORT: <span className="text-[#EAF4F8]">NEON-POSTGIS (pgvector)</span></div>
-                <div>SECTOR BUFFER: <span className="text-[#EAF4F8]">5.0 KM</span></div>
-                <div>VERSION STATUS: <span className="text-[#00D4FF]">v1.0.0-PROD</span></div>
+                <div>DISPLAY: <span className="text-[#EAF4F8]">SIMULATION VISUALS LABELLED</span></div>
+                <div>CONSOLE: <span className="text-[#EAF4F8]">SOURCE STATES PER QUERY</span></div>
+                <div>SAFETY: <span className="text-[#EAF4F8]">BSI + ML + GEOFENCE</span></div>
+                <div>IMD: <span className="text-[#FFB547]">OFFICIAL VERIFICATION PENDING</span></div>
               </div>
             </div>
 

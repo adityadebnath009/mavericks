@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     # Gemini API Credentials
     GEMINI_API_KEY: Optional[str] = None
 
+    # Console-only grounded narrative provider.  It is intentionally separate
+    # from shared planning and is read from backend/.env by Settings.
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_NARRATIVE_MODEL: str = "gpt-4o-mini"
+
     # OpenAlex Academic Research API (Optional)
     OPENALEX_API_KEY: Optional[str] = None
 
@@ -33,4 +38,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

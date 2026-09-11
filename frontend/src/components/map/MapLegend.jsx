@@ -18,6 +18,7 @@ export function MapLegend({
   activeMode = 'routing',
   className = '',
   positionClassName = 'top-4 left-4',
+  simulationEnabled = false,
   isCollapsed: controlledCollapsed,
   onToggleCollapse
 }) {
@@ -89,7 +90,7 @@ export function MapLegend({
                   <div className="w-3.5 h-3.5 rounded-full bg-[#18C7A0]/20 border border-[#18C7A0] flex items-center justify-center shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#18C7A0]" />
                   </div>
-                  <span className="text-[#8FA8B8]">Vessel Origin (Draggable)</span>
+                  <span className="text-[#8FA8B8]">{simulationEnabled ? 'Demo Vessel (Draggable)' : 'Vessel Origin (Draggable)'}</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-3.5 h-3.5 rounded-full bg-white/20 border border-white flex items-center justify-center shrink-0">
@@ -170,7 +171,7 @@ export function MapLegend({
 
             {/* Informational Footer */}
             <div className="border-t border-[#20384D]/70 pt-2 text-[8px] text-[#8FA8B8] italic font-mono">
-              Left-click map to inspect • Drag markers to update
+              {simulationEnabled ? 'Demo mode • Drag vessel or markers to update' : 'Left-click map to inspect • Drag markers to update'}
             </div>
           </div>
         )}

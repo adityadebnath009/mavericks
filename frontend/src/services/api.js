@@ -90,6 +90,13 @@ export async function getGeofence() {
   throw new Error('Invalid Geofence GeoJSON');
 }
 
+/** Evaluate one position against the established EEZ/MPA geofence rules. */
+export async function getGeofenceStatus(lat, lon) {
+  const data = await fetchJson(getApiUrl(`/api/geofence?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`));
+  if (data && typeof data.status === 'string') return data;
+  throw new Error('Malformed geofence status');
+}
+
 /** 6. Get Potential Fishing Zone (PFZ) Vector Lines GeoJSON */
 export async function getPfzLines() {
   const data = await fetchJson(getApiUrl('/api/incois/pfz-lines'));

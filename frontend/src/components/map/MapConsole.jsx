@@ -33,6 +33,9 @@ export function MapConsole({
   activeMode = 'routing',
   selectedLocation = null,
   onLocationSelect,
+  simulationEnabled = false,
+  simulationVesselPosition = null,
+  onSimulationPositionChange,
   destinationLocation = null,
   onDestinationSelect,
   routeData = null,
@@ -70,21 +73,25 @@ export function MapConsole({
 
   // Keep callback refs fresh to avoid stale closures in MapLibre event listeners
   const onLocationSelectRef = useRef(onLocationSelect);
+  const onSimulationPositionChangeRef = useRef(onSimulationPositionChange);
   const onDestinationSelectRef = useRef(onDestinationSelect);
   const onPfzInspectRef = useRef(onPfzInspect);
   const activeModeRef = useRef(activeMode);
   const beamWidthRef = useRef(beamWidth);
   const layersOverrideRef = useRef(layersOverride);
   const selectedLocationRef = useRef(selectedLocation);
+  const simulationEnabledRef = useRef(simulationEnabled);
   const pointAnalyticsEnabledRef = useRef(pointAnalyticsEnabled);
 
   useEffect(() => { onLocationSelectRef.current = onLocationSelect; }, [onLocationSelect]);
+  useEffect(() => { onSimulationPositionChangeRef.current = onSimulationPositionChange; }, [onSimulationPositionChange]);
   useEffect(() => { onDestinationSelectRef.current = onDestinationSelect; }, [onDestinationSelect]);
   useEffect(() => { onPfzInspectRef.current = onPfzInspect; }, [onPfzInspect]);
   useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
   useEffect(() => { beamWidthRef.current = beamWidth; }, [beamWidth]);
   useEffect(() => { layersOverrideRef.current = layersOverride; }, [layersOverride]);
   useEffect(() => { selectedLocationRef.current = selectedLocation; }, [selectedLocation]);
+  useEffect(() => { simulationEnabledRef.current = simulationEnabled; }, [simulationEnabled]);
   useEffect(() => { pointAnalyticsEnabledRef.current = pointAnalyticsEnabled; }, [pointAnalyticsEnabled]);
 
   // Helper to safely set GeoJSON data on a source if present
@@ -1358,17 +1365,23 @@ export function MapConsole({
 
 
 
-  // 8. Vessel Marker Management (Draggable with dragend handler)
+  // 8. Vessel Marker Management. In Routing demo mode this remains the same
+  // visual marker but moves a separate simulated position, never the planned origin.
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
-    if (selectedLocation && selectedLocation.lat != null && selectedLocation.lon != null) {
-      const coords = [selectedLocation.lon, selectedLocation.lat];
+    const vesselPosition = simulationEnabled && simulationVesselPosition
+      ? simulationVesselPosition
+      : selectedLocation;
+
+    if (vesselPosition && vesselPosition.lat != null && vesselPosition.lon != null) {
+      const coords = [vesselPosition.lon, vesselPosition.lat];
 
       if (boatMarkerRef.current) {
         boatMarkerRef.current.setLngLat(coords);
-        // Smoothly fly to the new location if the user selects a distant port
-        if (mapLoaded && mapRef.current) {
+        // Keep the planned-vessel behaviour unchanged, but do not repeatedly
+        // recenter the map during simulated route playback.
+        if (!simulationEnabled && mapLoaded && mapRef.current) {
            mapRef.current.easeTo({ center: coords, speed: 0.8, curve: 1 });
         }
       } else {
@@ -1391,7 +1404,9 @@ export function MapConsole({
 
         marker.on('dragend', () => {
           const lngLat = marker.getLngLat();
-          if (onLocationSelectRef.current) {
+          if (simulationEnabledRef.current && onSimulationPositionChangeRef.current) {
+            onSimulationPositionChangeRef.current({ lat: lngLat.lat, lon: lngLat.lng });
+          } else if (onLocationSelectRef.current) {
             onLocationSelectRef.current({ lat: lngLat.lat, lon: lngLat.lng });
           }
         });
@@ -1408,7 +1423,7 @@ export function MapConsole({
         boatMarkerRef.current = null;
       }
     }
-  }, [selectedLocation, mapLoaded]);
+  }, [selectedLocation, simulationEnabled, simulationVesselPosition, mapLoaded]);
 
   // 9. Destination Marker Management (Draggable with dragend handler)
   useEffect(() => {
@@ -1466,7 +1481,7 @@ export function MapConsole({
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Existing map modes retain this legend by default. */}
-      {showLegend && <MapLegend activeMode={activeMode} positionClassName={legendPositionClassName} />}
+      {showLegend && <MapLegend activeMode={activeMode} positionClassName={legendPositionClassName} simulationEnabled={simulationEnabled} />}
     </div>
   );
 }

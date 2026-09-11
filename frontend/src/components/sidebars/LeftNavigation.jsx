@@ -23,9 +23,12 @@ const LeftNavigation = ({ history = null, onQuerySelect, agentState = 'idle' }) 
       {/* Header */}
       <div className="p-4 border-b border-[#20384D] flex items-center space-x-2">
         <div className="w-6 h-6 bg-[#00D4FF] rounded flex items-center justify-center font-bold text-[#07111F] text-xs">
-          O
+          N
         </div>
-        <span className="font-bold tracking-widest text-sm uppercase">ORCA Console</span>
+        <div className="min-w-0 leading-tight">
+          <span className="block font-bold tracking-widest text-sm uppercase">NAVIK AI</span>
+          <span className="block text-[8px] font-mono uppercase tracking-wider text-[#8FA8B8]">Marine Intelligence Console</span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-8">

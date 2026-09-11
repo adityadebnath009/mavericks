@@ -41,4 +41,11 @@ describe('Sprint 6: Localization & Text-To-Speech Validation', () => {
     expect(window.speechSynthesis.speak).toHaveBeenCalled();
   });
 
+  it('BriefingCard identifies the grounded narrative and preserves a safe fallback state', () => {
+    const { getByText, rerender } = render(<BriefingCard synthesis={{ summary: 'Validated deterministic answer.' }} narrativeAi={{ state: 'LIVE', model: 'gpt-4o-mini', latencyMs: 22 }} />);
+    expect(getByText(/Grounded OpenAI narrative/i)).toBeDefined();
+    rerender(<BriefingCard synthesis={{ summary: 'Validated deterministic answer.' }} narrativeAi={{ state: 'UNAVAILABLE', reason: 'timeout' }} />);
+    expect(getByText(/Narrative AI unavailable/i)).toBeDefined();
+  });
+
 });

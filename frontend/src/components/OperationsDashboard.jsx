@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import WorkspaceNav from './navigation/WorkspaceNav';
 import TopHeader from './navigation/TopHeader';
@@ -9,7 +9,7 @@ import WeatherSidebar from './sidebars/WeatherSidebar';
 import WeatherTimelinePanel from './timeline/WeatherTimelinePanel';
 import SafetyAdvisorChat from './chat/SafetyAdvisorChat';
 import SpotlightCard from './common/SpotlightCard';
-import { getSafety, getForecast, getGrid, getAdvisories, getGeofence, getPfzLines, getVectorGrid, calculateRoute } from '../services/api';
+import { getSafety, getForecast, getGrid, getAdvisories, getGeofence, getGeofenceStatus, getPfzLines, getVectorGrid, calculateRoute } from '../services/api';
 
 const VALID_MODES = ['routing', 'fisheries', 'weather'];
 const HOURS = [0, 3, 6, 9, 12, 15, 18, 21];
@@ -27,6 +27,37 @@ function classifyPayload(payload) {
   if (source.includes('cache')) return 'cached';
   return 'live';
 }
+
+const distanceBetweenPositions = (a, b) => {
+  if (!a || !b) return Number.POSITIVE_INFINITY;
+  const latScale = 111;
+  const lonScale = Math.cos(((Number(a.lat) + Number(b.lat)) / 2) * Math.PI / 180) * 111;
+  return Math.hypot((Number(a.lat) - Number(b.lat)) * latScale, (Number(a.lon) - Number(b.lon)) * lonScale);
+};
+
+const boundaryAlertFromStatus = (status, extra = {}) => {
+  if (!status || typeof status.status !== 'string') {
+    return { level: 'UNAVAILABLE', rank: -1, title: 'Boundary status unavailable', message: 'Known EEZ and MPA boundaries could not be evaluated for this simulated position.', ...extra };
+  }
+  const borderDistance = Number(status.distance_to_border_km);
+  const mpaDistance = Number(status.distance_to_mpa_km);
+  const nearestIsMpa = Number.isFinite(mpaDistance) && mpaDistance < borderDistance;
+  const boundaryName = status.mpa_name || (nearestIsMpa ? 'known marine protected area' : 'Indian EEZ boundary');
+  const distanceKm = nearestIsMpa ? mpaDistance : borderDistance;
+  const isDanger = status.status === 'DANGER_INSIDE_RESTRICTED_ZONE' || status.status === 'DANGER_OUTSIDE_BORDER';
+  const isWarning = status.status === 'WARNING_APPROACHING_BORDER' || status.status === 'WARNING_APPROACHING_RESTRICTED_ZONE';
+  const isWatch = !isDanger && !isWarning && ((nearestIsMpa && mpaDistance <= 4) || (!nearestIsMpa && borderDistance <= 10));
+  const level = isDanger ? 'DANGER' : isWarning ? 'WARNING' : isWatch ? 'WATCH' : 'SAFE';
+  const rank = { SAFE: 0, WATCH: 1, WARNING: 2, DANGER: 3 }[level];
+  const instruction = level === 'DANGER'
+    ? (status.status === 'DANGER_INSIDE_RESTRICTED_ZONE' ? 'Leave the protected area immediately; fishing is not permitted here.' : 'Turn back toward the marked safe corridor immediately.')
+    : level === 'WARNING'
+      ? `Keep clear of the ${boundaryName}; do not continue toward the boundary.`
+      : level === 'WATCH'
+        ? `Monitor your course and maintain a safe margin from the ${boundaryName}.`
+        : 'No nearby known EEZ or MPA restriction is detected at this simulated position.';
+  return { level, rank, boundaryName, distanceKm, message: status.message, instruction, status, ...extra };
+};
 
 export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }) {
   const { mode: urlMode } = useParams();
@@ -73,6 +104,20 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   const [layersOverride, setLayersOverride] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [simulationEnabled, setSimulationEnabled] = useState(false);
+  const [simulationPosition, setSimulationPosition] = useState(null);
+  const [simulationPlaying, setSimulationPlaying] = useState(false);
+  const [simulationSpeed, setSimulationSpeed] = useState(1);
+  const [simulationProgress, setSimulationProgress] = useState(0);
+  const [simulationNodeIndex, setSimulationNodeIndex] = useState(0);
+  const [boundaryAlert, setBoundaryAlert] = useState(null);
+  const [routeAheadAlert, setRouteAheadAlert] = useState(null);
+  const [notificationPermission, setNotificationPermission] = useState(() => (
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+  ));
+  const boundaryRequestRef = useRef(0);
+  const previousBoundaryAlertRef = useRef(null);
+  const playbackProgressRef = useRef(0);
 
   // Geolocation: Auto-detect user's actual location on mount
   useEffect(() => {
@@ -155,11 +200,146 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
     return () => { active = false; };
   }, []);
 
+  const evaluateSimulationPosition = useCallback(async (position, { notify = true, routeNode = null } = {}) => {
+    const requestId = ++boundaryRequestRef.current;
+    try {
+      const status = await getGeofenceStatus(position.lat, position.lon);
+      if (requestId !== boundaryRequestRef.current) return null;
+      const alert = boundaryAlertFromStatus(status, { position, evaluatedAt: new Date().toISOString(), routeNode });
+      const previous = previousBoundaryAlertRef.current;
+      const boundaryChanged = previous && previous.boundaryName !== alert.boundaryName;
+      const shouldNotify = notify && notificationPermission === 'granted' && typeof Notification !== 'undefined'
+        && (alert.rank > (previous?.rank ?? -1) || (boundaryChanged && alert.rank >= 2));
+      if (shouldNotify) {
+        new Notification(`NAVIK boundary ${alert.level.toLowerCase()}`, { body: `${alert.boundaryName}: ${alert.instruction}` });
+      }
+      previousBoundaryAlertRef.current = alert;
+      setBoundaryAlert(alert);
+      return alert;
+    } catch (error) {
+      if (requestId !== boundaryRequestRef.current) return null;
+      const unavailable = boundaryAlertFromStatus(null, { position, evaluatedAt: new Date().toISOString(), reason: error.message, routeNode });
+      previousBoundaryAlertRef.current = unavailable;
+      setBoundaryAlert(unavailable);
+      return unavailable;
+    }
+  }, [notificationPermission]);
+
+  const scanRouteBoundaries = useCallback(async (path) => {
+    if (!Array.isArray(path) || path.length === 0) {
+      setRouteAheadAlert(null);
+      return;
+    }
+    const results = await Promise.allSettled(path.map(async node => ({ node, status: await getGeofenceStatus(node.lat, node.lon) })));
+    const evaluated = results
+      .filter(result => result.status === 'fulfilled')
+      .map(result => boundaryAlertFromStatus(result.value.status, { position: result.value.node, routeNode: result.value.node }));
+    if (evaluated.length === 0) {
+      setRouteAheadAlert(boundaryAlertFromStatus(null, { reason: 'Route boundary scan failed.' }));
+      return;
+    }
+    setRouteAheadAlert(evaluated.find(alert => alert.rank > 0) || null);
+  }, []);
+
+  const nearestRouteNodeIndex = useCallback((position, path = routeData?.path) => {
+    if (!Array.isArray(path) || path.length === 0) return 0;
+    return path.reduce((best, node, index) => (
+      distanceBetweenPositions(position, node) < distanceBetweenPositions(position, path[best]) ? index : best
+    ), 0);
+  }, [routeData]);
+
+  const handleSimulationPositionChange = useCallback((position) => {
+    setSimulationPlaying(false);
+    const nodeIndex = nearestRouteNodeIndex(position);
+    playbackProgressRef.current = nodeIndex;
+    setSimulationProgress(nodeIndex);
+    setSimulationNodeIndex(nodeIndex);
+    setSelectedNodeId(routeData?.path?.[nodeIndex]?.node_id || null);
+    setSimulationPosition(position);
+    evaluateSimulationPosition(position, { routeNode: routeData?.path?.[nodeIndex] || null });
+  }, [evaluateSimulationPosition, nearestRouteNodeIndex, routeData]);
+
+  const handleSimulationEnabledChange = useCallback((enabled) => {
+    setSimulationEnabled(enabled);
+    setSimulationPlaying(false);
+    if (!enabled) return;
+    const start = routeData?.path?.[0] || selectedLocation;
+    playbackProgressRef.current = 0;
+    setSimulationProgress(0);
+    setSimulationNodeIndex(0);
+    setSelectedNodeId(routeData?.path?.[0]?.node_id || null);
+    setSimulationPosition({ lat: start.lat, lon: start.lon });
+    evaluateSimulationPosition(start, { routeNode: routeData?.path?.[0] || null });
+  }, [evaluateSimulationPosition, routeData, selectedLocation]);
+
+  const handleSimulationReset = useCallback(() => {
+    const start = routeData?.path?.[0] || selectedLocation;
+    setSimulationPlaying(false);
+    playbackProgressRef.current = 0;
+    setSimulationProgress(0);
+    setSimulationNodeIndex(0);
+    setSelectedNodeId(routeData?.path?.[0]?.node_id || null);
+    setSimulationPosition({ lat: start.lat, lon: start.lon });
+    evaluateSimulationPosition(start, { routeNode: routeData?.path?.[0] || null });
+  }, [evaluateSimulationPosition, routeData, selectedLocation]);
+
+  const requestBrowserNotifications = useCallback(async () => {
+    if (typeof Notification === 'undefined') {
+      setNotificationPermission('unsupported');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  }, []);
+
+  useEffect(() => {
+    if (!simulationEnabled || !simulationPlaying || !routeData?.path || routeData.path.length < 2) return undefined;
+    const path = routeData.path;
+    let lastNodeIndex = Math.floor(playbackProgressRef.current);
+    const segmentDurationMs = 4000 / simulationSpeed;
+    const timer = setInterval(() => {
+      const nextProgress = Math.min(path.length - 1, playbackProgressRef.current + 100 / segmentDurationMs);
+      playbackProgressRef.current = nextProgress;
+      const startIndex = Math.floor(nextProgress);
+      const endIndex = Math.min(startIndex + 1, path.length - 1);
+      const fraction = nextProgress - startIndex;
+      const position = {
+        lat: path[startIndex].lat + (path[endIndex].lat - path[startIndex].lat) * fraction,
+        lon: path[startIndex].lon + (path[endIndex].lon - path[startIndex].lon) * fraction,
+      };
+      setSimulationProgress(nextProgress);
+      setSimulationPosition(position);
+      if (startIndex !== lastNodeIndex || nextProgress === path.length - 1) {
+        lastNodeIndex = startIndex;
+        setSimulationNodeIndex(startIndex);
+        setSelectedNodeId(path[startIndex].node_id || null);
+        evaluateSimulationPosition(position, { routeNode: path[startIndex] });
+      }
+      if (nextProgress >= path.length - 1) setSimulationPlaying(false);
+    }, 100);
+    return () => clearInterval(timer);
+  }, [evaluateSimulationPosition, routeData, simulationEnabled, simulationPlaying, simulationSpeed]);
+
+  useEffect(() => {
+    if (activeMode !== 'routing') setSimulationPlaying(false);
+  }, [activeMode]);
+
   const handleCalculateRoute = useCallback(async () => {
     setIsRouteLoading(true);
     setRouteError(null);
     try { 
-      setRouteData(await calculateRoute(selectedLocation, destinationLocation, vesselProfile, departureTime)); 
+      const calculatedRoute = await calculateRoute(selectedLocation, destinationLocation, vesselProfile, departureTime);
+      setRouteData(calculatedRoute);
+      setSimulationPlaying(false);
+      setSimulationProgress(0);
+      playbackProgressRef.current = 0;
+      setSimulationNodeIndex(0);
+      if (simulationEnabled && calculatedRoute.path?.[0]) {
+        const start = calculatedRoute.path[0];
+        setSimulationPosition({ lat: start.lat, lon: start.lon });
+        evaluateSimulationPosition(start, { routeNode: start });
+      }
+      scanRouteBoundaries(calculatedRoute.path);
     }
     catch (error) { 
       console.warn('[OperationsDashboard] Route unavailable:', error); 
@@ -167,11 +347,14 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
       setRouteError(error.message || "Route calculation failed.");
     }
     finally { setIsRouteLoading(false); }
-  }, [selectedLocation, destinationLocation, vesselProfile, departureTime, selectedDay, selectedHour]);
+  }, [selectedLocation, destinationLocation, vesselProfile, departureTime, selectedDay, selectedHour, evaluateSimulationPosition, scanRouteBoundaries, simulationEnabled]);
 
   const handleClearRoute = useCallback(() => {
     setRouteData(null);
     setRouteError(null);
+    setSimulationPlaying(false);
+    setRouteAheadAlert(null);
+    setSelectedNodeId(null);
   }, []);
 
   // Seven dynamic datasets: all requests start together and each result is tracked independently.
@@ -230,7 +413,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
         
         {/* Layer 0: Edge-to-Edge Map Canvas */}
         <div className="absolute inset-0 z-0">
-          <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={vesselProfile.beam_m} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} selectedPfz={selectedPfz} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId} />
+          <MapConsole activeMode={activeMode} selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} simulationEnabled={simulationEnabled && activeMode === 'routing'} simulationVesselPosition={simulationPosition} onSimulationPositionChange={handleSimulationPositionChange} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} routeData={routeData} pfzGeojson={pfzGeojson} vectorGrid={vectorGrid} advisoriesGeojson={advisoriesGeojson} geofenceGeojson={geofenceGeojson} gridGeojson={gridGeojson} sstOpacity={sstOpacity} chlOpacity={chlOpacity} beamWidth={vesselProfile.beam_m} layersOverride={layersOverride} onPfzInspect={pfzFeature => { setSelectedPfz(pfzFeature); if (activeMode !== 'fisheries') handleModeChange('fisheries'); }} selectedNodeId={selectedNodeId} onNodeSelect={setSelectedNodeId} selectedPfz={selectedPfz} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId} />
         </div>
 
         {/* Layer 1: Floating UI with Glassmorphism */}
@@ -244,7 +427,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
           {/* V2 Glassmorphism Sidebar */}
           <div className="pointer-events-auto w-[360px] sm:w-[380px] lg:w-[420px] min-w-[320px] h-full bg-[#0D1B2A]/75 backdrop-blur-md border-r border-[#20384D]/50 shadow-2xl flex flex-col shrink-0 transition-all duration-300">
             <SpotlightCard className="h-full rounded-none border-0 bg-transparent flex flex-col">
-              {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime} isDepartureManual={isDepartureManual} setIsDepartureManual={setIsDepartureManual} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} error={routeError} />}
+              {activeMode === 'routing' && <RoutingSidebar selectedLocation={selectedLocation} onLocationSelect={setSelectedLocation} destinationLocation={destinationLocation} onDestinationSelect={setDestinationLocation} vesselProfile={vesselProfile} setVesselProfile={setVesselProfile} departureTime={departureTime} setDepartureTime={setDepartureTime} isDepartureManual={isDepartureManual} setIsDepartureManual={setIsDepartureManual} onCalculateRoute={handleCalculateRoute} onClearRoute={handleClearRoute} routeData={routeData} safetyData={safetyData} isLoading={isRouteLoading} error={routeError} simulationEnabled={simulationEnabled} onSimulationEnabledChange={handleSimulationEnabledChange} simulationPlaying={simulationPlaying} onSimulationPlayingChange={setSimulationPlaying} simulationSpeed={simulationSpeed} onSimulationSpeedChange={setSimulationSpeed} onSimulationReset={handleSimulationReset} boundaryAlert={boundaryAlert} routeAheadAlert={routeAheadAlert} simulationNodeIndex={simulationNodeIndex} simulationProgress={simulationProgress} notificationPermission={notificationPermission} onRequestBrowserNotifications={requestBrowserNotifications} />}
               {activeMode === 'fisheries' && <FisheriesSidebar sstOpacity={sstOpacity} setSstOpacity={setSstOpacity} chlOpacity={chlOpacity} setChlOpacity={setChlOpacity} pfzList={pfzGeojson.features || []} selectedPfz={selectedPfz} onSelectPfz={setSelectedPfz} onDestinationSelect={setDestinationLocation} selectedLocation={selectedLocation} layersOverride={layersOverride} setLayersOverride={setLayersOverride} hoveredPfzId={hoveredPfzId} onHoverPfz={setHoveredPfzId} />}
               {activeMode === 'weather' && <WeatherSidebar selectedDay={selectedDay} setSelectedDay={setSelectedDay} selectedHour={selectedHour} setSelectedHour={hour => HOURS.includes(hour) && setSelectedHour(hour)} safetyData={safetyData} layersOverride={layersOverride} setLayersOverride={setLayersOverride} />}
             </SpotlightCard>

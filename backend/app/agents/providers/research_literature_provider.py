@@ -11,6 +11,7 @@ from app.agents.providers.europe_pmc_research_provider import EuropePMCResearchP
 
 class ResearchLiteratureProvider:
     _marine_terms = ("marine", "ocean", "fisher", "fish", "coastal", "chlorophyll", "sea surface", "seaweed", "pelagic", "oceanograph", "bay of bengal")
+    _provider_timeout_seconds = 8.0
 
     @classmethod
     def _research_query(cls, query: str) -> str:
@@ -66,10 +67,20 @@ class ResearchLiteratureProvider:
 
     async def search(self, query: str, limit: int = 6) -> Dict[str, Any]:
         scholarly_query = self._research_query(query)
+        async def bounded_search(provider: Any, source: str) -> Dict[str, Any]:
+            """Let one scholarly API fail without withholding the others."""
+            try:
+                return await asyncio.wait_for(
+                    provider.search(scholarly_query, limit), timeout=self._provider_timeout_seconds
+                )
+            except TimeoutError:
+                return {"source": source, "state": "UNAVAILABLE", "papers": [], "reason": "Research provider timed out."}
+            except Exception:
+                return {"source": source, "state": "UNAVAILABLE", "papers": [], "reason": "Research provider is unavailable."}
         responses = await asyncio.gather(
-            OpenAlexResearchProvider().search(scholarly_query, limit),
-            CrossrefResearchProvider().search(scholarly_query, limit),
-            EuropePMCResearchProvider().search(scholarly_query, limit),
+            bounded_search(OpenAlexResearchProvider(), "openalex"),
+            bounded_search(CrossrefResearchProvider(), "crossref"),
+            bounded_search(EuropePMCResearchProvider(), "europe_pmc"),
         )
         papers = self._merge(responses, limit)
         states = {item.get("source"): item.get("state") for item in responses}

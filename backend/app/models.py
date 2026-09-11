@@ -17,6 +17,18 @@ class ChatRequest(BaseModel):
     # that does not provide one still gets an end-to-end traceable response.
     request_id: str = Field(default_factory=lambda: str(uuid4()))
     history: Optional[List[Dict[str, str]]] = Field(default=None, description="Previous conversational turns, e.g. [{'role': 'user', 'content': 'hi'}]")
+    # Additive Intelligence Console context.  It is deliberately structured
+    # and compact so callers never need to resend raw agent/provider payloads.
+    conversation_context: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional prior Intelligence Console turn used to resolve natural follow-up questions.",
+    )
+
+
+class ConsoleTranscriptionRequest(BaseModel):
+    """Bounded, Console-only microphone payload for server-side Bhashini ASR."""
+    audio_base64: str = Field(..., min_length=32, max_length=7_000_000)
+    language: str = Field(default="en-IN")
 
 class PipelineResult(BaseModel):
     orchestration_status: str

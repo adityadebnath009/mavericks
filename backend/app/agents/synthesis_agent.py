@@ -1,7 +1,6 @@
 import time
 import os
 import json
-import google.generativeai as genai
 from typing import Dict, Any, List
 
 from app.agents.base import AbstractAgent, AgentSpec
@@ -11,7 +10,13 @@ from app.api.services.gee_service import GEEService
 
 # Initialize Gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Do not load the deprecated Gemini SDK merely because a legacy route imports
+# this module.  The SDK is still available for deployments that explicitly
+# configure Gemini, while OpenAI-backed and evidence-only flows remain
+# unaffected.
+genai = None
 if GEMINI_API_KEY:
+    import google.generativeai as genai
     genai.configure(api_key=GEMINI_API_KEY)
 
 class ExecutiveSynthesisAgent(AbstractAgent):

@@ -1,21 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+const toWavBase64 = (chunks, sampleRate = 8000) => {
+  const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
+  const buffer = new ArrayBuffer(44 + length * 2);
+  const view = new DataView(buffer);
+  const write = (offset, value) => view.setUint32(offset, value, true);
+  view.setUint32(0, 0x52494646, false); write(4, 36 + length * 2);
+  view.setUint32(8, 0x57415645, false); view.setUint32(12, 0x666d7420, false);
+  write(16, 16); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  write(24, sampleRate); write(28, sampleRate * 2); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  view.setUint32(36, 0x64617461, false); write(40, length * 2);
+  let offset = 44;
+  chunks.forEach((chunk) => chunk.forEach((sample) => {
+    view.setInt16(offset, Math.max(-1, Math.min(1, sample)) * 0x7fff, true);
+    offset += 2;
+  }));
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+};
+
 const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageChange }) => {
   const [query, setQuery] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isSttSupported, setIsSttSupported] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState('');
   const [localLanguage, setLocalLanguage] = useState('en-IN');
   const language = controlledLanguage || localLanguage;
   const changeLanguage = (nextLanguage) => onLanguageChange ? onLanguageChange(nextLanguage) : setLocalLanguage(nextLanguage);
   const recognitionRef = useRef(null);
+  const streamRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const processorRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const isIntentionallyRecording = useRef(false);
   const finalTranscriptRef = useRef('');
+  const languageRef = useRef(language);
+
+  useEffect(() => { languageRef.current = language; }, [language]);
 
   // Initialize Web Speech API
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setIsSttSupported(Boolean(SpeechRecognition));
+    // Bhashini ASR is the primary path. Web Speech stays available only as a
+    // browser fallback for environments which cannot supply microphone PCM.
+    setIsSttSupported(Boolean(navigator.mediaDevices?.getUserMedia || SpeechRecognition));
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.continuous = true; // KEEP ALIVE! Don't shut off instantly
@@ -23,6 +56,7 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
 
       recognition.onstart = () => {
         setIsRecording(true);
+        setVoiceStatus('Listening…');
       };
 
       recognition.onresult = (event) => {
@@ -41,7 +75,9 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
           ? 'Microphone access was denied. Allow it in your browser settings, or type your query.'
           : `Voice input failed (${event.error}). You can type your query instead.`;
         setVoiceError(message);
-        if (event.error !== 'no-speech') {
+        if (event.error === 'no-speech') {
+          setVoiceStatus('No speech detected. Continuing to listen…');
+        } else {
           isIntentionallyRecording.current = false;
           setIsRecording(false);
         }
@@ -51,6 +87,7 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
         // Chrome aggressively kills the mic on silence. Auto-restart if we didn't manually stop it.
         if (isIntentionallyRecording.current) {
           try {
+            recognition.lang = languageRef.current;
             recognition.start();
           } catch(e) {
             setIsRecording(false);
@@ -66,6 +103,9 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
     return () => {
       isIntentionallyRecording.current = false;
       if (typeof recognitionRef.current?.abort === 'function') recognitionRef.current.abort();
+      processorRef.current?.disconnect?.();
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      audioContextRef.current?.close?.();
       recognitionRef.current = null;
     };
   }, []);
@@ -77,20 +117,81 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
     }
   }, [language]);
 
-  const toggleRecording = () => {
-    if (!isSttSupported || !recognitionRef.current) {
+  const startBhashiniRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) return false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+      const context = new window.AudioContext({ sampleRate: 8000 });
+      const source = context.createMediaStreamSource(stream);
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      audioChunksRef.current = [];
+      processor.onaudioprocess = (event) => audioChunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      source.connect(processor);
+      processor.connect(context.destination);
+      streamRef.current = stream;
+      audioContextRef.current = context;
+      processorRef.current = processor;
+      setIsRecording(true);
+      setVoiceStatus('Listening securely with Bhashini… Tap the microphone again when finished.');
+      return true;
+    } catch (error) {
+      const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
+      setVoiceError(denied
+        ? 'Microphone access was denied. Allow it in browser settings, then try again or type your query.'
+        : 'Microphone could not start. You can type your query instead.');
+      return false;
+    }
+  };
+
+  const stopBhashiniRecording = async () => {
+    const chunks = audioChunksRef.current;
+    processorRef.current?.disconnect?.();
+    streamRef.current?.getTracks?.().forEach((track) => track.stop());
+    await audioContextRef.current?.close?.();
+    processorRef.current = null; streamRef.current = null; audioContextRef.current = null;
+    setIsRecording(false);
+    if (!chunks.length) {
+      setVoiceError('No speech was captured. Please try again or type your query.');
+      return;
+    }
+    setVoiceStatus('Transcribing securely with Bhashini…');
+    try {
+      const response = await fetch('/api/chat/transcribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio_base64: toWavBase64(chunks), language }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.text) throw new Error(result.detail || 'No transcript returned');
+      setQuery((current) => `${current}${current.trim() ? ' ' : ''}${result.text}`);
+      setVoiceStatus('Speech transcribed. Review or submit your query.');
+    } catch (error) {
+      setVoiceError(`Bhashini speech-to-text is unavailable (${error.message}). You can type your query instead.`);
+    }
+  };
+
+  const toggleRecording = async () => {
+    if (!isSttSupported) {
       setVoiceError('Voice recognition is not available in this browser. Please type your query.');
       return;
     }
     if (isRecording) {
+      if (streamRef.current) {
+        await stopBhashiniRecording();
+        return;
+      }
       isIntentionallyRecording.current = false;
       recognitionRef.current?.stop();
       setIsRecording(false);
+      setVoiceStatus('Voice input stopped.');
     } else {
       setVoiceError('');
+      setVoiceStatus('Starting voice input…');
       finalTranscriptRef.current = query ? `${query.trim()} ` : '';
+      if (await startBhashiniRecording()) return;
+      if (!recognitionRef.current) return;
       isIntentionallyRecording.current = true;
       try {
+        recognitionRef.current.lang = language;
         recognitionRef.current?.start();
         setIsRecording(true);
       } catch (e) {
@@ -106,8 +207,15 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
       // before the network request begins; the next microphone click creates
       // a deliberate new listening session.
       isIntentionallyRecording.current = false;
+      if (streamRef.current) {
+        // A recording can be completed before form submission only when the
+        // user presses the microphone again, so do not submit incomplete PCM.
+        setVoiceError('Stop voice input before submitting so Bhashini can transcribe it.');
+        return;
+      }
       recognitionRef.current?.stop?.();
       setIsRecording(false);
+      setVoiceStatus('Voice input submitted.');
       onQuerySubmit(query.trim(), language);
       setQuery('');
     }
@@ -178,7 +286,7 @@ const CommandBar = ({ onQuerySubmit, language: controlledLanguage, onLanguageCha
           )}
         </button>
       </form>
-      {voiceError && <p role="status" className="mt-2 w-full px-4 text-xs text-[#FFB547]">{voiceError}</p>}
+      {(voiceError || voiceStatus) && <p role="status" aria-live="polite" className={`mt-2 w-full px-4 text-xs ${voiceError ? 'text-[#FFB547]' : 'text-[#8FA8B8]'}`}>{voiceError || voiceStatus}</p>}
     </div>
   );
 };
