@@ -1,149 +1,162 @@
-# Mavericks: Navik Marine Portal
-
-Mavericks is an intelligent spatial decision support platform for Potential Fishing Zones (PFZs), weather safety routing, and predictive border/sanctuary geofencing in the North Indian Ocean. By coordinating a **9-agent specialized AI architecture**, Mavericks integrates real-time oceanographic observations, spatial queries, and machine learning risk predictors into an explainable, localized, and offline-resilient system.
-
----
-
-## 1. Architectural Vision
-
-Mavericks is designed to bridge the gap between complex meteorological data and practical, safety-critical maritime guidance. The platform coordinates distributed data discovery, spatial boundaries checks, and machine learning risk modeling behind a unified, single-port deployment model.
-
-```
-+-----------------------------------------------------------------------------------+
-|                                 Client React UI                                   |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         | HTTPS JSON/REST / WMS Layer Requests
-                                         v
-+-----------------------------------------------------------------------------------+
-|                                 FastAPI Backend                                   |
-+-----------------------------------------------------------------------------------+
-       |                      |                      |                     |
-       | Spatial Queries      | Semantic Queries     | Incident Prediction | Ingestion
-       v                      v                      v                     v
-+------------+        +------------+        +---------------+      +----------------+
-|  PostGIS   |        |  pgvector  |        |    XGBoost    |      |   INCOIS /     |
-| (Database) |        | (Database) |        | (Risk Model)  |      | Open-Meteo API |
-+------------+        +------------+        +---------------+      +----------------+
-       |                      |                      |                     |
-       +----------+-----------+                      v                     |
-                  |                     +--------------------+             |
-                  v                     | Deterministic      |             |
-       +----------------------+         | Safety Floors      |             |
-       |   Neon PostgreSQL    |         +--------------------+             |
-       | (Central Datastore)  |                      |                     |
-       +----------------------+                      v                     v
-                  |                            [ Risk Score ]        [ TTL Cache ]
-                  v (Failover)                                             |
-       +----------------------+                                            |
-       |    Local SQLite      |<-------------------------------------------+
-       | (& Fallback GeoJSON) |
-       +----------------------+
-```
-
-### Core Architectural Pillars
-- **Explainability (No Black Box):** Every risk output justifies its hazard category (LOW, MODERATE, HIGH, EXTREME) by citing specific parameters (e.g. wave heights) and linking them to official marine guidelines.
-- **Unified Spatial-Vector DB:** PostGIS and pgvector reside in a single Neon PostgreSQL instance, enabling hybrid spatial boundaries checking and regulatory RAG queries to run in a single database round-trip.
-- **Single-Process Local Deployment:** Built React frontend static assets are served directly via FastAPI endpoints, allowing the entire application to run seamlessly on a single port (`127.0.0.1:8000`).
-- **Offline-First Resilience:** A dedicated SQLite and GeoJSON fallback pipeline monitors backend connectivity, automatically serving cached data if PostgreSQL or remote weather APIs drop.
+<div align="center">
+  <h1>🌊 Mavericks: Navik Marine Portal</h1>
+  <p><strong>Intelligent Spatial Decision Support Platform for Marine Safety</strong></p>
+</div>
 
 ---
 
-## 2. Core Feature Matrix & Dataset Mappings
+## 📖 About the Project
 
-Every core feature maps to specific data sources and implementation layers:
+**Mavericks: Navik Marine Portal** is an advanced, intelligent spatial decision support platform developed as our implementation for the **Smart India Hackathon (SIH26176)** problem statement. The project was born out of a critical need to enhance maritime safety and resource optimization for fishermen and coastal authorities operating in the North Indian Ocean.
 
-| Feature Name | Target Specification | Dataset / Resource Path | Technical Stack |
-| :--- | :--- | :--- | :--- |
-| **1. Marine Risk Predictor** | Localized safety risks (LOW to EXTREME) + confidence. | `data/processed/marine_risk_processed.csv` | XGBoost Classifier, Scikit-learn, Pandas |
-| **2. Safe-Route Optimization** | Safest paths around PostGIS restricted zones / MPAs using Dijkstra/A*. | `data/processed/` & PostGIS boundaries | NetworkX (A* pathfinding with node risk costs) |
-| **3. Geofencing & Borders** | Live warnings for EEZ/IMBL proximity and restricted MPAs. | `india_eez` and `marine_protected_areas` tables | GeoPandas, SQLAlchemy, PostGIS (Neon DB) |
-| **4. Grounded Safety Advisor** | RAG bot quoting official clauses and PDFs with pgvector. | `data/regulatory/fao_*.pdf`, `marine_safety_corpus.json` | pgvector, BGE-M3 Embeddings, Gemini API |
-| **5. Multilingual Voice Outreach** | Multilingual responses and browser-based voice processing. | Client-side localization dictionaries | Web Speech API, React state |
-| **6. Offline-First Resilience** | Seamless fallback to local JSON/SQLite cache if server drops. | Static JSON forecasts, SQLite geometry backups | SQLite, FastAPI middleware |
+We created this project to bridge the gap between complex meteorological data and practical, safety-critical maritime guidance. By translating raw oceanographic telemetry into explainable, localized risk assessments and optimized routing, our solution ensures that vessels can safely navigate to Potential Fishing Zones (PFZs) while strictly adhering to international maritime boundaries and marine protected areas (MPAs). 
+
+*Note: This project is our official submission and implementation for the SIH26176 problem statement that our team chose to implement.*
 
 ---
 
-## 3. The 9 Specialized AI Agents
+## 🛠️ Technology Stack
 
-The platform decomposes complex maritime inquiries into **9 collaborative, concurrent AI agents**:
+Our platform leverages a modern, robust technology stack, integrating spatial databases, machine learning, and concurrent AI agents behind a unified deployment model:
 
-```
-                  +--------------------------------+
-                  |     User Interaction Agent     |<--- Voice / Text
-                  +--------------------------------+
-                                  |
-                                  | Decoded User Intent
-                                  v
-                  +--------------------------------+
-                  |         Planner Agent          |
-                  +--------------------------------+
-                                  |
-                                 Decomposes and Orchestrates Tasks
-                             +----+----+
-                             |    |    |
-                             v    v    v
-                      [ Agents 3 - 7: Processing ]
-                             |    |    |
-                             +----+----+
-                                  |
-                                  v
-                  +--------------------------------+
-                  |      Visualization Agent       | ---> Map overlays (MapLibre)
-                  +--------------------------------+
-                                  |
-                                  v
-                  +--------------------------------+
-                  |        Reporting Agent         | ---> Citations & RAG (pgvector)
-                  +--------------------------------+
-```
+### **Frontend (UI & Interaction)**
+* **React** – Dynamic client interfaces.
+* **MapLibre GL** – High-performance vector map rendering.
+* **Web Speech API** – Native zero-cost multilingual voice inputs and text-to-speech read-aloud advice (English, Hindi, Marathi).
 
-1. **User Interaction Agent (Multi-turn, Localization & Voice):** Natively integrates the browser's **Web Speech API** for zero-cost multilingual voice inputs and read-aloud spoken advice (supporting English, Hindi, and Marathi).
-2. **Planner Agent (Task Decomposition & Failsafe Resilience):** The coordinator and error handler. Decomposes queries and delegates sub-tasks.
-   * *Failsafe Rule:* If PostgreSQL/PostGIS is down or remote weather APIs time out, it automatically shifts downstream execution to the local file fallback (SQLite/JSON cached scenarios) to prevent app crashes.
-3. **Marine Data Discovery Agent (Honest Provider Interface):** Wraps live endpoints behind an interface mapping keyless Open-Meteo services in development, enabling production-grade ISRO MOSDAC or INCOIS telemetry feeds to swap in without breaking downstream logic.
-4. **Weather Intelligence Agent:** Meteorological analyzer. Identifies depressions, wind speed, lightning, and visibility hazards.
-5. **Ocean Analytics Agent:** Oceanographic analyst. Identifies Potential Fishing Zones (PFZs) using SST and Chlorophyll-a gradients, as well as wave heights and swell periods.
-6. **Geospatial Reasoning Agent (PostGIS Spatial Engine):** Performs spatial database lookups (`ST_Contains`, `ST_Distance`) against `india_eez` and `marine_protected_areas` tables to geofence vessels near borders and sanctuaries.
-7. **Risk Assessment Agent (XGBoost + Deterministic Floors):** Computes machine learning safety confidence scores.
-   * *Failsafe Rule:* ML risk output is strictly capped by **deterministic safety floors** (e.g. Cyclone warnings force 92, IMD warnings force 70, waves $\ge 4.0$m force 85) to ensure safety calculations are mathematically secure.
-8. **Visualization Agent:** UI asset builder. Translates coordinates, safe routes, and warning boundaries into MapLibre GL GeoJSON FeatureCollections, mapping risk levels to semantic colors (`green`, `yellow`, `orange`, `red`).
-9. **Reporting Agent (Grounded RAG):** Compliance compiler. Performs semantic searches against regulatory manuals (FAO guides, Coast Guard codes) using pgvector and generates plain-language, cited rationales.
+### **Backend (API & Orchestration)**
+* **FastAPI** – High-speed, asynchronous REST APIs serving statically built frontend assets.
+* **Python** – Core backend logic and agent orchestration.
+
+### **Data & Spatial Engines**
+* **Neon PostgreSQL** – Central datastore.
+* **PostGIS** – Spatial database engine for predictive geofencing (`ST_Contains`, `ST_Distance`).
+* **pgvector** – Vector database for semantic RAG queries.
+* **SQLite / Local GeoJSON** – Offline-first fallback cache for system resilience.
+
+### **Machine Learning & Analytics**
+* **XGBoost Classifier** – Machine learning risk predictor paired with deterministic safety floors.
+* **NetworkX** – A* pathfinding for safe route optimization.
+* **BGE-M3 Embeddings** – Semantic chunk processing for the regulatory advisor.
 
 ---
 
-## 4. Engineering & Algorithmic Engines
+## 📐 Architecture Diagram
 
-### A. Current-Aware Vector Routing Logic
-Our route optimizer accounts for the direction and velocity of surface currents by projecting them onto the boat's heading.
+The system coordinates distributed data discovery, spatial boundary checks, and ML risk modeling. The architecture ensures that every layer interacts seamlessly, from the browser UI down to the scientific modeling engines.
 
-When analyzing path segments from grid node $u(\phi_1, \lambda_1)$ to node $v(\phi_2, \lambda_2)$:
-1. **Calculate Boat Bearing ($\theta_{\text{boat}}$):**
-   $$\theta_{\text{boat}} = \text{atan2}\left(\sin(\Delta\lambda)\cos(\phi_2), \cos(\phi_1)\sin(\phi_2) - \sin(\phi_1)\cos(\phi_2)\cos(\Delta\lambda)\right)$$
-2. **Current Vector Difference ($\Delta\theta$):**
-   $$\Delta\theta = \theta_{\text{current}} - \theta_{\text{boat}}$$
-3. **Calculate Parallel Speed ($V_{\text{current,parallel}}$):**
-   $$V_{\text{current,parallel}} = V_{\text{current}} \times \cos(\Delta\theta)$$
-   *(where $V_{\text{current}}$ is converted from m/s to km/h).*
-4. **Effective Boat Speed ($V_{\text{effective}}$):**
-   $$V_{\text{effective}} = \max\left(2.0, \min\left(30.0, V_{\text{boat}} + V_{\text{current,parallel}} - \text{Wave Drag}\right)\right)$$
-5. **Transit Time Cost ($T$):**
-   $$T = \frac{\text{Distance}}{V_{\text{effective}}}$$
+```mermaid
+graph TD
+    classDef default fill:#13263A,stroke:#20384D,stroke-width:2px,color:#EAF4F8;
+    classDef highlight fill:#0D1B2A,stroke:#00D4FF,stroke-width:2px,color:#EAF4F8;
+    classDef database fill:#13263A,stroke:#18C7A0,stroke-width:2px,color:#EAF4F8;
+    classDef external fill:#20384D,stroke:#FFB547,stroke-width:2px,color:#EAF4F8;
 
-The engine uses a **Dual Dijkstra Pathfinding** framework:
-- **Safest & Current-Optimized Path:** Computes edge weights based on travel times derived from $V_{\text{effective}}$, BSI capsize penalties, and warning buffers. Favorable currents minimize segment weights.
-- **Shortest Direct Path:** Runs pathfinding based solely on distance, avoiding restricted zones, and evaluates actual transit risk post-routing.
+    subgraph Layer 5: UI & Voice
+    UI["💻 React UI & MapLibre GL"]:::default
+    Voice["🎤 Web Speech Native API"]:::default
+    end
 
-### B. Machine Learning Risk & Safety Floors
-Safety scoring balances machine learning adaptability with deterministic compliance rules:
-- **Model:** An XGBoost Classifier trained on waves, wind, currents, bathymetry, and distance to shore. Split temporal validation (training on older years, validation on future holdout years) is used to prevent data leakage.
-- **Deterministic Override Safety Floors:** Regardless of ML confidence, hard ceilings are applied when safety thresholds are breached:
-  - Cyclone warnings $\rightarrow$ Risk Score = 92 (Extreme)
-  - Gale force wind / IMD warning $\rightarrow$ Risk Score = 70 (High)
-  - Wave heights $\ge 4.0$m $\rightarrow$ Risk Score = 85 (Extreme)
+    subgraph Layer 4: API & Agents
+    FA["⚡ FastAPI Controller"]:::default
+    PA("🧠 Planner Orchestrator"):::highlight
+    RAG["📚 Reporting RAG Agent"]:::default
+    end
 
-### C. Grounded Safety Advisor (pgvector RAG)
-The RAG pipeline extracts semantic chunks from official maritime safety manuals and encodes them using BGE-M3 embeddings.
-- **Embedding Database:** Single database instance with pgvector.
-- **Distance Metric:** Cosine similarity.
-- **Explainability:** Generates cited regulatory excerpts alongside every route risk evaluation, guaranteeing clear compliance justifications for fishing vessels.
+    subgraph Layer 3: Scientific Engines
+    BSI["🌊 Ocean Agent BSI Engine"]:::default
+    Geo["🗺️ PostGIS Geofencing"]:::default
+    Risk["🧭 XGBoost A* Routing"]:::default
+    end
+
+    subgraph Layer 2: Unified DB
+    DB[("🗄️ PostgreSQL & SQLite")]:::database
+    PG["🧩 PostGIS & pgvector"]:::database
+    end
+
+    subgraph Layer 1: Data Ingestion
+    OM["☁️ Open-Meteo API"]:::external
+    INC["📡 INCOIS Advisories"]:::external
+    end
+
+    UI <--> FA
+    Voice <--> FA
+    FA <--> PA
+    
+    PA --> BSI
+    PA --> Geo
+    PA --> Risk
+    PA <--> RAG
+    
+    BSI -.->|Reads| DB
+    Geo <--> DB
+    DB --- PG
+    Risk <--> DB
+    RAG <--> PG
+    
+    OM -->|Live Telemetry| DB
+    INC -->|Zone Advisories| DB
+```
+
+---
+
+## 🤖 9-Agent Orchestration Flowchart
+
+To handle complex maritime inquiries, the platform relies on **9 specialized, concurrent AI agents**. This multi-agent orchestration breaks down complex requests (like *"Is it safe to fish at PFZ-17 leaving tomorrow at 6am?"*) into parallel workflows.
+
+```mermaid
+flowchart TD
+    classDef default fill:#13263A,stroke:#20384D,stroke-width:2px,color:#EAF4F8;
+    classDef core fill:#0D1B2A,stroke:#00D4FF,stroke-width:2px,color:#EAF4F8;
+    classDef processing fill:#18C7A0,stroke:#20384D,stroke-width:2px,color:#07111F;
+
+    User[User Interaction Agent <br> Voice / Text Input]:::default
+    Planner((Planner Agent <br> Task Orchestrator)):::core
+    
+    Marine[Marine Data Discovery Agent]:::processing
+    Geo[Geospatial Reasoning Agent]:::processing
+    Weather[Weather Intelligence Agent]:::processing
+    Ocean[Ocean Analytics Agent]:::processing
+    Risk[Risk Assessment Agent]:::processing
+    
+    Viz[Visualization Agent <br> Map Overlays]:::default
+    Report[Reporting Agent <br> Grounded RAG]:::default
+
+    User -- Decoded Intent --> Planner
+    Planner -- Decomposes Tasks --> Marine
+    Planner --> Geo
+    Planner --> Weather
+    Planner --> Ocean
+    Planner --> Risk
+    
+    Marine --> Viz
+    Geo --> Viz
+    Weather --> Viz
+    Ocean --> Viz
+    Risk --> Viz
+    
+    Viz --> Report
+    Report -- Citations & Explanations --> User
+```
+
+### Agent Roles:
+1. **User Interaction Agent:** Handles multilingual voice/text processing and UI.
+2. **Planner Agent:** Orchestrates tasks and handles failsafe fallbacks (SQLite/JSON caching) if servers go offline.
+3. **Marine Data Discovery Agent:** Retrieves and translates telemetry grids from remote endpoints.
+4. **Weather Intelligence Agent:** Evaluates meteorological hazards like wind, visibility, and lightning.
+5. **Ocean Analytics Agent:** Computes Potential Fishing Zones (PFZs) using SST and Chlorophyll-a parameters.
+6. **Geospatial Reasoning Agent:** Geofences vessels to prevent border or marine sanctuary incursions.
+7. **Risk Assessment Agent:** Runs machine learning safety classifiers constrained by strict deterministic thresholds (e.g., overriding ML if wave heights exceed 4m).
+8. **Visualization Agent:** Synthesizes geospatial data into optimized route visualizations.
+9. **Reporting Agent:** Cross-references calculations with official maritime regulations via pgvector, providing explainable and cited advisories.
+
+---
+
+## 🌟 Core Features
+
+- **Marine Risk Predictor:** Generates localized safety profiles using an XGBoost Classifier combined with official safety floors to prevent "black box" decisions.
+- **Safe-Route Optimization:** Projects ocean current vectors onto vessel bearings to compute fast, low-drag routes around high-risk regions and restricted boundaries.
+- **Predictive Geofencing:** Utilizes PostGIS database lookups against the `india_eez` and `marine_protected_areas` tables to actively warn vessels approaching restricted zones.
+- **Grounded Safety Advisor:** RAG implementation citing official clauses from maritime manuals, processed completely within our vector datastore.
+- **Offline-First Resilience:** Ensures uninterrupted guidance. If primary live APIs fail, the Planner Agent routes processes to local SQLite boundaries and cached static JSON datasets.
+- **Multilingual Voice Outreach:** Seamless communication across languages to provide highly accessible insights to all end users.
