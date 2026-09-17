@@ -58,9 +58,8 @@ export function MapConsole({
   overlayLayers = null,
   legendPositionClassName = 'top-4 left-4',
   showLegend = true,
-  // The Operations map uses the established INCOIS point-analytics popup.
-  // Intelligence Console is deliberately provider-isolated, so it opts out
-  // and uses a local coordinate picker instead.
+  // The Operations and Intelligence maps can use the established INCOIS
+  // point-analytics popup; callers may opt out for picker-only contexts.
   pointAnalyticsEnabled = true
 }) {
   const mapContainerRef = useRef(null);
@@ -109,7 +108,31 @@ export function MapConsole({
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      // Satellite imagery establishes the real geographic context; existing NAVIK
+      // sources and layers are added above it unchanged once the style is ready.
+      style: {
+        version: 8,
+        sources: {
+          'esri-world-imagery': {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 19,
+            attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+          },
+          'esri-place-labels': {
+            type: 'raster',
+            tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 19,
+            attribution: 'Labels © Esri'
+          }
+        },
+        layers: [
+          { id: 'satellite', type: 'raster', source: 'esri-world-imagery', minzoom: 0, maxzoom: 19 },
+          { id: 'place-labels', type: 'raster', source: 'esri-place-labels', minzoom: 0, maxzoom: 19 }
+        ]
+      },
       center: [78.9629, 16.5000], // Centered over Indian peninsula & EEZ boundaries
       zoom: 4.5,
       maxBounds: [
@@ -173,11 +196,11 @@ export function MapConsole({
               'interpolate',
               ['linear'],
               ['get', 'severity'],
-              0, '#18C7A0',  // Safe (Green)
-              40, '#18C7A0', // Stay green longer
-              50, '#FFB547', // Moderate (Yellow)
-              70, '#FF5C5C', // High (Red)
-              100, '#FF5C5C' // Extreme (Red)
+              0, '#4E7465',  // Safe
+              40, '#4E7465',
+              50, '#B86E3A', // Caution
+              70, '#B34B3C', // High
+              100, '#B34B3C' // Extreme
             ],
             // Scale radius up as you zoom in to keep the screen covered in color
             'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 6, 25, 10, 60],
@@ -202,8 +225,8 @@ export function MapConsole({
           source: 'geofencing-layers',
           filter: ['==', ['get', 'type'], 'MPA'],
           paint: {
-            'fill-color': '#a855f7',
-            'fill-opacity': 0.20
+            'fill-color': '#8B7B9C',
+            'fill-opacity': 0.16
           },
           layout: { visibility: 'visible' }
         });
@@ -215,7 +238,7 @@ export function MapConsole({
           source: 'geofencing-layers',
           filter: ['==', ['get', 'type'], 'MPA'],
           paint: {
-            'line-color': '#9333ea',
+            'line-color': '#715E80',
             'line-width': 1.8,
             'line-dasharray': [3, 2]
           },
@@ -229,7 +252,7 @@ export function MapConsole({
           source: 'geofencing-layers',
           filter: ['==', ['get', 'type'], 'EEZ'],
           paint: {
-            'line-color': '#FF5C5C',
+            'line-color': '#B34B3C',
             'line-width': 2.0,
             'line-dasharray': [4, 3]
           },
@@ -294,23 +317,23 @@ export function MapConsole({
             'icon-allow-overlap': false,
             'icon-size': [
               'interpolate', ['linear'], ['zoom'],
-              3, 0.2,
-              6, 0.6,
-              9, 1.0
+              3, 0.32,
+              6, 0.88,
+              9, 1.28
             ],
-            'icon-padding': 2,
+            'icon-padding': 5,
             visibility: 'none'
           },
           paint: {
             'icon-color': [
               'interpolate', ['linear'], ['get', 'speed_kmh'],
-              0, '#00D4FF',
-              20, '#18C7A0',
-              40, '#FFB547',
-              60, '#FF5C5C'
+              0, '#E0B45C',
+              20, '#D28B45',
+              40, '#BF653D',
+              60, '#A9473A'
             ],
-            'icon-halo-color': '#07111F',
-            'icon-halo-width': 1
+            'icon-halo-color': '#FFFCF6',
+            'icon-halo-width': 1.8
           }
         });
 
@@ -332,23 +355,23 @@ export function MapConsole({
             'icon-allow-overlap': false,
             'icon-size': [
               'interpolate', ['linear'], ['zoom'],
-              3, 0.2,
-              6, 0.6,
-              9, 1.0
+              3, 0.32,
+              6, 0.88,
+              9, 1.28
             ],
-            'icon-padding': 2,
+            'icon-padding': 5,
             visibility: 'none'
           },
           paint: {
             'icon-color': [
               'interpolate', ['linear'], ['get', 'speed_ms'],
-              0, '#00D4FF',
-              0.5, '#18C7A0',
-              1.0, '#FFB547',
-              1.5, '#FF5C5C'
+              0, '#79CDD0',
+              0.5, '#3297A1',
+              1.0, '#2C6872',
+              1.5, '#B86E3A'
             ],
-            'icon-halo-color': '#07111F',
-            'icon-halo-width': 1
+            'icon-halo-color': '#FFFCF6',
+            'icon-halo-width': 1.8
           }
         });
 
@@ -365,14 +388,32 @@ export function MapConsole({
           } : EMPTY_FEATURE_COLLECTION
         });
 
-        // Layer 10: route-line (Cyan accent in Navik)
+        // A light casing keeps the recommended route legible over satellite
+        // imagery, dense current arrows, and scientific overlays.
+        map.addLayer({
+          id: 'route-line-casing',
+          type: 'line',
+          source: 'optimized-route',
+          paint: {
+            'line-color': '#FFFCF6',
+            'line-width': 9,
+            'line-opacity': 0.9
+          },
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            visibility: 'none'
+          }
+        });
+
+        // Recommended route centerline.
         map.addLayer({
           id: 'route-line',
           type: 'line',
           source: 'optimized-route',
           paint: {
-            'line-color': '#00D4FF',
-            'line-width': 4.0
+            'line-color': '#0F6C78',
+            'line-width': 4.5
           },
           layout: {
             'line-join': 'round',
@@ -396,7 +437,7 @@ export function MapConsole({
           type: 'line',
           source: 'straight-route',
           paint: {
-            'line-color': '#8FA8B8',
+            'line-color': '#879494',
             'line-width': 1.5,
             'line-dasharray': [3, 3]
           },
@@ -421,17 +462,17 @@ export function MapConsole({
             'circle-radius': [
               'case',
               ['boolean', ['feature-state', 'selected'], false],
-              8,
-              5
+              9,
+              6
             ],
             'circle-color': ['get', 'color'],
             'circle-stroke-width': [
               'case',
               ['boolean', ['feature-state', 'selected'], false],
-              2,
-              1
+              3,
+              2
             ],
-            'circle-stroke-color': '#EAF4F8'
+            'circle-stroke-color': '#FFFCF6'
           },
           layout: { visibility: 'none' }
         });
@@ -449,7 +490,7 @@ export function MapConsole({
           type: 'line',
           source: 'incois-pfz-lines',
           paint: {
-            'line-color': '#00D4FF',
+            'line-color': '#2C6872',
             'line-width': 8,
             'line-opacity': 0.0,
             'line-blur': 4
@@ -463,7 +504,7 @@ export function MapConsole({
           type: 'line',
           source: 'incois-pfz-lines',
           paint: {
-            'line-color': '#FFB547',
+            'line-color': '#B86E3A',
             'line-width': 2.5
           },
           layout: { visibility: 'none' }
@@ -476,7 +517,7 @@ export function MapConsole({
           type: 'circle',
           source: 'incois-pfz-lines',
           filter: ['==', ['geometry-type'], 'Point'],
-          paint: { 'circle-radius': 12, 'circle-color': '#00D4FF', 'circle-opacity': 0.20, 'circle-blur': 0.7 },
+          paint: { 'circle-radius': 10, 'circle-color': '#2C6872', 'circle-opacity': 0.14, 'circle-blur': 0.55 },
           layout: { visibility: 'none' }
         });
         map.addLayer({
@@ -484,7 +525,7 @@ export function MapConsole({
           type: 'circle',
           source: 'incois-pfz-lines',
           filter: ['==', ['geometry-type'], 'Point'],
-          paint: { 'circle-radius': 5, 'circle-color': '#FFB547', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#EAF4F8' },
+          paint: { 'circle-radius': 5, 'circle-color': '#B86E3A', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FFFCF6' },
           layout: { visibility: 'none' }
         });
 
@@ -503,9 +544,9 @@ export function MapConsole({
             'fill-opacity': 0.65,
             'fill-color': [
               'case',
-              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FFB547',
-              ['==', ['get', `Color${initialSuffix}`], 'red'], '#FF5C5C',
-              '#18C7A0'
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#B86E3A',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#B34B3C',
+              '#4E7465'
             ]
           },
           layout: { visibility: 'visible' }
@@ -518,9 +559,9 @@ export function MapConsole({
           paint: {
             'line-color': [
               'case',
-              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#FB923C',
-              ['==', ['get', `Color${initialSuffix}`], 'red'], '#F87171',
-              '#4ADE80'
+              ['==', ['get', `Color${initialSuffix}`], 'orange'], '#A86031',
+              ['==', ['get', `Color${initialSuffix}`], 'red'], '#9F4136',
+              '#3E6657'
             ],
             'line-width': 1.5,
             'line-opacity': 0.8
@@ -1085,10 +1126,10 @@ export function MapConsole({
             filter: ['==', ['geometry-type'], 'Point'],
             paint: {
               'circle-radius': 5,
-              'circle-color': '#00D4FF',
+              'circle-color': '#2C6872',
               'circle-opacity': layer.visible ? (layer.opacity ?? 0.8) : 0.0,
               'circle-stroke-width': 1,
-              'circle-stroke-color': '#07111F'
+              'circle-stroke-color': '#FFFCF6'
             },
             layout: { visibility: layer.visible ? 'visible' : 'none' }
           });
@@ -1100,7 +1141,7 @@ export function MapConsole({
             filter: ['!=', ['geometry-type'], 'Point'],
             paint: {
               'line-width': 3,
-              'line-color': '#18C7A0',
+              'line-color': '#4E7465',
               'line-opacity': layer.visible ? (layer.opacity ?? 0.8) : 0.0
             },
             layout: { visibility: layer.visible ? 'visible' : 'none' }
@@ -1188,7 +1229,7 @@ export function MapConsole({
           node_id: n.node_id,
           eta: n.eta,
           severity_score: n.severity_score,
-          color: n.severity_score >= 76 ? '#FF5C5C' : n.severity_score >= 51 ? '#FF5C5C' : n.severity_score >= 21 ? '#FFB547' : '#18C7A0'
+          color: n.severity_score >= 76 ? '#D9584A' : n.severity_score >= 51 ? '#D9584A' : n.severity_score >= 21 ? '#E5A441' : '#4E7465'
         }
       }))
     } : EMPTY_FEATURE_COLLECTION;
@@ -1206,6 +1247,7 @@ export function MapConsole({
 
     const modeVisibilityMap = {
       routing: {
+        'route-line-casing': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
         'route-nodes-layer': hasRoute && layersOverride.route !== false ? 'visible' : 'none',
@@ -1232,6 +1274,7 @@ export function MapConsole({
         'pfz-lines-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'pfz-points-glow': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
         'pfz-points': layersOverride.pfzAdvisory !== false ? 'visible' : 'none',
+        'route-line-casing': hasRoute && layersOverride.route ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'eez-stroke': layersOverride.eezBorder !== false ? 'visible' : 'none',
@@ -1260,6 +1303,7 @@ export function MapConsole({
         'pfz-points': layersOverride.pfzAdvisory ? 'visible' : 'none',
         'wind-arrows': layersOverride.windVectors ? 'visible' : 'none',
         'current-arrows': layersOverride.currentVectors ? 'visible' : 'none',
+        'route-line-casing': hasRoute && layersOverride.route ? 'visible' : 'none',
         'route-line': hasRoute && layersOverride.route ? 'visible' : 'none',
         'straight-line': hasRoute && layersOverride.route ? 'visible' : 'none'
       }
@@ -1315,9 +1359,9 @@ export function MapConsole({
         
         mapRef.current.setPaintProperty('pfz-lines-stroke', 'line-color', [
           'case',
-          ['==', ['id'], hoveredPfzId || ''], '#00D4FF',
-          ['==', ['get', 'id'], hoveredPfzId || ''], '#00D4FF',
-          '#FFB547'
+          ['==', ['id'], hoveredPfzId || ''], '#2C6872',
+          ['==', ['get', 'id'], hoveredPfzId || ''], '#2C6872',
+          '#B86E3A'
         ]);
 
         mapRef.current.setPaintProperty('pfz-lines-stroke', 'line-width', [
@@ -1349,15 +1393,15 @@ export function MapConsole({
       const suffix = getSuffix(beamWidth);
       mapRef.current.setPaintProperty('advisory-fill', 'fill-color', [
         'case',
-        ['==', ['get', `Color${suffix}`], 'orange'], '#FFB547',
-        ['==', ['get', `Color${suffix}`], 'red'], '#FF5C5C',
-        '#18C7A0'
+        ['==', ['get', `Color${suffix}`], 'orange'], '#B86E3A',
+        ['==', ['get', `Color${suffix}`], 'red'], '#B34B3C',
+        '#4E7465'
       ]);
       mapRef.current.setPaintProperty('advisory-stroke', 'line-color', [
         'case',
-        ['==', ['get', `Color${suffix}`], 'orange'], '#FB923C',
-        ['==', ['get', `Color${suffix}`], 'red'], '#F87171',
-        '#4ADE80'
+        ['==', ['get', `Color${suffix}`], 'orange'], '#A86031',
+        ['==', ['get', `Color${suffix}`], 'red'], '#9F4136',
+        '#3E6657'
       ]);
     }
   }, [beamWidth, mapLoaded]);

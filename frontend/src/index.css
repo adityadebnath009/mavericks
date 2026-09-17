@@ -8,25 +8,25 @@ html, body, #root {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: #07111F;
-  color: #EAF4F8;
+  background-color: #E8DECD;
+  color: #17303A;
   scroll-behavior: smooth;
 }
 
-/* Custom Tactical Scrollbars */
+/* Quiet, paper-toned scrollbars shared by the app workspaces. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #07111F;
+  background: #E8DECD;
 }
 ::-webkit-scrollbar-thumb {
-  background: #20384D;
+  background: #D9CCB7;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #00D4FF;
+  background: #2C6872;
 }
 
 /* Hide standard scrollbars for ticker */

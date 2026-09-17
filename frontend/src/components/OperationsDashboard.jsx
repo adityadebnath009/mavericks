@@ -407,7 +407,7 @@ export function OperationsDashboard({ onBackToLanding, initialMode = 'routing' }
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#07111F] text-[#EAF4F8] font-sans overflow-hidden select-none">
+    <div className="navik-daylight flex flex-col h-screen w-screen bg-[#07111F] text-[#EAF4F8] font-sans overflow-hidden select-none">
       <TopHeader activeMode={activeMode} selectedLocation={selectedLocation} safetyData={safetyData} dataStatus={dataStatus} isLoading={isLoading} onRefresh={handleRefresh} onBackToLanding={handleReturnToLanding} onToggleChat={() => setIsChatOpen(!isChatOpen)} isChatOpen={isChatOpen} currentTime={currentTime} />
       <div className="flex flex-1 overflow-hidden relative">
         

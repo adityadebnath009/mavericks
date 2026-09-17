@@ -7,14 +7,14 @@
 
     <!-- Pin body gradient -->
     <linearGradient id="pin-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="100%" stop-color="#0284C7"/>
+      <stop offset="0%" stop-color="#4B8389"/>
+      <stop offset="100%" stop-color="#2C6872"/>
     </linearGradient>
 
     <!-- Hull gradient for depth -->
     <linearGradient id="hull-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1E293B"/>
-      <stop offset="100%" stop-color="#0F172A"/>
+      <stop offset="0%" stop-color="#24464D"/>
+      <stop offset="100%" stop-color="#17303A"/>
     </linearGradient>
 
     <!-- Sail gradient -->
@@ -54,7 +54,7 @@
           fill="url(#hull-gradient)"/>
 
     <!-- Mast -->
-    <rect x="251" y="112" width="10" height="110" rx="3" fill="#0F172A"/>
+    <rect x="251" y="112" width="10" height="110" rx="3" fill="#17303A"/>
 
     <!-- Main Sail -->
     <path d="M 265 116 C 310 130, 320 190, 320 210 C 290 210, 265 180, 265 116 Z" 
@@ -66,7 +66,7 @@
           opacity="0.9"/>
           
     <!-- Flag on Top -->
-    <path d="M 251 104 L 275 114 L 251 124 Z" fill="#EF4444"/>
+    <path d="M 251 104 L 275 114 L 251 124 Z" fill="#B34B3C"/>
   </g>
 
 </svg>

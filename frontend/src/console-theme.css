@@ -1,0 +1,56 @@
+/* Daylight presentation layer for the active NAVIK workspaces.  This file only
+   overrides visual utilities; console data, state, and interactions stay intact. */
+.navik-daylight {
+  --navik-paper: #f9f2e6;
+  --navik-salt: #e8decd;
+  --navik-panel: #f4eadc;
+  --navik-ink: #17303a;
+  --navik-muted: #66777a;
+  --navik-border: #d9ccb7;
+  --navik-ocean: #2c6872;
+  --navik-safe: #4e7465;
+  --navik-caution: #b86e3a;
+  --navik-danger: #b34b3c;
+  background: var(--navik-salt);
+  color: var(--navik-ink);
+}
+
+.navik-daylight [class*="bg-[#07111F]"] { background-color: var(--navik-salt) !important; }
+.navik-daylight [class*="bg-[#0D1B2A]"], .navik-daylight [class*="bg-[#13263A]"] { background-color: var(--navik-paper) !important; }
+.navik-daylight [class*="bg-[#20384D]"] { background-color: #e2d3bd !important; }
+.navik-daylight [class*="text-[#EAF4F8]"], .navik-daylight [class*="text-[#07111F]"] { color: var(--navik-ink) !important; }
+.navik-daylight [class*="text-[#8FA8B8]"] { color: var(--navik-muted) !important; }
+.navik-daylight [class*="text-[#00D4FF]"] { color: var(--navik-ocean) !important; }
+.navik-daylight [class*="text-[#18C7A0]"] { color: var(--navik-safe) !important; }
+.navik-daylight [class*="text-[#FFB547]"] { color: var(--navik-caution) !important; }
+.navik-daylight [class*="text-[#FF5C5C]"] { color: var(--navik-danger) !important; }
+.navik-daylight [class*="border-[#20384D]"], .navik-daylight [class*="border-white"] { border-color: var(--navik-border) !important; }
+.navik-daylight [class*="border-[#00D4FF]"] { border-color: rgba(44,104,114,.42) !important; }
+.navik-daylight [class*="border-[#18C7A0]"] { border-color: rgba(78,116,101,.42) !important; }
+.navik-daylight [class*="border-[#FFB547]"] { border-color: rgba(184,110,58,.48) !important; }
+.navik-daylight [class*="border-[#FF5C5C]"] { border-color: rgba(179,75,60,.48) !important; }
+.navik-daylight [class*="bg-[#00D4FF]"] { background-color: var(--navik-ocean) !important; }
+.navik-daylight [class*="bg-[#18C7A0]"] { background-color: var(--navik-safe) !important; }
+.navik-daylight [class*="bg-[#FFB547]"] { background-color: var(--navik-caution) !important; }
+.navik-daylight [class*="bg-[#FF5C5C]"] { background-color: var(--navik-danger) !important; }
+/* Tailwind opacity variants are status tints, not solid action fills.  Keeping
+   them translucent preserves readable same-colour labels and icons. */
+.navik-daylight [class*="bg-[#00D4FF]/"] { background-color: rgba(44,104,114,.12) !important; }
+.navik-daylight [class*="bg-[#18C7A0]/"] { background-color: rgba(78,116,101,.12) !important; }
+.navik-daylight [class*="bg-[#FFB547]/"] { background-color: rgba(184,110,58,.12) !important; }
+.navik-daylight [class*="bg-[#FF5C5C]/"] { background-color: rgba(179,75,60,.12) !important; }
+.navik-daylight [class*="shadow-[0_0"], .navik-daylight [class*="shadow-2xl"], .navik-daylight [class*="shadow-xl"] { box-shadow: 0 10px 30px rgba(78, 65, 46, .16) !important; }
+.navik-daylight input, .navik-daylight select, .navik-daylight textarea { color: var(--navik-ink); }
+.navik-daylight select option { background: var(--navik-paper); color: var(--navik-ink); }
+
+.navik-daylight .maplibregl-popup-content { background: var(--navik-paper); border: 1px solid var(--navik-border); border-radius: 12px; box-shadow: 0 12px 32px rgba(37,58,55,.16); color: var(--navik-ink) !important; padding: 0; }
+.navik-daylight .maplibregl-popup-tip { border-top-color: var(--navik-paper); border-bottom-color: var(--navik-paper); }
+.navik-daylight .maplibregl-popup-close-button { color: var(--navik-muted); font-size: 18px; }
+.navik-daylight .maplibregl-popup-close-button:hover { background: transparent; color: var(--navik-ocean); }
+.navik-daylight .maplibregl-ctrl-group { border: 1px solid var(--navik-border); box-shadow: 0 4px 16px rgba(37,58,55,.12); }
+.navik-daylight .maplibregl-ctrl-group button { background-color: var(--navik-paper); }
+.navik-daylight .maplibregl-ctrl-group button:hover { background-color: #f1e9dc; }
+.navik-daylight .maplibregl-ctrl-attrib { background: rgba(249,242,230,.86); color: var(--navik-muted); }
+.navik-daylight .recharts-tooltip-wrapper .recharts-default-tooltip { background: var(--navik-paper) !important; border-color: var(--navik-border) !important; color: var(--navik-ink) !important; }
+
+@media (max-width: 640px) { .navik-daylight [class*="backdrop-blur"] { backdrop-filter: none; } }

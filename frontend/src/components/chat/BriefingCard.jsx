@@ -122,7 +122,7 @@ const BriefingCard = ({
             {/* Executive Summary */}
             {(synthesis.executive_summary || synthesis.summary) && (
               <div>
-                <p className="text-base text-white font-medium">{synthesis.executive_summary || synthesis.summary}</p>
+                <p className="text-base text-[#17303A] font-medium">{synthesis.executive_summary || synthesis.summary}</p>
               </div>
             )}
             {synthesis.plain_language_meaning && <p className="rounded-md border border-[#20384D]/70 bg-[#07111F]/55 px-3 py-2 text-xs text-[#8FA8B8]"><span className="font-semibold text-[#EAF4F8]">What this means:</span> {synthesis.plain_language_meaning}</p>}

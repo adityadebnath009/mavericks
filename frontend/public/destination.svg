@@ -7,8 +7,8 @@
 
     <!-- Vibrant Pin Body Gradient (Teal/Emerald for Destination) -->
     <linearGradient id="pointer-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2DD4BF"/>
-      <stop offset="100%" stop-color="#0D9488"/>
+      <stop offset="0%" stop-color="#6C917D"/>
+      <stop offset="100%" stop-color="#4E7465"/>
     </linearGradient>
 
     <!-- Inner Core Gradient -->
